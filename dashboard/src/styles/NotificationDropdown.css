@@ -1,0 +1,391 @@
+/* =========================================================
+   NOTIFICATION DROPDOWN
+========================================================= */
+
+.notification-dropdown {
+      position: absolute;
+
+      top: calc(100% + 10px);
+      right: -10px;
+
+      width: 370px;
+
+      box-sizing: border-box;
+
+      background: #ffffff;
+
+      border: 1px solid #eeeeee;
+      border-radius: 10px;
+
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+
+      overflow: hidden;
+
+      z-index: 1100;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.notification-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      gap: 15px;
+
+      padding: 15px 16px;
+
+      border-bottom: 1px solid #eeeeee;
+}
+
+.notification-header>div {
+      min-width: 0;
+}
+
+.notification-header h6 {
+      margin: 0;
+
+      font-size: 14px;
+      font-weight: 600;
+
+      color: #333333;
+}
+
+.notification-header span {
+      display: block;
+
+      margin-top: 3px;
+
+      font-size: 11px;
+      color: #999999;
+}
+
+.notification-header button {
+      flex-shrink: 0;
+
+      padding: 0;
+
+      border: none;
+
+      background: transparent;
+      color: #f05a28;
+
+      font-size: 11px;
+      font-weight: 500;
+
+      cursor: pointer;
+}
+
+.notification-header button:hover {
+      text-decoration: underline;
+}
+
+
+/* =========================================================
+   LIST
+========================================================= */
+
+.notification-list {
+      max-height: 360px;
+
+      overflow-y: auto;
+}
+
+
+/* Scrollbar */
+
+.notification-list::-webkit-scrollbar {
+      width: 5px;
+}
+
+.notification-list::-webkit-scrollbar-track {
+      background: #f8f9fa;
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+      background: #d6d6d6;
+      border-radius: 10px;
+}
+
+
+/* =========================================================
+   ITEM
+========================================================= */
+
+.notification-item {
+      position: relative;
+
+      width: 100%;
+
+      display: flex;
+      align-items: flex-start;
+
+      gap: 11px;
+
+      padding: 13px 16px;
+
+      box-sizing: border-box;
+
+      border: none;
+      border-bottom: 1px solid #f3f3f3;
+
+      background: #ffffff;
+
+      text-align: left;
+
+      cursor: pointer;
+
+      transition: background-color 0.2s ease;
+}
+
+.notification-item:hover {
+      background: #fafafa;
+}
+
+.notification-item:last-child {
+      border-bottom: none;
+}
+
+
+/* =========================================================
+   UNREAD
+========================================================= */
+
+.notification-item.notification-unread {
+      background: #fffaf7;
+}
+
+.notification-item.notification-unread:hover {
+      background: #fff6f1;
+}
+
+
+/* =========================================================
+   ICON
+========================================================= */
+
+.notification-item .notification-icon {
+      width: 34px;
+      height: 34px;
+
+      min-width: 34px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 50%;
+
+      background: #fff0e9;
+      color: #f05a28;
+
+      font-size: 14px;
+}
+
+
+/* =========================================================
+   CONTENT
+========================================================= */
+
+.notification-item .notification-content {
+      display: flex;
+      flex-direction: column;
+
+      gap: 3px;
+
+      min-width: 0;
+
+      flex: 1;
+}
+
+.notification-item .notification-content strong {
+      display: block;
+
+      font-size: 12px;
+      font-weight: 600;
+
+      color: #333333;
+
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+}
+
+.notification-item .notification-content span {
+      display: block;
+
+      font-size: 11px;
+
+      color: #777777;
+
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+}
+
+.notification-item .notification-content small {
+      margin-top: 2px;
+
+      font-size: 10px;
+      color: #aaaaaa;
+}
+
+
+/* =========================================================
+   UNREAD DOT
+========================================================= */
+
+.notification-item .notification-unread-dot {
+      width: 7px;
+      height: 7px;
+
+      min-width: 7px;
+
+      margin-top: 5px;
+
+      border-radius: 50%;
+
+      background: #f05a28;
+}
+
+
+/* =========================================================
+   DELETE BUTTON
+========================================================= */
+
+.notification-item .notification-delete-btn {
+      width: 30px;
+      height: 30px;
+
+      min-width: 30px;
+
+      flex-shrink: 0;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      padding: 0;
+
+      border: none;
+      border-radius: 6px;
+
+      background: transparent;
+
+      color: #9ca3af;
+
+      cursor: pointer;
+
+      transition: all 0.2s ease;
+}
+
+.notification-item .notification-delete-btn i {
+      font-size: 14px;
+}
+
+.notification-item .notification-delete-btn:hover {
+      background: #fee2e2;
+      color: #dc2626;
+}
+
+.notification-item .notification-delete-btn:active {
+      transform: scale(0.92);
+}
+
+
+/* =========================================================
+   PRIORITY
+========================================================= */
+
+.notification-item.notification-high {
+      border-left: 3px solid #dc3545;
+}
+
+.notification-item.notification-low {
+      opacity: 0.8;
+}
+
+
+/* =========================================================
+   EMPTY
+========================================================= */
+
+.notification-empty {
+      min-height: 150px;
+
+      display: flex;
+      flex-direction: column;
+
+      align-items: center;
+      justify-content: center;
+
+      padding: 30px 20px;
+
+      color: #999999;
+}
+
+.notification-empty i {
+      margin-bottom: 8px;
+
+      font-size: 25px;
+}
+
+.notification-empty p {
+      margin: 0;
+
+      font-size: 12px;
+}
+
+
+/* =========================================================
+   VIEW ALL
+========================================================= */
+
+.notification-view-all-btn {
+      width: 100%;
+
+      padding: 11px 16px;
+
+      border: none;
+      border-top: 1px solid #eeeeee;
+
+      background: #ffffff;
+
+      color: #f05a28;
+
+      font-size: 12px;
+      font-weight: 600;
+
+      cursor: pointer;
+
+      transition: background-color 0.2s ease;
+}
+
+.notification-view-all-btn:hover {
+      background: #fff8f5;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 480px) {
+
+      .notification-dropdown {
+            width: calc(100vw - 30px);
+
+            right: -55px;
+      }
+
+      .notification-item {
+            padding: 12px;
+      }
+
+      .notification-item .notification-content span {
+            max-width: 180px;
+      }
+}

@@ -1,0 +1,104 @@
+.stock-chart-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2100;
+}
+
+.stock-chart-popup {
+      width: 750px;
+      max-width: 90%;
+      background: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+}
+
+.stock-chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 22px;
+      border-bottom: 1px solid #eeeeee;
+}
+
+.stock-chart-header h5 {
+      margin: 0 0 4px;
+      font-size: 17px;
+      font-weight: 500;
+}
+
+.stock-chart-header small {
+      color: #777;
+      font-size: 12px;
+}
+
+.stock-chart-close {
+      border: none;
+      background: transparent;
+      font-size: 28px;
+      color: #666;
+      cursor: pointer;
+      line-height: 1;
+}
+
+.stock-chart-close:hover {
+      color: #222;
+}
+
+.stock-chart-information {
+      display: flex;
+      flex-direction: column;
+      padding: 18px 22px 10px;
+}
+
+.stock-chart-information strong {
+      font-size: 24px;
+      font-weight: 500;
+}
+
+.stock-chart-information span {
+      color: #777;
+      font-size: 12px;
+      margin-top: 3px;
+}
+
+.stock-chart-container {
+      height: 400px;
+      margin: 10px 22px 22px;
+      border: 1px solid #eeeeee;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #999;
+}
+
+.stock-chart-ranges {
+      display: flex;
+      gap: 8px;
+      padding: 0 22px 10px;
+}
+
+.stock-chart-ranges button {
+      border: 1px solid #dddddd;
+      background: #ffffff;
+      color: #555555;
+      padding: 5px 12px;
+      border-radius: 5px;
+      font-size: 12px;
+      cursor: pointer;
+}
+
+.stock-chart-ranges button:hover {
+      background-color: #f5f5f5;
+}
+
+.stock-chart-ranges button.active {
+      background-color: #f05a28;
+      border-color: #f05a28;
+      color: #ffffff;
+}

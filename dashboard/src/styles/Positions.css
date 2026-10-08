@@ -1,0 +1,109 @@
+.position-table {
+      overflow: hidden;
+}
+
+.position-table table {
+      margin-bottom: 0;
+}
+
+.position-table th {
+      font-size: 0.9rem;
+      color: #6c757d;
+      font-weight: 500;
+      white-space: nowrap;
+}
+
+.position-table td {
+      font-size: 0.9rem;
+      white-space: nowrap;
+}
+
+.position-table tbody tr {
+      border-bottom: 1px solid #eee;
+
+}
+
+.position-table thead tr th {
+      color: #6c757d;
+      padding-top: 1rem;
+      padding-bottom: 1rem;
+}
+
+.position-table tbody tr td {
+      color: #6c757d;
+}
+
+.position-table tbody tr:last-child {
+      border-bottom: none;
+}
+
+.position-table .company-name {
+      font-weight: 500;
+}
+
+.position-table .badge {
+      font-weight: 500;
+      padding: 6px 10px;
+}
+
+.position-filters {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+}
+
+.position-filters button {
+      border: 1px solid #d1d5db;
+      background-color: #ffffff;
+      color: #374151;
+      padding: 8px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition:
+            background-color 0.2s ease,
+            color 0.2s ease,
+            border-color 0.2s ease;
+}
+
+.position-filters button:hover {
+      background-color: #f3f4f6;
+}
+
+.position-filters button.active {
+      background-color: #198754;
+      border-color: #198754;
+      color: #ffffff;
+}
+
+@media (max-width: 576px) {
+      .position-filters {
+            gap: 8px;
+      }
+
+      .position-filters button {
+            padding: 7px 16px;
+            font-size: 13px;
+      }
+}
+
+.position-sort-dropdown {
+      width: 180px;
+      height: 35px;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      padding: 9px 35px 9px 12px;
+      font-size: 14px;
+      color: #343a40;
+      background-color: #fff;
+      cursor: pointer;
+      transition: all 0.2s ease;
+}
+
+.reserved-quantity {
+      color: #888;
+      font-size: 12px;
+}

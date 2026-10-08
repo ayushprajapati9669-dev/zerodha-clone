@@ -1,0 +1,82 @@
+.holding-table {
+      background-color: #ffffff;
+      border: 1px solid #e8e8e8;
+      border-radius: 8px;
+      overflow-x: auto;
+}
+
+.holding-table .table {
+      margin-bottom: 0;
+      min-width: 900px;
+}
+
+.holding-table th {
+      font-size: 14px;
+      font-weight: 500;
+      padding: 16px 18px;
+      border-bottom: 1px solid #e8e8e8;
+      white-space: nowrap;
+}
+
+.holding-table td {
+      font-size: 14px;
+      padding: 16px 18px;
+      vertical-align: middle;
+      border-bottom: 1px solid #f1f1f1;
+      white-space: nowrap;
+}
+
+.holding-table tbody tr:last-child td {
+      border-bottom: none;
+}
+
+.holding-table tbody tr:hover {
+      background-color: #fafafa;
+}
+
+/* Holdings Summary */
+
+.dashboard-card {
+      background-color: #ffffff;
+      border: 1px solid #e8e8e8;
+      border-radius: 8px;
+      overflow: hidden;
+}
+
+.dashboard-card-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid #e8e8e8;
+}
+
+.dashboard-card-header h5 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 500;
+}
+
+.dashboard-card .table {
+      margin-bottom: 0;
+}
+
+.dashboard-card th {
+      font-size: 14px;
+      font-weight: 500;
+      padding: 14px 20px;
+      border-bottom: 1px solid #eeeeee;
+}
+
+.dashboard-card td {
+      padding: 18px 20px;
+      font-size: 16px;
+      font-weight: 500;
+}
+
+/* Profit / Loss */
+
+.text-success {
+      color: #26a641 !important;
+}
+
+.text-danger {
+      color: #e53935 !important;
+}

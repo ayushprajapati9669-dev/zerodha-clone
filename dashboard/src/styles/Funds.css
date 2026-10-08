@@ -1,0 +1,385 @@
+.fund-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+}
+
+.fund-modal {
+      width: 400px;
+      max-width: 90%;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.fund-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid #dee2e6;
+}
+
+.fund-modal-header h5 {
+      margin: 0;
+}
+
+.fund-modal-header button {
+      border: none;
+      background: transparent;
+      font-size: 24px;
+      cursor: pointer;
+}
+
+.fund-modal-body {
+      padding: 20px;
+}
+
+.fund-modal-body label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+}
+
+.fund-modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 16px 20px;
+      border-top: 1px solid #dee2e6;
+}
+
+.fund-modal-body {
+      padding: 20px;
+}
+
+.fund-modal-body .form-control {
+      margin-top: 8px;
+}
+
+.fund-modal-body .invalid-feedback {
+      font-size: 12px;
+      margin-top: 5px;
+}
+
+.fund-modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+}
+
+/* Remove number input spinner arrows */
+.fund-modal-body input[type="number"]::-webkit-inner-spin-button,
+.fund-modal-body input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+}
+
+.fund-modal-body input[type="number"] {
+      -moz-appearance: textfield;
+}
+
+/* Withdraw modal */
+
+.withdraw-available-balance {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      padding: 14px 16px;
+      margin-bottom: 24px;
+
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+}
+
+.withdraw-available-balance span {
+      font-size: 14px;
+      color: #6c757d;
+}
+
+.withdraw-available-balance strong {
+      font-size: 16px;
+      font-weight: 600;
+      color: #212529;
+}
+
+.withdraw-amount-section label {
+      display: block;
+      margin-bottom: 8px;
+
+      font-size: 14px;
+      font-weight: 500;
+      color: #212529;
+}
+
+.withdraw-amount-section input {
+      height: 42px;
+}
+
+.withdraw-amount-section input:focus {
+      box-shadow: none;
+      border-color: #86b7fe;
+}
+
+/* Modal footer */
+
+.fund-modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+
+      margin-top: 28px;
+      padding-top: 16px;
+
+      border-top: 1px solid #dee2e6;
+}
+
+.fund-modal-footer button {
+      min-width: 100px;
+}
+
+.fund-breakdown {
+      margin-top: 32px;
+      background: #fff;
+      border: 1px solid #e9ecef;
+      border-radius: 10px;
+      padding: 20px;
+}
+
+.fund-breakdown-header {
+      margin-bottom: 18px;
+}
+
+.fund-breakdown-header h5 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+}
+
+.fund-breakdown-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+}
+
+.fund-breakdown-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+}
+
+.fund-breakdown-row span {
+      font-size: 14px;
+      color: #6c757d;
+}
+
+.fund-breakdown-row strong {
+      font-size: 14px;
+      font-weight: 600;
+      color: #212529;
+}
+
+.fund-breakdown-divider {
+      height: 1px;
+      background: #dee2e6;
+      margin: 4px 0;
+}
+
+.fund-breakdown-row.total span {
+      color: #212529;
+      font-weight: 600;
+}
+
+.fund-breakdown-row.total strong {
+      font-size: 16px;
+}
+
+.fund-transactions {
+      margin-top: 32px;
+      background: #fff;
+      border: 1px solid #e9ecef;
+      border-radius: 10px;
+      padding: 20px;
+}
+
+.fund-transactions-header {
+      margin-bottom: 18px;
+}
+
+.fund-transactions-header h5 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+}
+
+.fund-transactions-list {
+      display: flex;
+      flex-direction: column;
+}
+
+.fund-transaction-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid #f1f3f5;
+}
+
+.fund-transaction-row:last-child {
+      border-bottom: none;
+}
+
+.fund-transaction-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+}
+
+.fund-transaction-info>div:last-child {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+}
+
+.fund-transaction-info strong {
+      font-size: 14px;
+      font-weight: 500;
+}
+
+.fund-transaction-info small {
+      font-size: 12px;
+      color: #6c757d;
+}
+
+.fund-transaction-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+}
+
+.fund-transaction-icon.add {
+      background: #e9f7ef;
+      color: #198754;
+}
+
+.fund-transaction-icon.withdraw {
+      background: #fff0f0;
+      color: #dc3545;
+}
+
+.fund-transaction-amount {
+      font-size: 14px;
+}
+
+.fund-transaction-amount.add {
+      color: #198754;
+}
+
+.fund-transaction-amount.withdraw {
+      color: #dc3545;
+}
+
+.available-trade-section {
+      margin-top: 32px;
+      padding: 20px;
+      background: #fff;
+      border: 1px solid #e9ecef;
+      border-radius: 10px;
+}
+
+.available-trade-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+}
+
+.available-trade-header h5 {
+      margin: 0 0 4px;
+      font-size: 16px;
+      font-weight: 600;
+}
+
+.available-trade-header small {
+      color: #6c757d;
+      font-size: 12px;
+}
+
+.available-trade-header i {
+      font-size: 20px;
+      color: #198754;
+}
+
+.available-trade-amount {
+      margin: 20px 0;
+      font-size: 28px;
+      font-weight: 600;
+}
+
+.available-trade-details {
+      display: flex;
+      gap: 40px;
+      padding-top: 16px;
+      border-top: 1px solid #e9ecef;
+}
+
+.available-trade-details div {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+}
+
+.available-trade-details span {
+      font-size: 12px;
+      color: #6c757d;
+}
+
+.available-trade-details strong {
+      font-size: 14px;
+      font-weight: 500;
+}
+
+.no-transaction {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+
+      min-height: 250px;
+      padding: 30px;
+      margin: 20px 0;
+
+      background-color: #fafafa;
+      border: 1px solid #e5e5e5;
+      border-radius: 12px;
+
+      text-align: center;
+}
+
+.no-transaction-icon {
+      font-size: 42px;
+      margin-bottom: 12px;
+}
+
+.no-transaction h4 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+}
+
+.no-transaction p {
+      margin: 0;
+      font-size: 14px;
+      color: #777;
+}

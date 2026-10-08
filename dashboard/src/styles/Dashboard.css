@@ -1,0 +1,144 @@
+/* =========================
+   Summary Card
+========================= */
+
+.summary-card {
+      height: 100%;
+
+      background-color: #ffffff;
+      border: 1px solid #e7e7e7;
+      border-radius: 7px;
+
+      padding: 22px;
+}
+
+.summary-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      margin-bottom: 15px;
+
+      color: #777;
+      font-size: 14px;
+}
+
+.summary-card-header i {
+      font-size: 19px;
+      color: #f05a28;
+}
+
+.summary-card h3 {
+      margin-bottom: 6px;
+
+      font-size: 23px;
+      font-weight: 500;
+}
+
+.profit-text {
+      color: #2e9d55;
+}
+
+/* =========================
+   Dashboard Card
+========================= */
+
+.dashboard-card {
+      background-color: #ffffff;
+
+      border: 1px solid #e5e5e5;
+      border-radius: 7px;
+
+      overflow: hidden;
+}
+
+.dashboard-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      padding: 20px 22px;
+
+      border-bottom: 1px solid #eeeeee;
+}
+
+.dashboard-card-header h5 {
+      margin: 0 0 4px;
+
+      font-size: 16px;
+      font-weight: 500;
+}
+
+/* =========================
+   Quick Actions
+========================= */
+
+.quick-actions {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+
+      padding: 25px;
+}
+
+.quick-action-button {
+      min-height: 100px;
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+
+      gap: 10px;
+
+      border: 1px solid #e5e5e5;
+      border-radius: 6px;
+
+      background-color: #ffffff;
+
+      color: #555;
+
+      transition: 0.2s;
+}
+
+.quick-action-button i {
+      font-size: 24px;
+      color: #f05a28;
+}
+
+.quick-action-button:hover {
+      border-color: #f05a28;
+      color: #f05a28;
+}
+
+/* =========================
+   Responsive Dashboard
+========================= */
+
+@media (max-width: 991px) {
+      .quick-actions {
+            grid-template-columns: repeat(2, 1fr);
+      }
+}
+
+@media (max-width: 576px) {
+      .summary-card {
+            min-height: 130px;
+            padding: 18px;
+      }
+
+      .dashboard-card-header {
+            padding: 16px 18px;
+      }
+
+      .quick-actions {
+            grid-template-columns: 1fr;
+            gap: 12px;
+
+            padding: 18px;
+      }
+
+      .quick-action-button {
+            min-height: 80px;
+      }
+}

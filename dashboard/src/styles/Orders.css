@@ -1,0 +1,435 @@
+.orders-card {
+      overflow: hidden;
+}
+
+.orders-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+}
+
+.orders-header h5 {
+      margin-bottom: 3px;
+}
+
+.order-filters {
+      display: flex;
+      gap: 6px;
+}
+
+.order-filters button {
+      border: none;
+      background: transparent;
+      padding: 7px 14px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #666;
+      cursor: pointer;
+      transition: 0.2s ease;
+}
+
+.order-filters button:hover {
+      background: #f5f5f5;
+}
+
+.order-filters button.active {
+      background: #387ed1;
+      color: white;
+}
+
+.orders-table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+}
+
+.orders-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+}
+
+.orders-table th {
+      padding: 14px 18px;
+      text-align: left;
+      font-weight: 500;
+      color: #777;
+      background: #fafafa;
+      border-bottom: 1px solid #eee;
+      white-space: nowrap;
+}
+
+.orders-table td {
+      padding: 15px 18px;
+      border-bottom: 1px solid #eee;
+      color: #424242;
+      white-space: nowrap;
+}
+
+.orders-table tbody tr:hover {
+      background: #fafafa;
+}
+
+.company-info {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+}
+
+.company-info strong {
+      font-size: 14px;
+      color: #333;
+}
+
+.company-info span {
+      font-size: 12px;
+      color: #999;
+}
+
+.order-type {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 3px;
+}
+
+.order-type.buy {
+      color: #387ed1;
+      background: #eef6ff;
+}
+
+.order-type.sell {
+      color: #df514c;
+      background: #fff1f0;
+}
+
+.order-status {
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 9px;
+      border-radius: 3px;
+      text-transform: capitalize;
+}
+
+.order-status.completed {
+      color: #2e9b63;
+      background: #edf9f2;
+}
+
+.order-status.pending {
+      color: #c88a00;
+      background: #fff8e5;
+}
+
+.order-time {
+      color: #888 !important;
+      font-size: 13px;
+}
+
+@media (max-width: 768px) {
+      .orders-header {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 15px;
+      }
+
+      .order-filters {
+            width: 100%;
+      }
+
+      .order-filters button {
+            flex: 1;
+      }
+}
+
+.cancel-order-btn {
+      background-color: #fff0f0;
+      color: #dc3545;
+      border: 1px solid #dc3545;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+}
+
+.cancel-order-btn:hover {
+      background-color: #dc3545;
+      color: #ffffff;
+}
+
+.cancel-order-btn:active {
+      transform: scale(0.96);
+}
+
+.cancel-order-btn:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
+}
+
+.order-status.cancelled {
+      color: #dc3545;
+      background-color: #f8d7da;
+}
+
+.cancel-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1050;
+}
+
+.cancel-modal {
+      width: min(90%, 400px);
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.cancel-modal h5 {
+      margin-bottom: 12px;
+}
+
+.cancel-modal p {
+      color: #6c757d;
+      margin-bottom: 24px;
+}
+
+.cancel-modal-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+}
+
+.cancel-modal-actions button {
+      border: none;
+      border-radius: 6px;
+      padding: 8px 24px;
+      cursor: pointer;
+      font-weight: 500;
+}
+
+.cancel-no-btn {
+      background: #e9ecef;
+      color: #212529;
+}
+
+.cancel-yes-btn {
+      background: #dc3545;
+      color: #fff;
+}
+
+.order-details-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 13px;
+      border: 1px solid #198754;
+      border-radius: 6px;
+      background: #ffffff;
+      color: #198754;
+      font-weight: 500;
+      line-height: 1;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+}
+
+.order-details-btn:hover {
+      background-color: #198754;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(25, 135, 84, 0.18);
+}
+
+.order-details-btn:active {
+      transform: translateY(1px);
+}
+
+.order-details-btn:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.12);
+}
+
+.order-action-buttons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+}
+
+/* order-details-modal */
+.order-details-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1050;
+      padding: 20px;
+}
+
+.order-details-modal {
+      width: 100%;
+      max-width: 520px;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.18);
+      overflow: hidden;
+      animation: orderDetailsModalIn 0.2s ease-out;
+}
+
+.order-details-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 22px;
+      border-bottom: 1px solid #e9ecef;
+}
+
+.order-details-header h5 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #212529;
+}
+
+.order-details-header span {
+      display: block;
+      margin-top: 3px;
+      font-size: 13px;
+      color: #6c757d;
+}
+
+.order-details-close {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 50%;
+      background: #f1f3f5;
+      color: #495057;
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+      transition: all 0.2s ease;
+}
+
+.order-details-close:hover {
+      background: #e9ecef;
+      color: #212529;
+}
+
+.order-details-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      padding: 8px 22px;
+}
+
+.order-detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 13px 8px;
+      border-bottom: 1px solid #f1f3f5;
+}
+
+.order-detail-item span {
+      font-size: 12px;
+      color: #868e96;
+}
+
+.order-detail-item strong {
+      font-size: 14px;
+      font-weight: 500;
+      color: #212529;
+}
+
+.order-details-footer {
+      display: flex;
+      justify-content: flex-end;
+      padding: 15px 22px;
+      border-top: 1px solid #e9ecef;
+}
+
+.order-details-footer button {
+      padding: 7px 18px;
+      border: none;
+      border-radius: 6px;
+      background: #198754;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+}
+
+.order-details-footer button:hover {
+      background: #157347;
+}
+
+@keyframes orderDetailsModalIn {
+      from {
+            opacity: 0;
+            transform: translateY(-10px) scale(0.98);
+      }
+
+      to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+      }
+}
+
+@media (max-width: 576px) {
+      .order-details-modal {
+            max-width: 100%;
+      }
+
+      .order-details-body {
+            grid-template-columns: 1fr;
+      }
+}
+
+.order-sort-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+}
+
+.order-sort-container label {
+      font-size: 13px;
+      color: #6c757d;
+      white-space: nowrap;
+}
+
+.order-sort-select {
+      min-width: 155px;
+      padding: 8px 32px 8px 11px;
+
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+
+      background-color: #fff;
+      color: #495057;
+
+      font-size: 13px;
+      cursor: pointer;
+
+      outline: none;
+      transition: all 0.2s ease;
+}
+
+.order-sort-select:hover {
+      border-color: #adb5bd;
+}
+
+.order-sort-select:focus {
+      border-color: #198754;
+      box-shadow: 0 0 0 2px rgba(25, 135, 84, 0.1);
+}

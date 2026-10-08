@@ -1,0 +1,1468 @@
+/* ========================================
+   PORTFOLIO ALLOCATION CHART
+======================================== */
+
+.portfolio-allocation-chart {
+      width: 100%;
+      padding: 20px;
+      border: 1px solid #eeeeee;
+      border-radius: 12px;
+      background: #ffffff;
+      box-sizing: border-box;
+}
+
+
+/* ========================================
+   HEADER
+======================================== */
+
+.portfolio-allocation-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+}
+
+.portfolio-allocation-title {
+      display: flex;
+      align-items: center;
+}
+
+.portfolio-allocation-title h5 {
+      margin: 0;
+      color: #222222;
+      font-size: 17px;
+      font-weight: 600;
+}
+
+.portfolio-allocation-title span {
+      display: block;
+      margin-top: 3px;
+      color: #999999;
+      font-size: 11px;
+}
+
+
+/* ========================================
+   INVESTED / CURRENT TOGGLE
+======================================== */
+
+.allocation-toggle {
+      display: flex;
+      padding: 3px;
+      border: 1px solid #eeeeee;
+      border-radius: 7px;
+      background: #f8f8f8;
+}
+
+.allocation-toggle button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 5px;
+      background: transparent;
+      color: #777777;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+}
+
+.allocation-toggle button:hover {
+      color: #387ed1;
+}
+
+.allocation-toggle button.active {
+      background: #ffffff;
+      color: #387ed1;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+
+/* ========================================
+   CHART VIEW TOGGLE
+======================================== */
+
+.portfolio-chart-view-toggle {
+      display: flex;
+      gap: 18px;
+      margin-top: 18px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #eeeeee;
+}
+
+.portfolio-chart-view-toggle button {
+      position: relative;
+      padding: 5px 2px;
+      border: none;
+      background: transparent;
+      color: #888888;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+}
+
+.portfolio-chart-view-toggle button:hover {
+      color: #387ed1;
+}
+
+.portfolio-chart-view-toggle button.active {
+      color: #387ed1;
+      font-weight: 600;
+}
+
+.portfolio-chart-view-toggle button.active::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -9px;
+      height: 2px;
+      border-radius: 2px;
+      background: #387ed1;
+}
+
+
+/* ========================================
+   CHART WRAPPER
+======================================== */
+
+.portfolio-chart-wrapper {
+      position: relative;
+      width: 100%;
+}
+
+.portfolio-donut-container {
+      position: relative;
+      width: 100%;
+}
+
+
+/* ========================================
+   CHART CENTER
+======================================== */
+
+.portfolio-chart-center {
+      position: absolute;
+      top: 42%;
+      left: 50%;
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+
+      transform: translate(-50%, -50%);
+
+      pointer-events: none;
+      text-align: center;
+}
+
+.portfolio-chart-center strong {
+      color: #222222;
+      font-size: 17px;
+      font-weight: 600;
+      white-space: nowrap;
+}
+
+.portfolio-chart-center>span {
+      margin-top: 3px;
+      color: #999999;
+      font-size: 10px;
+}
+
+.portfolio-center-profit {
+      margin-top: 5px;
+      font-size: 10px;
+      font-weight: 600;
+      white-space: nowrap;
+}
+
+.portfolio-center-profit.profit {
+      color: #00a67d;
+}
+
+.portfolio-center-profit.loss {
+      color: #e53935;
+}
+
+
+/* ========================================
+   CHART LEGEND
+======================================== */
+
+.portfolio-legend-text {
+      color: #555555;
+      font-size: 10px;
+      font-weight: 500;
+}
+
+
+/* ========================================
+   CUSTOM TOOLTIP
+======================================== */
+
+.portfolio-custom-tooltip {
+      min-width: 165px;
+      padding: 11px 13px;
+
+      border: 1px solid #eeeeee;
+      border-radius: 8px;
+
+      background: #ffffff;
+
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.portfolio-custom-tooltip>strong {
+      display: block;
+      color: #222222;
+      font-size: 13px;
+      font-weight: 600;
+}
+
+.portfolio-custom-tooltip>span {
+      display: block;
+      margin-top: 2px;
+      margin-bottom: 8px;
+
+      color: #999999;
+      font-size: 10px;
+}
+
+.portfolio-custom-tooltip>b {
+      display: block;
+      color: #222222;
+      font-size: 13px;
+}
+
+.portfolio-custom-tooltip>div {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      margin-top: 6px;
+}
+
+.portfolio-custom-tooltip small {
+      color: #999999;
+      font-size: 10px;
+}
+
+.portfolio-custom-tooltip div b {
+      color: #444444;
+      font-size: 11px;
+}
+
+
+/* ========================================
+   DAY P&L
+======================================== */
+
+.portfolio-day-pnl {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      margin-top: 8px;
+      padding: 13px 15px;
+
+      border: 1px solid #eeeeee;
+      border-radius: 9px;
+
+      background: #fafafa;
+}
+
+.portfolio-day-pnl>div {
+      display: flex;
+      flex-direction: column;
+}
+
+.portfolio-day-pnl span {
+      color: #777777;
+      font-size: 11px;
+}
+
+.portfolio-day-pnl strong {
+      margin-top: 3px;
+      font-size: 14px;
+}
+
+.portfolio-day-pnl>span {
+      font-size: 12px;
+      font-weight: 600;
+}
+
+
+/* ========================================
+   COMMON PROFIT / LOSS
+======================================== */
+
+.text-success {
+      color: #00a67d !important;
+}
+
+.text-danger {
+      color: #e53935 !important;
+}
+
+
+/* ========================================
+   PORTFOLIO SUMMARY
+======================================== */
+
+.portfolio-allocation-summary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+
+      margin-top: 15px;
+}
+
+.portfolio-summary-item {
+      display: flex;
+      flex-direction: column;
+
+      padding: 12px;
+
+      border: 1px solid #eeeeee;
+      border-radius: 8px;
+
+      background: #ffffff;
+}
+
+.portfolio-summary-item span {
+      color: #888888;
+      font-size: 10px;
+}
+
+.portfolio-summary-item strong {
+      margin-top: 4px;
+      color: #222222;
+      font-size: 13px;
+      font-weight: 600;
+}
+
+
+/* ========================================
+   BEST / WORST PERFORMER
+======================================== */
+
+.portfolio-performance-section {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-top: 18px;
+}
+
+.portfolio-performance-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      padding: 16px;
+
+      border: 1px solid #eeeeee;
+      border-radius: 10px;
+
+      background: #ffffff;
+
+      transition: all 0.2s ease;
+}
+
+.portfolio-performance-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 16px rgba(0, 0, 0, 0.07);
+}
+
+.portfolio-performance-card.best {
+      border-left: 4px solid #00b386;
+}
+
+.portfolio-performance-card.worst {
+      border-left: 4px solid #e53935;
+}
+
+.portfolio-performance-icon {
+      width: 38px;
+      height: 38px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 50%;
+
+      background: #f7f7f7;
+
+      font-size: 19px;
+
+      flex-shrink: 0;
+}
+
+.portfolio-performance-info {
+      display: flex;
+      flex-direction: column;
+
+      min-width: 0;
+      flex: 1;
+}
+
+.portfolio-performance-info span {
+      color: #777777;
+      font-size: 12px;
+}
+
+.portfolio-performance-info strong {
+      color: #222222;
+      font-size: 15px;
+}
+
+.portfolio-performance-info small {
+      margin-top: 2px;
+
+      color: #999999;
+      font-size: 11px;
+
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+}
+
+.portfolio-performance-value {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+
+      white-space: nowrap;
+}
+
+.portfolio-performance-value strong {
+      font-size: 14px;
+}
+
+.portfolio-performance-value span {
+      margin-top: 2px;
+      font-size: 12px;
+}
+
+
+/* ========================================
+   PORTFOLIO CONCENTRATION
+======================================== */
+
+.portfolio-concentration-section {
+      margin-top: 18px;
+      padding: 16px;
+
+      border: 1px solid #eeeeee;
+      border-radius: 10px;
+
+      background: #ffffff;
+}
+
+.portfolio-concentration-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+}
+
+.portfolio-concentration-header>div:first-child {
+      display: flex;
+      flex-direction: column;
+}
+
+.portfolio-concentration-header span {
+      color: #777777;
+      font-size: 12px;
+}
+
+.portfolio-concentration-header strong {
+      margin-top: 2px;
+      color: #222222;
+      font-size: 15px;
+}
+
+.portfolio-concentration-percentage {
+      color: #387ed1;
+      font-size: 18px;
+      font-weight: 600;
+}
+
+.portfolio-concentration-bar {
+      width: 100%;
+      height: 7px;
+
+      margin-top: 13px;
+
+      overflow: hidden;
+
+      border-radius: 10px;
+
+      background: #eeeeee;
+}
+
+.portfolio-concentration-progress {
+      height: 100%;
+
+      border-radius: inherit;
+
+      background: #387ed1;
+
+      transition: width 0.5s ease;
+}
+
+.portfolio-concentration-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+
+      margin-top: 9px;
+}
+
+.portfolio-concentration-footer span {
+      color: #387ed1;
+      font-size: 12px;
+      font-weight: 600;
+}
+
+.portfolio-concentration-footer small {
+      color: #999999;
+      font-size: 11px;
+}
+
+
+/* ========================================
+   TOP THREE HOLDINGS
+======================================== */
+
+.top-three-section {
+      margin-top: 18px;
+}
+
+.top-three-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      margin-bottom: 9px;
+}
+
+.top-three-header span {
+      color: #222222;
+      font-size: 13px;
+      font-weight: 600;
+}
+
+.top-three-header small {
+      color: #999999;
+      font-size: 10px;
+}
+
+.top-three-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+}
+
+.top-three-item {
+      width: 100%;
+
+      display: grid;
+      grid-template-columns: 32px minmax(0, 1fr) auto auto;
+      align-items: center;
+
+      gap: 10px;
+
+      padding: 11px 12px;
+
+      border: 1px solid #eeeeee;
+      border-radius: 8px;
+
+      background: #ffffff;
+
+      text-align: left;
+
+      cursor: pointer;
+
+      transition: all 0.2s ease;
+}
+
+.top-three-item:hover {
+      background: #f8fbff;
+      border-color: #d8e8f8;
+}
+
+.top-three-rank {
+      color: #999999;
+      font-size: 11px;
+      font-weight: 600;
+}
+
+.top-three-info {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+}
+
+.top-three-info strong {
+      color: #222222;
+      font-size: 12px;
+}
+
+.top-three-info small {
+      margin-top: 2px;
+
+      color: #999999;
+      font-size: 9px;
+
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+}
+
+.top-three-value {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+}
+
+.top-three-value strong {
+      color: #333333;
+      font-size: 11px;
+}
+
+.top-three-value span {
+      margin-top: 2px;
+      color: #999999;
+      font-size: 9px;
+}
+
+.top-three-pnl {
+      min-width: 60px;
+
+      text-align: right;
+
+      font-size: 11px;
+      font-weight: 600;
+}
+
+.top-three-pnl.profit {
+      color: #00a67d;
+}
+
+.top-three-pnl.loss {
+      color: #e53935;
+}
+
+
+/* ========================================
+   TOP HOLDING
+======================================== */
+
+.top-holding {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      margin-top: 18px;
+      padding: 14px 16px;
+
+      border: 1px solid #eeeeee;
+      border-radius: 10px;
+
+      background: #fafafa;
+}
+
+.top-holding>div:first-child {
+      display: flex;
+      flex-direction: column;
+}
+
+.top-holding>div:first-child>span {
+      color: #777777;
+      font-size: 11px;
+}
+
+.top-holding>div:first-child>strong {
+      margin-top: 2px;
+      color: #222222;
+      font-size: 14px;
+}
+
+.top-holding>div:first-child>small {
+      margin-top: 2px;
+      color: #999999;
+      font-size: 10px;
+}
+
+.top-holding-value {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+}
+
+.top-holding-value span {
+      color: #777777;
+      font-size: 10px;
+}
+
+.top-holding-value strong {
+      margin-top: 2px;
+      color: #387ed1;
+      font-size: 16px;
+}
+
+
+/* ========================================
+   FULL BREAKDOWN BUTTON
+======================================== */
+
+.portfolio-breakdown-button {
+      width: 100%;
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      margin-top: 18px;
+      padding: 12px 15px;
+
+      border: 1px solid #eeeeee;
+      border-radius: 8px;
+
+      background: #ffffff;
+
+      color: #387ed1;
+
+      font-size: 13px;
+      font-weight: 600;
+
+      cursor: pointer;
+
+      transition: all 0.2s ease;
+}
+
+.portfolio-breakdown-button:hover {
+      background: #f8fbff;
+      border-color: #d8e8f8;
+}
+
+
+/* ========================================
+   FULL PORTFOLIO BREAKDOWN
+======================================== */
+
+.portfolio-breakdown-section {
+      margin-top: 12px;
+
+      border: 1px solid #eeeeee;
+      border-radius: 10px;
+
+      overflow: hidden;
+
+      background: #ffffff;
+}
+
+.portfolio-breakdown-header {
+      padding: 15px 16px;
+
+      border-bottom: 1px solid #eeeeee;
+
+      background: #fafafa;
+}
+
+.portfolio-breakdown-header>div {
+      display: flex;
+      flex-direction: column;
+}
+
+.portfolio-breakdown-header strong {
+      color: #222222;
+      font-size: 14px;
+}
+
+.portfolio-breakdown-header span {
+      margin-top: 2px;
+      color: #999999;
+      font-size: 11px;
+}
+
+.portfolio-breakdown-table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+}
+
+.portfolio-breakdown-table {
+      width: 100%;
+      min-width: 850px;
+
+      border-collapse: collapse;
+}
+
+.portfolio-breakdown-table th {
+      padding: 11px 12px;
+
+      border-bottom: 1px solid #eeeeee;
+
+      background: #fafafa;
+
+      color: #777777;
+
+      font-size: 11px;
+      font-weight: 600;
+
+      text-align: right;
+
+      white-space: nowrap;
+}
+
+.portfolio-breakdown-table th:first-child {
+      text-align: left;
+}
+
+.portfolio-breakdown-table td {
+      padding: 13px 12px;
+
+      border-bottom: 1px solid #f1f1f1;
+
+      color: #444444;
+
+      font-size: 12px;
+
+      text-align: right;
+
+      white-space: nowrap;
+}
+
+.portfolio-breakdown-table td:first-child {
+      text-align: left;
+}
+
+.portfolio-breakdown-table tbody tr {
+      cursor: pointer;
+      transition: background 0.15s ease;
+}
+
+.portfolio-breakdown-table tbody tr:hover {
+      background: #f8fbff;
+}
+
+.portfolio-breakdown-table tbody tr:last-child td {
+      border-bottom: none;
+}
+
+
+/* ========================================
+   BREAKDOWN STOCK
+======================================== */
+
+.breakdown-stock {
+      display: flex;
+      flex-direction: column;
+}
+
+.breakdown-stock strong {
+      color: #222222;
+      font-size: 13px;
+}
+
+.breakdown-stock small {
+      margin-top: 2px;
+
+      color: #999999;
+      font-size: 10px;
+}
+
+
+/* ========================================
+   BREAKDOWN PROFIT / LOSS
+======================================== */
+
+.breakdown-profit {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+}
+
+.breakdown-profit strong {
+      font-size: 12px;
+}
+
+.breakdown-profit small {
+      margin-top: 2px;
+      font-size: 10px;
+}
+
+.breakdown-profit.profit strong,
+.breakdown-profit.profit small {
+      color: #00a67d;
+}
+
+.breakdown-profit.loss strong,
+.breakdown-profit.loss small {
+      color: #e53935;
+}
+
+
+/* ========================================
+   CHART HINT
+======================================== */
+
+.portfolio-chart-hint {
+      margin-top: 14px;
+
+      color: #aaaaaa;
+
+      font-size: 10px;
+
+      text-align: center;
+}
+
+
+/* ========================================
+   OTHERS POPUP OVERLAY
+======================================== */
+
+.portfolio-others-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1050;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      padding: 20px;
+
+      background: rgba(0, 0, 0, 0.35);
+}
+
+
+/* ========================================
+   OTHERS POPUP
+======================================== */
+
+.portfolio-others-popup {
+      width: 100%;
+      max-width: 500px;
+      max-height: 80vh;
+
+      display: flex;
+      flex-direction: column;
+
+      border-radius: 12px;
+
+      background: #ffffff;
+
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.18);
+
+      overflow: hidden;
+}
+
+
+/* ========================================
+   OTHERS HEADER
+======================================== */
+
+.portfolio-others-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      padding: 16px;
+
+      border-bottom: 1px solid #eeeeee;
+}
+
+.portfolio-others-header>div {
+      display: flex;
+      flex-direction: column;
+}
+
+.portfolio-others-header h5 {
+      margin: 0;
+
+      color: #222222;
+
+      font-size: 15px;
+      font-weight: 600;
+}
+
+.portfolio-others-header span {
+      margin-top: 2px;
+
+      color: #999999;
+
+      font-size: 10px;
+}
+
+.portfolio-others-header button {
+      width: 30px;
+      height: 30px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border: none;
+      border-radius: 50%;
+
+      background: #f5f5f5;
+
+      color: #555555;
+
+      font-size: 20px;
+      line-height: 1;
+
+      cursor: pointer;
+
+      transition: all 0.2s ease;
+}
+
+.portfolio-others-header button:hover {
+      background: #eeeeee;
+      color: #222222;
+}
+
+
+/* ========================================
+   OTHERS SEARCH
+======================================== */
+
+.portfolio-others-search {
+      padding: 12px 16px 8px;
+}
+
+.portfolio-others-search input {
+      width: 100%;
+
+      box-sizing: border-box;
+
+      padding: 9px 11px;
+
+      border: 1px solid #dddddd;
+      border-radius: 7px;
+
+      outline: none;
+
+      color: #333333;
+
+      font-size: 12px;
+
+      transition: border-color 0.2s ease;
+}
+
+.portfolio-others-search input:focus {
+      border-color: #387ed1;
+}
+
+.portfolio-others-search input::placeholder {
+      color: #aaaaaa;
+}
+
+
+/* ========================================
+   OTHERS SORT
+======================================== */
+
+.portfolio-others-sort {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      padding: 5px 16px 10px;
+}
+
+.portfolio-others-sort span {
+      color: #777777;
+      font-size: 11px;
+}
+
+.portfolio-others-sort select {
+      padding: 5px 8px;
+
+      border: 1px solid #dddddd;
+      border-radius: 5px;
+
+      outline: none;
+
+      background: #ffffff;
+
+      color: #555555;
+
+      font-size: 10px;
+
+      cursor: pointer;
+}
+
+
+/* ========================================
+   OTHERS LIST
+======================================== */
+
+.portfolio-others-list {
+      flex: 1;
+
+      padding: 0 8px 10px;
+
+      overflow-y: auto;
+}
+
+.portfolio-other-stock {
+      width: 100%;
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      gap: 10px;
+
+      padding: 10px 8px;
+
+      border: none;
+      border-bottom: 1px solid #f1f1f1;
+
+      background: #ffffff;
+
+      text-align: left;
+
+      cursor: pointer;
+
+      transition: background 0.15s ease;
+}
+
+.portfolio-other-stock:hover {
+      background: #f8fbff;
+}
+
+.portfolio-other-stock:last-child {
+      border-bottom: none;
+}
+
+
+/* ========================================
+   OTHER STOCK LEFT
+======================================== */
+
+.portfolio-other-stock-left {
+      display: flex;
+      align-items: center;
+
+      min-width: 0;
+
+      gap: 9px;
+}
+
+.portfolio-other-stock-left>div {
+      display: flex;
+      flex-direction: column;
+
+      min-width: 0;
+}
+
+.portfolio-other-color {
+      width: 9px;
+      height: 9px;
+
+      flex-shrink: 0;
+
+      border-radius: 50%;
+}
+
+.portfolio-other-stock-left strong {
+      color: #222222;
+      font-size: 12px;
+}
+
+.portfolio-other-stock-left small {
+      margin-top: 2px;
+
+      max-width: 180px;
+
+      color: #999999;
+
+      font-size: 9px;
+
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+}
+
+
+/* ========================================
+   OTHER STOCK RIGHT
+======================================== */
+
+.portfolio-other-stock-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+
+      flex-shrink: 0;
+}
+
+.portfolio-other-stock-right>strong {
+      color: #333333;
+      font-size: 11px;
+}
+
+.portfolio-other-stock-right>span {
+      margin-top: 2px;
+      color: #999999;
+      font-size: 9px;
+}
+
+.portfolio-other-stock-right small {
+      margin-top: 2px;
+      font-size: 9px;
+}
+
+
+/* ========================================
+   NO RESULTS
+======================================== */
+
+.portfolio-no-results {
+      padding: 30px 15px;
+
+      color: #999999;
+
+      font-size: 12px;
+
+      text-align: center;
+}
+
+
+/* ========================================
+   EMPTY STATE
+======================================== */
+
+.portfolio-empty-state {
+      min-height: 220px;
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+
+      text-align: center;
+}
+
+.portfolio-empty-icon {
+      margin-bottom: 10px;
+
+      color: #bbbbbb;
+
+      font-size: 38px;
+}
+
+.portfolio-empty-state strong {
+      color: #444444;
+      font-size: 14px;
+}
+
+.portfolio-empty-state span {
+      max-width: 280px;
+
+      margin-top: 5px;
+
+      color: #999999;
+
+      font-size: 11px;
+      line-height: 1.5;
+}
+
+
+/* ========================================
+   RESPONSIVE - TABLET
+======================================== */
+
+@media (max-width: 992px) {
+      .portfolio-allocation-summary {
+            grid-template-columns: repeat(2, 1fr);
+      }
+
+      .portfolio-performance-section {
+            grid-template-columns: 1fr;
+      }
+}
+
+
+/* ========================================
+   RESPONSIVE - MOBILE
+======================================== */
+
+@media (max-width: 768px) {
+      .portfolio-allocation-chart {
+            padding: 15px;
+      }
+
+      .portfolio-performance-section {
+            grid-template-columns: 1fr;
+      }
+
+      .portfolio-performance-card {
+            padding: 14px;
+      }
+
+      .portfolio-concentration-footer {
+            flex-direction: column;
+            gap: 3px;
+      }
+
+      .portfolio-breakdown-table {
+            min-width: 800px;
+      }
+
+      .top-three-item {
+            grid-template-columns: 28px minmax(0, 1fr) auto;
+      }
+
+      .top-three-pnl {
+            display: none;
+      }
+}
+
+
+/* ========================================
+   RESPONSIVE - SMALL MOBILE
+======================================== */
+
+@media (max-width: 576px) {
+      .portfolio-allocation-chart {
+            padding: 12px;
+      }
+
+      .portfolio-allocation-header {
+            align-items: flex-start;
+      }
+
+      .portfolio-allocation-title h5 {
+            font-size: 15px;
+      }
+
+      .allocation-toggle button {
+            padding: 5px 9px;
+            font-size: 10px;
+      }
+
+      .portfolio-chart-view-toggle {
+            margin-top: 14px;
+      }
+
+      .portfolio-chart-view-toggle button {
+            font-size: 11px;
+      }
+
+      .portfolio-performance-card {
+            gap: 9px;
+            padding: 12px;
+      }
+
+      .portfolio-performance-icon {
+            width: 34px;
+            height: 34px;
+            font-size: 16px;
+      }
+
+      .portfolio-performance-info strong {
+            font-size: 14px;
+      }
+
+      .portfolio-performance-info small {
+            max-width: 100px;
+      }
+
+      .portfolio-performance-value strong {
+            font-size: 13px;
+      }
+
+      .portfolio-performance-value span {
+            font-size: 11px;
+      }
+
+      .portfolio-concentration-section {
+            padding: 13px;
+      }
+
+      .portfolio-concentration-percentage {
+            font-size: 16px;
+      }
+
+      .portfolio-breakdown-button {
+            font-size: 12px;
+      }
+
+      .portfolio-summary-item {
+            padding: 10px;
+      }
+
+      .portfolio-summary-item strong {
+            font-size: 12px;
+      }
+
+      .top-three-item {
+            grid-template-columns: 25px minmax(0, 1fr) auto;
+            gap: 7px;
+            padding: 10px 8px;
+      }
+
+      .top-three-value strong {
+            font-size: 10px;
+      }
+
+      .top-holding {
+            padding: 12px;
+      }
+
+      .portfolio-others-overlay {
+            padding: 10px;
+      }
+
+      .portfolio-others-popup {
+            max-height: 85vh;
+      }
+}
+
+
+/* ========================================
+   VERY SMALL MOBILE
+======================================== */
+
+@media (max-width: 400px) {
+      .portfolio-allocation-header {
+            flex-direction: column;
+            gap: 10px;
+      }
+
+      .allocation-toggle {
+            align-self: flex-start;
+      }
+
+      .portfolio-allocation-summary {
+            gap: 7px;
+      }
+
+      .portfolio-summary-item span {
+            font-size: 9px;
+      }
+
+      .portfolio-summary-item strong {
+            font-size: 11px;
+      }
+
+      .portfolio-chart-center strong {
+            font-size: 15px;
+      }
+
+      .portfolio-chart-center>span {
+            font-size: 9px;
+      }
+
+      .portfolio-center-profit {
+            font-size: 9px;
+      }
+
+      .portfolio-other-stock-left small {
+            max-width: 130px;
+      }
+}

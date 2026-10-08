@@ -1,0 +1,124 @@
+.order-toast {
+      position: fixed;
+      top: 80px;
+      right: 24px;
+      z-index: 9999;
+
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      width: 350px;
+      padding: 14px 16px;
+
+      background: #ffffff;
+      border: 1px solid #e2e8e5;
+      border-left: 4px solid #198754;
+      border-radius: 8px;
+
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+      animation: orderToastSlideIn 0.3s ease-out;
+}
+
+.order-toast-icon {
+      flex-shrink: 0;
+
+      width: 36px;
+      height: 36px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 50%;
+      font-size: 17px;
+}
+
+/* Buy */
+.order-toast.buy .order-toast-icon {
+      background: #e9f7ef;
+      color: #198754;
+}
+
+/* Sell */
+.order-toast.sell .order-toast-icon {
+      background: #fdecec;
+      color: #dc3545;
+}
+
+/* Cancel */
+.order-toast.cancelled .order-toast-icon {
+      background: #fff4e5;
+      color: #f08c00;
+}
+
+.order-toast-content {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      flex: 1;
+      min-width: 0;
+}
+
+.order-toast-content strong {
+      font-size: 14px;
+      font-weight: 600;
+      color: #212529;
+}
+
+.order-toast-content span {
+      font-size: 12px;
+      color: #6c757d;
+}
+
+.order-toast button {
+      flex-shrink: 0;
+
+      width: 28px;
+      height: 28px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      padding: 0;
+      border: none;
+      border-radius: 5px;
+
+      background: transparent;
+      color: #6c757d;
+
+      font-size: 20px;
+      cursor: pointer;
+
+      transition: all 0.2s ease;
+}
+
+.order-toast button:hover {
+      background: #f1f3f5;
+      color: #212529;
+}
+
+@keyframes orderToastSlideIn {
+      from {
+            opacity: 0;
+            transform: translateX(30px);
+      }
+
+      to {
+            opacity: 1;
+            transform: translateX(0);
+      }
+}
+
+@media (max-width: 576px) {
+      .order-toast {
+            top: 70px;
+            right: 12px;
+            left: 12px;
+
+            width: auto;
+      }
+}

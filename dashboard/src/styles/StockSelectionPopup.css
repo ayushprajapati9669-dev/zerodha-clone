@@ -1,0 +1,231 @@
+/* =========================
+   Overlay
+========================= */
+
+.stock-selection-overlay {
+      position: fixed;
+      inset: 0;
+
+      background: rgba(0, 0, 0, 0.45);
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      z-index: 2000;
+}
+
+/* =========================
+   Popup
+========================= */
+
+.stock-selection-popup {
+      width: 420px;
+      max-width: 90%;
+      max-height: 80vh;
+
+      background: #ffffff;
+      border-radius: 10px;
+
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
+
+      overflow: hidden;
+}
+
+/* =========================
+   Header
+========================= */
+
+.stock-selection-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      padding: 18px 20px;
+
+      border-bottom: 1px solid #eeeeee;
+}
+
+.stock-selection-header h5 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 500;
+}
+
+.stock-selection-close {
+      border: none;
+      background: transparent;
+
+      font-size: 28px;
+      color: #666;
+
+      cursor: pointer;
+      line-height: 1;
+
+      transition: color 0.15s ease;
+}
+
+.stock-selection-close:hover {
+      color: #222;
+}
+
+/* =========================
+   Search
+========================= */
+
+.stock-selection-search {
+      position: relative;
+
+      display: flex;
+      align-items: center;
+
+      margin: 12px 20px 15px;
+}
+
+.stock-selection-search-icon {
+      position: absolute;
+      left: 10px;
+
+      color: #777;
+      font-size: 20px !important;
+}
+
+.stock-selection-search input {
+      width: 100%;
+
+      padding: 8px 38px 8px 36px;
+
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+
+      outline: none;
+
+      font-size: 14px;
+
+      transition: border-color 0.2s ease,
+            box-shadow 0.2s ease;
+}
+
+.stock-selection-search input:focus {
+      border-color: #198754;
+      box-shadow: 0 0 0 2px rgba(25, 135, 84, 0.1);
+}
+
+.stock-selection-search input::placeholder {
+      color: #999;
+}
+
+.stock-selection-clear {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+
+      transform: translateY(-50%);
+
+      border: none;
+      background: transparent;
+
+      color: #777;
+
+      font-size: 20px;
+      line-height: 1;
+
+      cursor: pointer;
+
+      padding: 0;
+}
+
+.stock-selection-clear:hover {
+      color: #222;
+}
+
+/* =========================
+   Stock List
+========================= */
+
+.stock-selection-list {
+      max-height: 450px;
+
+      overflow-y: auto;
+
+      padding-bottom: 8px;
+}
+
+/* =========================
+   Stock Item
+========================= */
+
+.stock-selection-item {
+      width: 100%;
+
+      border: none;
+      border-top: 1px solid #f1f1f1;
+
+      background: #ffffff;
+
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      padding: 13px 20px;
+
+      text-align: left;
+
+      cursor: pointer;
+
+      transition: background-color 0.15s ease;
+}
+
+.stock-selection-item:hover {
+      background-color: #f8f9fa;
+}
+
+/* =========================
+   Stock Information
+========================= */
+
+.stock-selection-information {
+      display: flex;
+      flex-direction: column;
+
+      gap: 3px;
+
+      min-width: 0;
+}
+
+.stock-selection-information strong {
+      font-size: 14px;
+      font-weight: 500;
+}
+
+.stock-selection-information small {
+      color: #777;
+      font-size: 12px;
+
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+}
+
+/* =========================
+   Stock Price
+========================= */
+
+.stock-selection-price {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+
+      gap: 3px;
+
+      margin-left: 15px;
+}
+
+.stock-selection-price strong {
+      font-size: 14px;
+      font-weight: 500;
+}
+
+.stock-selection-price small {
+      font-size: 12px;
+}
