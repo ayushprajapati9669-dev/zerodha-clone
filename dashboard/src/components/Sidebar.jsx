@@ -54,6 +54,16 @@ function Sidebar() {
           <i className="bi bi-wallet2"></i>
           <span>Funds</span>
         </NavLink>
+
+        <NavLink to={"/journal"} className="sidebar-link">
+          <i className="bi bi-journal-text"></i>
+          <span>Journal</span>
+        </NavLink>
+
+        <NavLink to={"/backtest"} className="sidebar-link">
+          <i className="bi bi-cpu"></i>
+          <span>Backtest</span>
+        </NavLink>
       </div>
 
       {/* Bottom menu */}

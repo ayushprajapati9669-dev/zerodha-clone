@@ -9,6 +9,8 @@ import AIAssistant from "./components/AIAssistant";
 import Notifications from "./pages/Notifications";
 import PortfolioAnalytics from "./pages/PortfolioAnalytics";
 import RiskManagement from "./pages/RiskManagement";
+import TradingJournal from "./pages/TradingJournal";
+import StrategyBacktest from "./pages/StrategyBacktest";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import AppProvider from "./context/AppContext";
@@ -37,6 +39,8 @@ function App() {
             <Route path="/funds" element={<Funds />} />
             <Route path="/ai-assistant" element={<AIAssistant />} />
             <Route path="/notifications" element={<Notifications />} />
+            <Route path="/journal" element={<TradingJournal />} />
+            <Route path="/backtest" element={<StrategyBacktest />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

@@ -20,6 +20,8 @@ import aiRoutes from "./routes/aiRoutes.js";
 import marketRoutes from "./routes/marketRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
 import riskRoutes from "./routes/riskRoutes.js";
+import journalRoutes from "./routes/journalRoutes.js";
+import backtestRoutes from "./routes/backtestRoutes.js";
 
 import { connectTrueData } from "./services/trueDataService.js";
 
@@ -88,6 +90,10 @@ app.use("/api/market", marketRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
 app.use("/api/risk", riskRoutes);
+
+app.use("/api/journal", journalRoutes);
+
+app.use("/api/backtest", backtestRoutes);
 
 
 // ===============================

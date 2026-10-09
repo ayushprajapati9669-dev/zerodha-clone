@@ -36,9 +36,7 @@ function Holdings() {
     const symbol = String(holding?.symbol ?? "").toLowerCase();
     const companyName = String(holding?.companyName ?? "").toLowerCase();
 
-    return (
-      symbol.includes(searchValue) || companyName.includes(searchValue)
-    );
+    return symbol.includes(searchValue) || companyName.includes(searchValue);
   });
 
   const filteredAndSortedHoldings = [...filteredHoldings].sort((a, b) => {
