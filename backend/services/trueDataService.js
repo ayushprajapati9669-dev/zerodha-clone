@@ -528,6 +528,10 @@ export const getTrueDataPrices = () => {
 
 };
 
+export const getAllLivePrices = () => {
+      return getTrueDataPrices();
+};
+
 
 // =====================================================
 // GET SYMBOL LIST
