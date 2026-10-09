@@ -28,6 +28,7 @@ function ProtectedRoute({ children }) {
   }
 
   if (!isAuthenticated) {
+    // Login frontend runs on 5173; this dashboard runs on 5174
     window.location.href = "http://localhost:5173/login";
     return null;
   }

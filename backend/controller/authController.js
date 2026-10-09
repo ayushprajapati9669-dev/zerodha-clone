@@ -11,7 +11,27 @@ const registerUser = async (req, res) => {
       try {
 
             // 1. Request body se data lena
-            const { name, email, mobile, password } = req.body;
+            const { name, email, mobile, password, verificationToken } = req.body;
+
+            // 2. Verify mobile OTP token
+            if (!verificationToken) {
+                  return res.status(400).json({
+                        success: false,
+                        message: "Mobile number must be verified before registration",
+                  });
+            }
+
+            try {
+                  const decoded = jwt.verify(verificationToken, process.env.JWT_SECRET);
+                  if (decoded.mobile !== mobile || !decoded.verified) {
+                        throw new Error("Invalid verification token");
+                  }
+            } catch (err) {
+                  return res.status(400).json({
+                        success: false,
+                        message: "Invalid or expired mobile verification token",
+                  });
+            }
 
             // 3. Check karna ki email already registered hai ya nahi
             const existingEmail = await User.findOne({

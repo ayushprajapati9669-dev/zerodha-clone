@@ -1,49 +1,28 @@
 import axios from "axios";
+import WebSocket from "ws";
 
-import {
-      rtConnect,
-      rtDisconnect,
-      rtFeed,
-      isSocketConnected,
-} from "truedata-nodejs";
-
-import checkPendingLimitOrders
-      from "./checkPendingLimitOrders.js";
-
+import checkPendingLimitOrders from "./checkPendingLimitOrders.js";
 
 // =====================================================
 // TRUE DATA CREDENTIALS
 // =====================================================
 
-const username =
-      process.env.TRUEDATA_USERNAME;
-
-const password =
-      process.env.TRUEDATA_PASSWORD;
-
-const port =
-      Number(
-            process.env.TRUEDATA_LIVE_PORT || 8086
-      );
-
+const username = process.env.TRUEDATA_USERNAME;
+const password = process.env.TRUEDATA_PASSWORD;
+const port = Number(process.env.TRUEDATA_LIVE_PORT || 8086);
 
 // =====================================================
 // HISTORICAL API
 // =====================================================
 
-const HISTORY_BASE_URL =
-      "https://history.truedata.in";
-
-const AUTH_URL =
-      "https://auth.truedata.in/token";
-
+const HISTORY_BASE_URL = "https://history.truedata.in";
+const AUTH_URL = "https://auth.truedata.in/token";
 
 // =====================================================
 // SYMBOLS
 // =====================================================
 
 const symbols = [
-
       "RELIANCE",
       "TCS",
       "INFY",
@@ -58,402 +37,181 @@ const symbols = [
       "MARUTI",
       "HINDUNILVR",
       "SUNPHARMA",
-
 ];
-
 
 // =====================================================
 // LIVE PRICE CACHE
 // =====================================================
 
-const latestTrueDataPrices =
-      new Map();
-
+const latestTrueDataPrices = new Map();
 
 // =====================================================
 // LIMIT ORDER LOCK
 // =====================================================
 
-const limitOrderChecksInProgress =
-      new Set();
-
+const limitOrderChecksInProgress = new Set();
 
 // =====================================================
 // HISTORICAL TOKEN
 // =====================================================
 
-let historicalAccessToken =
-      null;
-
-let historicalTokenExpiresAt =
-      0;
-
+let historicalAccessToken = null;
+let historicalTokenExpiresAt = 0;
+let wsConnection = null;
 
 // =====================================================
 // NORMALIZE SYMBOL
 // =====================================================
 
 const normalizeSymbol = (symbol) => {
-
       return String(symbol || "")
             .trim()
             .toUpperCase()
             .replace("NSE:", "")
             .replace("BSE:", "");
-
 };
 
-
 // =====================================================
-// CONNECT TRUE DATA
+// CONNECT TRUE DATA NATIVELY
 // =====================================================
 
 export const connectTrueData = () => {
-
       try {
-
-            // -------------------------------------------------
-            // CHECK CREDENTIALS
-            // -------------------------------------------------
-
-            if (
-                  !username ||
-                  !password
-            ) {
-
-                  console.error(
-                        "❌ TrueData credentials are missing"
-                  );
-
+            if (!username || !password) {
+                  console.error("❌ TrueData credentials are missing");
                   return;
-
             }
 
-
-            // -------------------------------------------------
-            // PREVENT DUPLICATE CONNECTION
-            // -------------------------------------------------
-
-            if (
-                  isSocketConnected()
-            ) {
-
+            if (wsConnection && (wsConnection.readyState === WebSocket.OPEN || wsConnection.readyState === WebSocket.CONNECTING)) {
                   return;
-
             }
 
+            console.log("Connecting to TrueData WebSocket...");
+            const url = `wss://push.truedata.in:${port}?user=${username}&password=${password}`;
+            
+            // Mask credentials in logs
+            const safeUrl = `wss://push.truedata.in:${port}?user=***&password=***`;
+            
+            wsConnection = new WebSocket(url);
 
-            // -------------------------------------------------
-            // CONNECT
-            // -------------------------------------------------
+            wsConnection.on('open', () => {
+                  console.log(`TrueData WebSocket connected safely to ${safeUrl}`);
+                  // Note: We DO NOT subscribe here yet. We wait for authentication success.
+            });
 
+            wsConnection.on('message', (data) => {
+                  try {
+                        const jsonObj = JSON.parse(data);
+                        
+                        if (jsonObj.success === false) {
+                              console.error("TrueData Auth/Subscription Error:", jsonObj.message || jsonObj);
+                              // Handle authentication failures without infinite retry loops
+                              if (jsonObj.message === 'User Already Connected' || jsonObj.message?.includes('Invalid')) {
+                                    console.error("Critical TrueData Error. Closing connection without auto-retry.");
+                                    wsConnection.close();
+                              }
+                        } else if (jsonObj.success && jsonObj.message === 'TrueData Real Time Data Service') {
+                              console.log("✅ TrueData Authenticated Successfully. Subscribing to symbols...");
+                              // Subscribe to symbols only after successful authentication
+                              wsConnection.send(JSON.stringify({
+                                    method: 'addsymbol',
+                                    symbols: symbols
+                              }));
+                        } else if (jsonObj.success && (jsonObj.message === 'symbols added' || jsonObj.message === 'touchline')) {
+                              if (jsonObj.symbollist) {
+                                    jsonObj.symbollist.forEach(item => {
+                                          const stock = {
+                                                Symbol: item[0],
+                                                LastUpdateTime: item[2],
+                                                LTP: +item[3],
+                                                TickVolume: +item[4],
+                                                ATP: +item[5],
+                                                Volume: +item[6],
+                                                Open: +item[7],
+                                                High: +item[8],
+                                                Low: +item[9],
+                                                Previous_Close: +item[10],
+                                                Turnover: +item[11],
+                                          };
+                                          processStockTick(stock);
+                                    });
+                              }
+                        }
+                  } catch (e) {
+                        console.error("TrueData Parse Error:", e.message);
+                  }
+            });
 
-            rtConnect(
+            wsConnection.on('error', (err) => {
+                  console.error("❌ TrueData connection error:", err.message);
+            });
 
-                  username,
+            wsConnection.on('close', () => {
+                  console.log("TrueData WebSocket closed.");
+                  wsConnection = null;
+            });
 
-                  password,
-
-                  symbols,
-
-                  port,
-
-                  0,
-
-                  1,
-
-                  0,
-
-                  "push"
-
-            );
-
-
-
+      } catch (error) {
+            console.error("❌ TrueData connection setup error:", error.message);
       }
-
-      catch (error) {
-
-            console.error(
-                  "❌ TrueData connection error:",
-                  error.message
-            );
-
-      }
-
 };
 
-
 // =====================================================
-// TOUCHLINE DATA
+// PROCESS TOUCHLINE DATA
 // =====================================================
 
-rtFeed.on(
-      "touchline",
-      (touchlineData) => {
-
-            if (
-                  !touchlineData
-            ) {
-
-                  return;
-
-            }
-
-
-            Object.values(
-                  touchlineData
-            ).forEach(
-                  (stock) => {
-
-                        if (
-                              !stock
-                        ) {
-
-                              return;
-
-                        }
-
-
-                        // -------------------------------------------------
-                        // SYMBOL
-                        // -------------------------------------------------
-
-                        const normalizedSymbol =
-                              normalizeSymbol(
-                                    stock.Symbol
-                              );
-
-
-                        if (
-                              !normalizedSymbol
-                        ) {
-
-                              return;
-
-                        }
-
-
-                        // -------------------------------------------------
-                        // LTP
-                        // -------------------------------------------------
-
-                        const currentPrice =
-                              Number(
-                                    stock.LTP
-                              );
-
-
-                        // -------------------------------------------------
-                        // PREVIOUS CLOSE
-                        // -------------------------------------------------
-
-                        const previousClose =
-                              Number(
-                                    stock.Previous_Close
-                              );
-
-
-                        if (
-                              !Number.isFinite(
-                                    currentPrice
-                              ) ||
-                              currentPrice <= 0
-                        ) {
-
-                              return;
-
-                        }
-
-
-                        if (
-                              !Number.isFinite(
-                                    previousClose
-                              ) ||
-                              previousClose <= 0
-                        ) {
-
-                              return;
-
-                        }
-
-
-                        // -------------------------------------------------
-                        // PRICE CHANGE
-                        // -------------------------------------------------
-
-                        const priceChange =
-                              currentPrice -
-                              previousClose;
-
-
-                        const priceChangePercent =
-                              previousClose !== 0
-
-                                    ? (
-                                          priceChange /
-                                          previousClose
-                                    ) * 100
-
-                                    : 0;
-
-
-                        // -------------------------------------------------
-                        // OTHER VALUES
-                        // -------------------------------------------------
-
-                        const open =
-                              Number(
-                                    stock.Open
-                              );
-
-
-                        const high =
-                              Number(
-                                    stock.High
-                              );
-
-
-                        const low =
-                              Number(
-                                    stock.Low
-                              );
-
-
-                        // -------------------------------------------------
-                        // PREPARE DATA
-                        // -------------------------------------------------
-
-                        const latestPriceData = {
-
-                              symbol:
-                                    normalizedSymbol,
-
-                              currentPrice:
-                                    Number(
-                                          currentPrice.toFixed(2)
-                                    ),
-
-                              previousClose:
-                                    Number(
-                                          previousClose.toFixed(2)
-                                    ),
-
-                              priceChange:
-                                    Number(
-                                          priceChange.toFixed(2)
-                                    ),
-
-                              priceChangePercent:
-                                    Number(
-                                          priceChangePercent.toFixed(2)
-                                    ),
-
-                              open:
-                                    Number.isFinite(open)
-
-                                          ? Number(
-                                                open.toFixed(2)
-                                          )
-
-                                          : 0,
-
-                              high:
-                                    Number.isFinite(high)
-
-                                          ? Number(
-                                                high.toFixed(2)
-                                          )
-
-                                          : 0,
-
-                              low:
-                                    Number.isFinite(low)
-
-                                          ? Number(
-                                                low.toFixed(2)
-                                          )
-
-                                          : 0,
-
-                              volume:
-                                    Number(
-                                          stock.TotalVolume || 0
-                                    ),
-
-                              lastUpdateTime:
-                                    stock.LastUpdateTime,
-
-                              receivedAt:
-                                    Date.now(),
-
-                        };
-
-
-                        // -------------------------------------------------
-                        // SAVE TO CACHE
-                        // -------------------------------------------------
-
-                        latestTrueDataPrices.set(
-
-                              normalizedSymbol,
-
-                              latestPriceData
-
-                        );
-
-
-                        // -------------------------------------------------
-                        // CHECK LIMIT ORDERS
-                        // -------------------------------------------------
-
-                        if (
-                              !limitOrderChecksInProgress.has(
-                                    normalizedSymbol
-                              )
-                        ) {
-
-                              limitOrderChecksInProgress.add(
-                                    normalizedSymbol
-                              );
-
-
-                              checkPendingLimitOrders(
-
-                                    normalizedSymbol,
-
-                                    latestPriceData.currentPrice,
-
-                                    latestPriceData.previousClose
-
-                              )
-                                    .catch(
-                                          (error) => {
-
-                                                console.error(
-                                                      `❌ Limit order check failed for ${normalizedSymbol}:`,
-                                                      error.message
-                                                );
-
-                                          }
-                                    )
-                                    .finally(
-                                          () => {
-
-                                                limitOrderChecksInProgress.delete(
-                                                      normalizedSymbol
-                                                );
-
-                                          }
-                                    );
-
-                        }
-
-                  }
-            );
-
+const processStockTick = (stock) => {
+      if (!stock) return;
+
+      const normalizedSymbol = normalizeSymbol(stock.Symbol);
+      if (!normalizedSymbol) return;
+
+      const currentPrice = Number(stock.LTP);
+      const previousClose = Number(stock.Previous_Close);
+
+      if (!Number.isFinite(currentPrice) || currentPrice <= 0) return;
+      if (!Number.isFinite(previousClose) || previousClose <= 0) return;
+
+      const priceChange = currentPrice - previousClose;
+      const priceChangePercent = previousClose !== 0 ? (priceChange / previousClose) * 100 : 0;
+
+      const open = Number(stock.Open);
+      const high = Number(stock.High);
+      const low = Number(stock.Low);
+
+      const latestPriceData = {
+            symbol: normalizedSymbol,
+            currentPrice: Number(currentPrice.toFixed(2)),
+            previousClose: Number(previousClose.toFixed(2)),
+            priceChange: Number(priceChange.toFixed(2)),
+            priceChangePercent: Number(priceChangePercent.toFixed(2)),
+            open: Number.isFinite(open) ? Number(open.toFixed(2)) : 0,
+            high: Number.isFinite(high) ? Number(high.toFixed(2)) : 0,
+            low: Number.isFinite(low) ? Number(low.toFixed(2)) : 0,
+            volume: Number(stock.Volume || 0),
+            lastUpdateTime: stock.LastUpdateTime,
+            receivedAt: Date.now(),
+      };
+
+      latestTrueDataPrices.set(normalizedSymbol, latestPriceData);
+
+      // Check limit orders
+      if (!limitOrderChecksInProgress.has(normalizedSymbol)) {
+            limitOrderChecksInProgress.add(normalizedSymbol);
+
+            checkPendingLimitOrders(
+                  normalizedSymbol,
+                  latestPriceData.currentPrice,
+                  latestPriceData.previousClose
+            )
+                  .catch((error) => {
+                        console.error(`❌ Limit order check failed for ${normalizedSymbol}:`, error.message);
+                  })
+                  .finally(() => {
+                        limitOrderChecksInProgress.delete(normalizedSymbol);
+                  });
       }
-);
+};
 
 
 // =====================================================
@@ -551,19 +309,7 @@ export const getTrueDataSymbols = () => {
 // =====================================================
 
 export const isTrueDataConnected = () => {
-
-      try {
-
-            return isSocketConnected();
-
-      }
-
-      catch {
-
-            return false;
-
-      }
-
+      return wsConnection !== null && wsConnection.readyState === WebSocket.OPEN;
 };
 
 
@@ -572,31 +318,16 @@ export const isTrueDataConnected = () => {
 // =====================================================
 
 export const disconnectTrueData = () => {
-
       try {
-
-            rtDisconnect();
-
-
+            if (wsConnection) {
+                  wsConnection.close();
+                  wsConnection = null;
+            }
             latestTrueDataPrices.clear();
-
-
             limitOrderChecksInProgress.clear();
-
-
-          
-
+      } catch (error) {
+            console.error("TrueData disconnect error:", error.message);
       }
-
-      catch (error) {
-
-            console.error(
-                  "TrueData disconnect error:",
-                  error.message
-            );
-
-      }
-
 };
 
 
@@ -1162,3 +893,14 @@ export const getHistoricalMarketPrices =
 // =====================================================
 
 connectTrueData();
+
+// Clean up socket gracefully on exit to prevent "User Already Connected"
+const gracefulShutdown = () => {
+      console.log("Shutting down TrueData connection gracefully...");
+      disconnectTrueData();
+      process.exit(0);
+};
+
+process.on("SIGINT", gracefulShutdown);
+process.on("SIGTERM", gracefulShutdown);
+process.on("SIGUSR2", gracefulShutdown); // For nodemon restarts
