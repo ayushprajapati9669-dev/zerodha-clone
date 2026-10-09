@@ -1,6 +1,6 @@
 function Hero() {
   return (
-    <div className="container  p-5 mb-5 ">
+    <section className="container about-hero py-5 mb-5">
       <div className="row text-center my-5 pb-5 ">
         <h1
           style={{ fontSize: "1.5rem", color: "#424242", lineHeight: "2rem" }}
@@ -9,8 +9,8 @@ function Hero() {
           breaking ground with our technology.
         </h1>
       </div>
-      <div className="row px-5 border-top ">
-        <div className="col p-5 ms-5 mt-5 " style={{ lineHeight: "1.8rem" }}>
+      <div className="row about-hero__copy border-top">
+        <div className="col-12 col-md-6 p-3 p-md-5 mt-md-4" style={{ lineHeight: "1.8rem" }}>
           <p>
             We kick-started operations on the 15th of August, 2010 with the goal
             of breaking all barriers that traders and investors face in India in
@@ -28,7 +28,7 @@ function Hero() {
             15% of all Indian retail trading volumes.
           </p>
         </div>
-        <div className="col p-5 me-5 mt-5 " style={{ lineHeight: "1.8rem" }}>
+        <div className="col-12 col-md-6 p-3 p-md-5 mt-md-4" style={{ lineHeight: "1.8rem" }}>
           <p>
             In addition, we run a number of popular open online educational and
             community initiatives to empower retail traders and investors.
@@ -55,7 +55,7 @@ function Hero() {
           People
         </h1>
       </div>
-    </div>
+    </section>
   );
 }
 

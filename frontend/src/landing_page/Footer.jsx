@@ -1,7 +1,7 @@
 function Footer() {
   return (
-    <div
-      className="border-top mt-5"
+    <footer
+      className="site-footer border-top"
       style={{ backgroundColor: "rgba(240,240,240,0.4)" }}
     >
       <div className="container mt-2">
@@ -173,7 +173,7 @@ function Footer() {
           </div>
         </div>
       </div>
-    </div>
+    </footer>
   );
 }
 

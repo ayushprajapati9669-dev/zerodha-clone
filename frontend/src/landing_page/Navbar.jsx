@@ -1,88 +1,63 @@
+import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 
+const navItems = [
+  { label: "Login", to: "/login" },
+  { label: "About", to: "/about" },
+  { label: "Products", to: "/products" },
+  { label: "Pricing", to: "/pricing" },
+  { label: "Support", to: "/support" },
+];
+
 function Navbar() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = () => setMenuOpen(false);
+
   return (
-    <nav className="navbar navbar-expand-lg bg-white border-bottom sticky-top shadow-sm">
-      <div className="container px-3 px-md-4">
-        {/* Logo */}
-        <Link to="/" className="navbar-brand p-0">
-          <img src="assets/logo.svg" alt="Zerodha" style={{ width: "120px" }} />
+    <nav className="site-nav sticky-top">
+      <div className="container site-nav__inner d-flex align-items-center justify-content-between">
+        <Link to="/" className="site-nav__brand" onClick={closeMenu}>
+          <img src="/assets/logo.svg" alt="Zerodha home" />
         </Link>
 
-        {/* Hamburger toggle for mobile */}
         <button
-          className="navbar-toggler border-0"
+          className="site-nav__toggle d-lg-none"
           type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarMain"
           aria-controls="navbarMain"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
+          aria-expanded={menuOpen}
+          aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+          onClick={() => setMenuOpen((open) => !open)}
         >
-          <span className="navbar-toggler-icon"></span>
+          <span className="site-nav__toggle-icon" aria-hidden="true" />
         </button>
 
-        {/* Nav links */}
-        <div className="collapse navbar-collapse" id="navbarMain">
-          <ul className="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center gap-lg-1">
+        <div
+          className={`site-nav__menu${menuOpen ? " is-open" : ""}`}
+          id="navbarMain"
+        >
+          <ul className="navbar-nav site-nav__links">
+            {navItems.map(({ label, to }) => (
+              <li className="nav-item" key={to}>
+                <NavLink
+                  className={({ isActive }) =>
+                    `site-nav__link${isActive ? " active-link" : ""}`
+                  }
+                  to={to}
+                  onClick={closeMenu}
+                >
+                  {label}
+                </NavLink>
+              </li>
+            ))}
             <li className="nav-item">
               <NavLink
                 className={({ isActive }) =>
-                  "nav-link" + (isActive ? " active-link" : "")
+                  `site-nav__link site-nav__link--cta${isActive ? " active-link" : ""}`
                 }
                 to="/signup"
+                onClick={closeMenu}
               >
                 Signup
-              </NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink
-                className={({ isActive }) =>
-                  "nav-link" + (isActive ? " active-link" : "")
-                }
-                to="/login"
-              >
-                Login
-              </NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink
-                className={({ isActive }) =>
-                  "nav-link" + (isActive ? " active-link" : "")
-                }
-                to="/about"
-              >
-                About
-              </NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink
-                className={({ isActive }) =>
-                  "nav-link" + (isActive ? " active-link" : "")
-                }
-                to="/products"
-              >
-                Products
-              </NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink
-                className={({ isActive }) =>
-                  "nav-link" + (isActive ? " active-link" : "")
-                }
-                to="/pricing"
-              >
-                Pricing
-              </NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink
-                className={({ isActive }) =>
-                  "nav-link" + (isActive ? " active-link" : "")
-                }
-                to="/support"
-              >
-                Support
               </NavLink>
             </li>
           </ul>

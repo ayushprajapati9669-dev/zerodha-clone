@@ -1,10 +1,8 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import axios from "axios";
 
 function Login() {
-  const navigate = useNavigate();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -47,14 +45,14 @@ function Login() {
 
   return (
     <div
-      className="d-flex align-items-center justify-content-center"
+      className="auth-page d-flex align-items-center justify-content-center"
       style={{
         minHeight: "80vh",
         backgroundColor: "#f9f9f9",
       }}
     >
       <div
-        className="bg-white rounded-3 shadow-sm p-4 p-md-5"
+        className="auth-card bg-white rounded-3 shadow-sm p-4 p-md-5"
         style={{
           width: "100%",
           maxWidth: "420px",

@@ -1,8 +1,8 @@
 function Hero() {
   return (
-    <div className="container-fluid" style={{ backgroundColor: "#EEEEEE" }}>
-      <div className="container ">
-        <div className="d-flex justify-content-between px-5">
+    <section className="support-hero">
+      <div className="container">
+        <div className="support-hero__heading d-flex justify-content-between align-items-center">
           <h1 className="mt-4">Support Portal</h1>
           <button
             className="btn btn-primary mt-4 signup-btn"
@@ -16,24 +16,20 @@ function Hero() {
             My tickets
           </button>
         </div>
-        <div className="px-5 " style={{ position: "relative" }}>
-          <span style={{ position: "absolute", top: "4rem", left: "4rem" }}>
-            {" "}
+        <div className="support-search">
+          <span className="support-search__icon" aria-hidden="true">
             <i className="fa-solid fa-magnifying-glass text-muted"></i>
           </span>
           <input
-            className="w-100 p-3 ps-5 my-5  "
+            className="w-100"
             id="inputHero"
-            style={{
-              border: "1px solid rgba(0,0,0,0.2)",
-              borderRadius: "0.5rem",
-            }}
+            type="search"
             placeholder="Eg: How do I open my account, How do i activate F&O...
 "
           ></input>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 

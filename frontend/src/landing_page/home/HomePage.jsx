@@ -1,5 +1,3 @@
-import Footer from "../Footer";
-import Navbar from "../Navbar";
 import OpenAccount from "../OpenAccount";
 import Education from "./Education";
 import Pricing from "./Pricing";

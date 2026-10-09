@@ -8,6 +8,7 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 
 import "./App.css";
 import "./styles/Theme.css";
+import "./styles/ModernUI.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

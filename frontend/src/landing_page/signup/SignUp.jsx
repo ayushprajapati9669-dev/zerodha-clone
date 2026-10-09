@@ -87,11 +87,11 @@ function SignUp() {
 
   return (
     <div
-      className="d-flex align-items-center justify-content-center"
+      className="auth-page d-flex align-items-center justify-content-center"
       style={{ minHeight: "80vh", backgroundColor: "#f9f9f9" }}
     >
       <div
-        className="bg-white rounded-3 shadow-sm p-4 p-md-5"
+        className="auth-card bg-white rounded-3 shadow-sm p-4 p-md-5"
         style={{
           width: "100%",
           maxWidth: "420px",

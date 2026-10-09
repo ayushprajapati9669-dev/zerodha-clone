@@ -1,6 +1,6 @@
 function Hero() {
   return (
-    <div className="container mt-5 p-5 ">
+    <div className="container mt-5 px-3 px-md-5 py-4 py-md-5">
       <div className="row text-center border-bottom">
         <h1 className="fs-2" style={{ color: "#424242" }}>
           Zerodha Products

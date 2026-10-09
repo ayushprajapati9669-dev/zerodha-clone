@@ -10,7 +10,7 @@ function Hero() {
           List of all charges and taxes
         </p>
       </div>
-      <div className="row  p-5">
+      <div className="row p-2 p-md-5 g-3">
         <Price
           imageUrl="assets/pricing-eq.svg"
           title="Free equity delivery"
