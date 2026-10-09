@@ -1,13 +1,17 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 import dotenv from "dotenv";
 dotenv.config();
 
 const connectDB = async () => {
-      try {
-            await mongoose.connect(process.env.MONGO_URI);
-            console.log("database connect successfully");
-      } catch (err) {
-            console.log("some error in db: ", err);
+      const mongoUri = process.env.MONGO_URI?.trim();
+
+      if (!mongoUri) {
+            throw new Error("MONGO_URI is not set. Add it to backend/.env.");
       }
-}
+
+      await mongoose.connect(mongoUri, {
+            serverSelectionTimeoutMS: 10_000,
+      });
+};
+
 export default connectDB;

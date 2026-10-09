@@ -140,8 +140,9 @@ const startServer = async () => {
       } catch (error) {
             console.error(
                   "Database connection failed:",
-                  error,
+                  error.message,
             );
+            process.exitCode = 1;
       }
 };
 

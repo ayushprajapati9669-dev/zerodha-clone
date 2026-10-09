@@ -1,0 +1,238 @@
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg-primary: #0b1220;
+  --bg-secondary: #111c2e;
+  --bg-card: #111c2e;
+  --bg-elevated: #162338;
+
+  --text-primary: #e6edf7;
+  --text-secondary: #9aa9bd;
+
+  --border-color: #26364d;
+
+  --input-bg: #0c1728;
+  --input-text: #e6edf7;
+
+  --hover-bg: #1b2a40;
+
+  --table-bg: #111c2e;
+  --table-text: #e6edf7;
+
+  --modal-bg: #111c2e;
+  --sidebar-bg: #0d1726;
+  --navbar-bg: #0d1726;
+
+  --bs-body-bg: var(--bg-primary);
+  --bs-body-color: var(--text-primary);
+  --bs-border-color: var(--border-color);
+  --bs-secondary-bg: var(--bg-card);
+  --bs-tertiary-bg: var(--bg-elevated);
+  --bs-emphasis-color: var(--text-primary);
+  --bs-secondary-color: var(--text-secondary);
+  --bs-table-bg: var(--table-bg);
+  --bs-table-color: var(--table-text);
+  --bs-table-border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] #root,
+:root[data-theme="dark"] .dashboard-layout,
+:root[data-theme="dark"] .main-content {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .sidebar,
+:root[data-theme="dark"] .top-navigation {
+  background-color: var(--navbar-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .sidebar-logo,
+:root[data-theme="dark"] .dashboard-card-header,
+:root[data-theme="dark"] .stock-chart-header,
+:root[data-theme="dark"] .stock-details-header,
+:root[data-theme="dark"] .stock-selection-header,
+:root[data-theme="dark"] .fund-modal-header,
+:root[data-theme="dark"] .fund-modal-footer,
+:root[data-theme="dark"] .order-details-header,
+:root[data-theme="dark"] .order-details-footer,
+:root[data-theme="dark"] .notification-header,
+:root[data-theme="dark"] .notifications-page-header,
+:root[data-theme="dark"] .portfolio-concentration-header,
+:root[data-theme="dark"] .portfolio-allocation-header,
+:root[data-theme="dark"] .portfolio-breakdown-header,
+:root[data-theme="dark"] .top-three-header,
+:root[data-theme="dark"] .fund-breakdown-header,
+:root[data-theme="dark"] .fund-transactions-header,
+:root[data-theme="dark"] .available-trade-header {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] [class*="card"]:not([class*="header"]),
+:root[data-theme="dark"] [class*="popup"]:not([class*="overlay"]),
+:root[data-theme="dark"] .fund-modal,
+:root[data-theme="dark"] .cancel-modal,
+:root[data-theme="dark"] .order-details-modal,
+:root[data-theme="dark"] .notification-dropdown,
+:root[data-theme="dark"] .profile-dropdown,
+:root[data-theme="dark"] .portfolio-allocation-chart,
+:root[data-theme="dark"] .portfolio-custom-tooltip,
+:root[data-theme="dark"] .fund-breakdown,
+:root[data-theme="dark"] .fund-toast,
+:root[data-theme="dark"] .order-toast,
+:root[data-theme="dark"] .notification-page-item,
+:root[data-theme="dark"] .notification-item,
+:root[data-theme="dark"] .orders-table-wrapper,
+:root[data-theme="dark"] .holding-table,
+:root[data-theme="dark"] .position-table,
+:root[data-theme="dark"] .portfolio-breakdown-table-wrapper {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .quick-action-button,
+:root[data-theme="dark"] .order-filters button,
+:root[data-theme="dark"] .notification-filters button,
+:root[data-theme="dark"] .portfolio-chart-view-toggle button,
+:root[data-theme="dark"] .order-sort-select,
+:root[data-theme="dark"] .position-sort-dropdown {
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .sidebar-link {
+  color: var(--text-secondary);
+}
+
+:root[data-theme="dark"] .sidebar-link:hover,
+:root[data-theme="dark"] .profile-dropdown > button:hover,
+:root[data-theme="dark"] .notification-item:hover,
+:root[data-theme="dark"] .notification-page-item:hover,
+:root[data-theme="dark"] .quick-action-button:hover {
+  background-color: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .sidebar-link.active {
+  background-color: #1b2a40;
+  color: #f05a28;
+}
+
+:root[data-theme="dark"] .profile-dropdown > button,
+:root[data-theme="dark"] .notification-view-all-btn,
+:root[data-theme="dark"] .dropdown-item {
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .dropdown-menu,
+:root[data-theme="dark"] .profile-dropdown,
+:root[data-theme="dark"] .notification-dropdown {
+  background-color: var(--bg-card);
+  border-color: var(--border-color);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
+}
+
+:root[data-theme="dark"] .table,
+:root[data-theme="dark"] table {
+  --bs-table-bg: var(--table-bg);
+  --bs-table-color: var(--table-text);
+  --bs-table-border-color: var(--border-color);
+  color: var(--table-text);
+}
+
+:root[data-theme="dark"] .table > :not(caption) > * > *,
+:root[data-theme="dark"] table th,
+:root[data-theme="dark"] table td {
+  background-color: var(--table-bg);
+  color: var(--table-text);
+  border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .table tbody tr:hover > *,
+:root[data-theme="dark"] .orders-table tbody tr:hover > *,
+:root[data-theme="dark"] .holding-table tbody tr:hover > *,
+:root[data-theme="dark"] .position-table tbody tr:hover > * {
+  background-color: var(--hover-bg);
+}
+
+:root[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] .form-control,
+:root[data-theme="dark"] .form-select {
+  background-color: var(--input-bg);
+  color: var(--input-text);
+  border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder,
+:root[data-theme="dark"] .form-control::placeholder {
+  color: var(--text-secondary);
+}
+
+:root[data-theme="dark"] input:focus,
+:root[data-theme="dark"] select:focus,
+:root[data-theme="dark"] textarea:focus,
+:root[data-theme="dark"] .form-control:focus,
+:root[data-theme="dark"] .form-select:focus {
+  background-color: var(--input-bg);
+  color: var(--input-text);
+  border-color: #5b9bea;
+  box-shadow: 0 0 0 3px rgb(91 155 234 / 18%);
+}
+
+:root[data-theme="dark"] .text-muted,
+:root[data-theme="dark"] .text-secondary,
+:root[data-theme="dark"] .security-description,
+:root[data-theme="dark"] .profile-name,
+:root[data-theme="dark"] .summary-card-header,
+:root[data-theme="dark"] .top-navigation-title > span,
+:root[data-theme="dark"] .notification-item .notification-content small,
+:root[data-theme="dark"] .notification-page-item .notification-content small {
+  color: var(--text-secondary) !important;
+}
+
+:root[data-theme="dark"] .modal-content {
+  background-color: var(--modal-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .list-group-item {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .fund-modal-overlay,
+:root[data-theme="dark"] .cancel-modal-overlay,
+:root[data-theme="dark"] .order-details-modal-overlay,
+:root[data-theme="dark"] .trade-popup-overlay {
+  background-color: rgb(2 6 14 / 72%);
+}
+
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] .dashboard-layout,
+:root[data-theme="dark"] .main-content,
+:root[data-theme="dark"] .sidebar,
+:root[data-theme="dark"] .top-navigation,
+:root[data-theme="dark"] [class*="card"],
+:root[data-theme="dark"] [class*="popup"],
+:root[data-theme="dark"] .table,
+:root[data-theme="dark"] .dropdown-menu,
+:root[data-theme="dark"] .modal-content,
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea {
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
