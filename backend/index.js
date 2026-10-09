@@ -19,6 +19,7 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import marketRoutes from "./routes/marketRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
+import riskRoutes from "./routes/riskRoutes.js";
 
 import { connectTrueData } from "./services/trueDataService.js";
 
@@ -85,6 +86,8 @@ app.use(
 app.use("/api/market", marketRoutes);
 
 app.use("/api/analytics", analyticsRoutes);
+
+app.use("/api/risk", riskRoutes);
 
 
 // ===============================

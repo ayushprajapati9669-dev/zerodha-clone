@@ -29,6 +29,7 @@ import {
       emitNewNotification,
 } from "../utils/notificationSocket.js";
 import { createNotificationIfEnabled } from "../helpers/notificationHelper.js";
+import { evaluateOrderRiskService } from "./riskService.js";
 
 // ==================================================
 // CREATE ORDER
@@ -197,6 +198,35 @@ const createOrder = async (
                               throw new AppError(
                                     "Invalid trade amount",
                                     400,
+                              );
+                        }
+
+
+                        // ==========================================
+                        // PRE-TRADE RISK CHECK
+                        // ==========================================
+
+                        const riskCheckResult = await evaluateOrderRiskService(
+                              userId,
+                              {
+                                    symbol: normalizedSymbol,
+                                    type,
+                                    quantity: normalizedQuantity,
+                                    orderType,
+                                    price: executionPrice,
+                                    product: product || "CNC",
+                                    stopLossPrice: orderData.stopLossPrice,
+                                    targetPrice: orderData.targetPrice,
+                              }
+                        );
+
+                        if (riskCheckResult.allowed === false) {
+                              const violationMsg = riskCheckResult.violations.length > 0 
+                                    ? riskCheckResult.violations.join(" ") 
+                                    : "Order rejected by Smart Risk Guard rules in strict mode.";
+                              throw new AppError(
+                                    `Risk Guard Rejection: ${violationMsg}`,
+                                    400
                               );
                         }
 
