@@ -33,10 +33,11 @@ function Holdings() {
 
   const filteredHoldings = holdings.filter((holding) => {
     const searchValue = searchTerm.toLowerCase().trim();
+    const symbol = String(holding?.symbol ?? "").toLowerCase();
+    const companyName = String(holding?.companyName ?? "").toLowerCase();
 
     return (
-      holding.symbol.toLowerCase().includes(searchValue) ||
-      holding.companyName.toLowerCase().includes(searchValue)
+      symbol.includes(searchValue) || companyName.includes(searchValue)
     );
   });
 
@@ -129,8 +130,8 @@ function Holdings() {
                 : "text-danger"
             }
           >
-            {portfolioSummary.totalProfitLossPercent >= 0 ? "+" : ""}
-            {portfolioSummary.totalProfitLossPercent.toFixed(2)}%
+            {portfolioSummary.totalProfitLossPercent >= 0 ? "+" : "-"}
+            {Math.abs(portfolioSummary.totalProfitLossPercent).toFixed(2)}%
           </strong>
         </div>
       </div>

@@ -4,15 +4,21 @@ import { useContext } from "react";
 import { AppContext } from "../context/AppContext";
 function FundToast() {
   const { fundToast, setIsOpenFundToast } = useContext(AppContext);
-  if (!fundToast) {
-    return;
-  }
+
   useEffect(() => {
+    if (!fundToast) return;
+
     const timer = setTimeout(() => {
       setIsOpenFundToast(false);
     }, 3000);
+
     return () => clearTimeout(timer);
   }, [fundToast, setIsOpenFundToast]);
+
+  if (!fundToast) {
+    return null;
+  }
+
   return (
     <div className="fund-toast">
       <div className="fund-toast-icon">

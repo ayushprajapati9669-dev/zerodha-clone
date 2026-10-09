@@ -1,0 +1,407 @@
+/* Portfolio Analytics Dashboard Styles */
+
+.analytics-page-container {
+  padding-bottom: 40px;
+}
+
+.refresh-analytics-btn {
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.refresh-analytics-btn:hover {
+  background-color: rgba(56, 126, 209, 0.1);
+  color: #387ed1;
+  border-color: #387ed1;
+}
+
+/* 1. Summary Cards Grid */
+.analytics-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.analytics-summary-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.analytics-summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
+}
+
+.analytics-summary-card.highlight-card {
+  border-left: 4px solid #387ed1;
+  background: linear-gradient(135deg, rgba(56, 126, 209, 0.04) 0%, rgba(255, 255, 255, 0) 100%);
+}
+
+.card-header-sm {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  color: #666;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.card-icon {
+  font-size: 1.1rem;
+  color: #387ed1;
+  opacity: 0.8;
+}
+
+.card-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.card-subtext {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+/* Skeleton Loading */
+.skeleton-card {
+  height: 90px;
+  background: rgba(0, 0, 0, 0.04);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* 2. Main Analytics Cards */
+.portfolio-analytics-card {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.chart-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.chart-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #222;
+  margin: 0;
+}
+
+.chart-subtitle {
+  font-size: 0.82rem;
+  color: #666;
+}
+
+/* Range Selector Buttons */
+.range-selector-buttons {
+  display: flex;
+  background: #f0f3f7;
+  padding: 3px;
+  border-radius: 8px;
+  gap: 2px;
+}
+
+.range-btn {
+  border: none;
+  background: transparent;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.range-btn:hover {
+  color: #111;
+}
+
+.range-btn.active {
+  background: #ffffff;
+  color: #387ed1;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Performance Metrics Bar */
+.performance-metrics-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  background: #f8fafc;
+  border: 1px solid #edf2f7;
+  border-radius: 8px;
+  padding: 12px 18px;
+  margin-bottom: 16px;
+}
+
+.metric-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.metric-val {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #2d3748;
+}
+
+.snapshot-notice {
+  background: #ebf8ff;
+  border: 1px solid #bee3f8;
+  color: #2b6cb0;
+  font-size: 0.82rem;
+  padding: 8px 14px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.chart-container-box {
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.chart-loading-state,
+.chart-empty-state,
+.chart-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 260px;
+  text-align: center;
+  color: #666;
+}
+
+.custom-chart-tooltip {
+  background: #1e293b;
+  color: #ffffff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.custom-chart-tooltip strong {
+  display: block;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+  color: #94a3b8;
+}
+
+/* 3. P&L Breakdown Cards */
+.pnl-breakdown-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.pnl-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.pnl-card.highlight {
+  background: #f0f9ff;
+  border-color: #bae6fd;
+}
+
+.pnl-card span {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.pnl-card strong {
+  font-size: 1.2rem;
+  margin: 4px 0;
+}
+
+.pnl-card small {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.stock-select-dropdown {
+  width: auto;
+  min-width: 180px;
+  border-radius: 6px;
+  border-color: #cbd5e1;
+}
+
+.pnl-chart-box, .recent-sell-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+  height: 100%;
+}
+
+.pnl-chart-box h6, .recent-sell-box h6 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 12px;
+}
+
+.sell-table-wrapper {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.empty-transactions-text {
+  font-size: 0.82rem;
+  color: #64748b;
+  padding: 30px 10px;
+  text-align: center;
+}
+
+/* 4. Rankings & Stock Table */
+.table-controls-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.search-input-analytics {
+  width: 180px;
+}
+
+.sort-select-analytics {
+  width: 180px;
+}
+
+.rankings-highlight-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.performer-card {
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.performer-card.best {
+  background: rgba(0, 179, 134, 0.06);
+  border: 1px solid rgba(0, 179, 134, 0.25);
+}
+
+.performer-card.worst {
+  background: rgba(229, 57, 53, 0.06);
+  border: 1px solid rgba(229, 57, 53, 0.25);
+}
+
+.performer-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.performer-card.best .performer-badge {
+  color: #008763;
+}
+
+.performer-card.worst .performer-badge {
+  color: #c62828;
+}
+
+.performer-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.performer-symbol {
+  font-size: 1.1rem;
+  display: block;
+}
+
+.performer-name {
+  font-size: 0.78rem;
+  color: #666;
+}
+
+.rank-num {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.analytics-stock-table th {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  color: #64748b;
+  font-weight: 600;
+  border-bottom-width: 1px;
+}
+
+.analytics-stock-table td {
+  font-size: 0.85rem;
+}
+
+.stock-subname {
+  font-size: 0.72rem;
+}
+
+/* 5. Portfolio Allocation Section */
+.portfolio-allocation-wrapper-section {
+  background: #ffffff;
+  border-radius: 12px;
+}
+
+.allocation-denominator-note {
+  background: #f1f5f9;
+  border-left: 4px solid #387ed1;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: #334155;
+  margin-bottom: 16px;
+}

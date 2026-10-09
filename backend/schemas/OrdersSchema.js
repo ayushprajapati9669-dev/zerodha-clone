@@ -98,6 +98,19 @@ const ordersSchema = new Schema({
             required: true,
             enum: ["CNC", "MIS"],
       },
+
+      // Total purchase cost basis for sell orders
+      costBasis: {
+            type: Number,
+            min: 0,
+            default: 0,
+      },
+
+      // Realized profit/loss recorded at execution for sell orders
+      realizedPnl: {
+            type: Number,
+            default: 0,
+      },
 });
 
 export default ordersSchema;

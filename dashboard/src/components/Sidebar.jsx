@@ -25,6 +25,11 @@ function Sidebar() {
           <span>Dashboard</span>
         </NavLink>
 
+        <NavLink to={"/analytics"} className="sidebar-link">
+          <i className="bi bi-pie-chart"></i>
+          <span>Analytics</span>
+        </NavLink>
+
         <NavLink to={"/holdings"} className="sidebar-link">
           <i className="bi bi-briefcase"></i>
           <span>Holdings</span>

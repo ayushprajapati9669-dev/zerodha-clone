@@ -44,6 +44,10 @@ function TopNavigation() {
       return "Dashboard";
     }
 
+    if (path.includes("/analytics")) {
+      return "Portfolio Analytics";
+    }
+
     if (path.includes("/holdings")) {
       return "Holdings";
     }

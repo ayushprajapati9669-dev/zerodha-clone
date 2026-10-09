@@ -1,13 +1,19 @@
 
+const toNumber = (value) => {
+      const parsedValue = Number(value);
+      return Number.isFinite(parsedValue) ? parsedValue : 0;
+};
+
 const calculatePortfolioSummary = (
-      portfolioData,
+      portfolioData = [],
       marketPrices = {}
 ) => {
       const totalInvestment = portfolioData.reduce(
             (total, portfolio) => {
                   return (
                         total +
-                        portfolio.averagePrice * portfolio.quantity
+                        toNumber(portfolio?.averagePrice) *
+                        toNumber(portfolio?.quantity)
                   );
             },
             0
@@ -15,22 +21,20 @@ const calculatePortfolioSummary = (
 
       const currentValue = portfolioData.reduce(
             (total, portfolio) => {
-                  const marketData = marketPrices[portfolio.symbol];
+                  const marketData = marketPrices[portfolio?.symbol];
 
                   const currentPrice =
-                        marketData?.currentPrice ??
-                        portfolio.currentPrice;
+                        toNumber(
+                              marketData?.currentPrice ??
+                              portfolio?.currentPrice
+                        );
 
-                  return (
-                        total +
-                        portfolio.quantity * currentPrice
-                  );
+                  return total + toNumber(portfolio?.quantity) * currentPrice;
             },
             0
       );
 
-      const totalProfitLoss =
-            currentValue - totalInvestment;
+      const totalProfitLoss = currentValue - totalInvestment;
 
       const totalProfitLossPercent =
             totalInvestment > 0
@@ -39,20 +43,24 @@ const calculatePortfolioSummary = (
 
       const totalDayProfitLoss = portfolioData.reduce(
             (total, portfolio) => {
-                  const marketData = marketPrices[portfolio.symbol];
+                  const marketData = marketPrices[portfolio?.symbol];
 
                   const currentPrice =
-                        marketData?.currentPrice ??
-                        portfolio.currentPrice;
+                        toNumber(
+                              marketData?.currentPrice ??
+                              portfolio?.currentPrice
+                        );
 
                   const previousClose =
-                        marketData?.previousClose ??
-                        portfolio.previousClose;
+                        toNumber(
+                              marketData?.previousClose ??
+                              portfolio?.previousClose
+                        );
 
                   return (
                         total +
                         (currentPrice - previousClose) *
-                        portfolio.quantity
+                        toNumber(portfolio?.quantity)
                   );
             },
             0
@@ -68,36 +76,31 @@ const calculatePortfolioSummary = (
 };
 
 const calculatePortfolioValues = (
-      portfolio,
+      portfolio = {},
       marketPrices = {}
 ) => {
       const marketData = marketPrices[portfolio.symbol];
 
-      const currentPrice =
-            marketData?.currentPrice ??
-            portfolio.currentPrice;
+      const currentPrice = toNumber(
+            marketData?.currentPrice ?? portfolio.currentPrice
+      );
 
-      const previousClose =
-            marketData?.previousClose ??
-            portfolio.previousClose;
+      const previousClose = toNumber(
+            marketData?.previousClose ?? portfolio.previousClose
+      );
 
       const investedValue =
-            portfolio.averagePrice * portfolio.quantity;
+            toNumber(portfolio.averagePrice) * toNumber(portfolio.quantity);
 
-      const currentValue =
-            currentPrice * portfolio.quantity;
+      const currentValue = currentPrice * toNumber(portfolio.quantity);
 
-      const profitLoss =
-            currentValue - investedValue;
+      const profitLoss = currentValue - investedValue;
 
       const dayProfitLoss =
-            (currentPrice - previousClose) *
-            portfolio.quantity;
+            (currentPrice - previousClose) * toNumber(portfolio.quantity);
 
       const profitLossPercentage =
-            investedValue > 0
-                  ? (profitLoss / investedValue) * 100
-                  : 0;
+            investedValue > 0 ? (profitLoss / investedValue) * 100 : 0;
 
       return {
             currentPrice,

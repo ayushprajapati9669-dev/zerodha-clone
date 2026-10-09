@@ -61,10 +61,11 @@ function Positions() {
 
   const filteredPositions = positionsData.filter((position) => {
     const searchValue = searchTerm.toLowerCase().trim();
+    const symbol = String(position?.symbol ?? "").toLowerCase();
+    const companyName = String(position?.companyName ?? "").toLowerCase();
 
     return (
-      position.symbol.toLowerCase().includes(searchValue) ||
-      position.companyName.toLowerCase().includes(searchValue)
+      symbol.includes(searchValue) || companyName.includes(searchValue)
     );
   });
 
@@ -146,8 +147,8 @@ function Positions() {
                 : "text-danger"
             }
           >
-            {portfolioSummary.totalProfitLossPercent >= 0 ? "+" : ""}
-            {portfolioSummary.totalProfitLossPercent.toFixed(2)}%
+            {portfolioSummary.totalProfitLossPercent >= 0 ? "+" : "-"}
+            {Math.abs(portfolioSummary.totalProfitLossPercent).toFixed(2)}%
           </strong>
         </div>
       </div>
