@@ -8,6 +8,7 @@ import Funds from "./pages/Funds";
 import AIAssistant from "./components/AIAssistant";
 import Notifications from "./pages/Notifications";
 import PortfolioAnalytics from "./pages/PortfolioAnalytics";
+import RiskManagement from "./pages/RiskManagement";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import AppProvider from "./context/AppContext";
@@ -28,6 +29,7 @@ function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/analytics" element={<PortfolioAnalytics />} />
+            <Route path="/risk" element={<RiskManagement />} />
             <Route path="/holdings" element={<Holdings />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/positions" element={<Positions />} />

@@ -2,12 +2,18 @@ import "../styles/TradePopUp.css";
 import { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { AppContext } from "../context/AppContext";
+import { checkOrderRisk } from "../services/riskService";
 
 function TradePopup() {
   // Form-related states
   const [quantity, setQuantity] = useState(1);
   const [orderType, setOrderType] = useState("Market");
   const [price, setPrice] = useState("");
+  const [stopLossPrice, setStopLossPrice] = useState("");
+  const [targetPrice, setTargetPrice] = useState("");
+
+  // Risk Check State
+  const [riskCheckResult, setRiskCheckResult] = useState(null);
 
   // Error states
   const [balanceError, setBalanceError] = useState("");
@@ -123,6 +129,34 @@ function TradePopup() {
     }
   }, [selectedStock, isExitMode]);
 
+  // Real-time pre-trade risk check
+  useEffect(() => {
+    const runCheck = async () => {
+      if (!selectedStock?.symbol || !quantity || quantity <= 0) return;
+      const tradePrice = orderType === "Market" ? Number(marketPrice) : Number(price);
+      if (!tradePrice || tradePrice <= 0) return;
+
+      try {
+        const result = await checkOrderRisk({
+          symbol: selectedStock.symbol,
+          type: stockType.trim(),
+          quantity: Number(quantity),
+          orderType: orderType,
+          price: tradePrice,
+          product: product,
+          stopLossPrice: stopLossPrice ? Number(stopLossPrice) : undefined,
+          targetPrice: targetPrice ? Number(targetPrice) : undefined,
+        });
+        setRiskCheckResult(result);
+      } catch (err) {
+        console.error("Pre-trade risk check error:", err);
+      }
+    };
+
+    const timer = setTimeout(runCheck, 300);
+    return () => clearTimeout(timer);
+  }, [selectedStock, stockType, quantity, orderType, price, product, marketPrice, stopLossPrice, targetPrice]);
+
   // Handle Buy/Sell order
   const handleTrade = async (e) => {
     e.preventDefault();
@@ -199,6 +233,8 @@ function TradePopup() {
           orderType: orderType,
           price: tradePrice,
           product: product,
+          stopLossPrice: stopLossPrice ? Number(stopLossPrice) : undefined,
+          targetPrice: targetPrice ? Number(targetPrice) : undefined,
         },
         { withCredentials: true },
       );
@@ -401,7 +437,93 @@ function TradePopup() {
 
               <div className="invalid-feedback">Please enter a valid price</div>
             </div>
+
+            {/* Stop-Loss Price (Optional) */}
+            <div className="form-group">
+              <label htmlFor="stopLossPrice">Stop-Loss (Optional)</label>
+              <input
+                id="stopLossPrice"
+                type="number"
+                className="form-control"
+                min="0.01"
+                step="0.01"
+                placeholder="Trigger price"
+                value={stopLossPrice}
+                onChange={(e) => setStopLossPrice(e.target.value)}
+              />
+            </div>
+
+            {/* Target Price (Optional) */}
+            <div className="form-group">
+              <label htmlFor="targetPrice">Target (Optional)</label>
+              <input
+                id="targetPrice"
+                type="number"
+                className="form-control"
+                min="0.01"
+                step="0.01"
+                placeholder="Target price"
+                value={targetPrice}
+                onChange={(e) => setTargetPrice(e.target.value)}
+              />
+            </div>
           </div>
+
+          {/* Pre-Trade Risk Guard Widget */}
+          {riskCheckResult && (
+            <div className="pretrade-checker-container">
+              <div className="pretrade-checker-header">
+                <span className="pretrade-title">
+                  <i className="bi bi-shield-check me-1"></i> Pre-Trade Risk Checker
+                </span>
+                <span className={`badge ${riskCheckResult.allowed ? "bg-success" : "bg-danger"}`}>
+                  {riskCheckResult.allowed ? "ALLOWED" : "REJECTED (STRICT)"}
+                </span>
+              </div>
+
+              <div className="pretrade-grid">
+                <div>
+                  <span className="pretrade-label">Trade Value:</span>
+                  <div className="pretrade-val">₹{riskCheckResult.estimatedTradeValue?.toLocaleString("en-IN")}</div>
+                </div>
+
+                <div>
+                  <span className="pretrade-label">Est. Loss at Stop:</span>
+                  <div className="pretrade-val text-danger">
+                    {riskCheckResult.estimatedLoss !== null ? `₹${riskCheckResult.estimatedLoss.toLocaleString("en-IN")}` : "N/A"}
+                  </div>
+                </div>
+
+                <div>
+                  <span className="pretrade-label">Risk/Reward:</span>
+                  <div className="pretrade-val text-primary">
+                    {riskCheckResult.riskRewardRatio !== null ? `1 : ${riskCheckResult.riskRewardRatio}` : "N/A"}
+                  </div>
+                </div>
+
+                <div>
+                  <span className="pretrade-label">Daily Budget Left:</span>
+                  <div className="pretrade-val">
+                    {riskCheckResult.remainingDailyRiskBudget !== null ? `₹${riskCheckResult.remainingDailyRiskBudget.toLocaleString("en-IN")}` : "Unlimited"}
+                  </div>
+                </div>
+              </div>
+
+              {riskCheckResult.violations?.length > 0 && (
+                <div className="pretrade-violation-badge">
+                  <i className="bi bi-exclamation-triangle-fill me-1"></i>
+                  {riskCheckResult.violations.join(" | ")}
+                </div>
+              )}
+
+              {riskCheckResult.warnings?.length > 0 && riskCheckResult.violations?.length === 0 && (
+                <div className="pretrade-warning-badge">
+                  <i className="bi bi-info-circle-fill me-1"></i>
+                  {riskCheckResult.warnings.join(" | ")}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Order Summary */}
           <div className="trade-summary">

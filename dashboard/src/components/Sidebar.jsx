@@ -30,6 +30,11 @@ function Sidebar() {
           <span>Analytics</span>
         </NavLink>
 
+        <NavLink to={"/risk"} className="sidebar-link">
+          <i className="bi bi-shield-check"></i>
+          <span>Risk Guard</span>
+        </NavLink>
+
         <NavLink to={"/holdings"} className="sidebar-link">
           <i className="bi bi-briefcase"></i>
           <span>Holdings</span>
