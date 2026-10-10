@@ -485,6 +485,7 @@ function TournamentFormModal({ mode = "create", tournament = null, onClose, onSu
   const [name, setName] = useState(tournament?.name || "");
   const [description, setDescription] = useState(tournament?.description || "");
   const [tournamentType, setTournamentType] = useState(tournament?.tournamentType || "daily");
+  const [tournamentMode, setTournamentMode] = useState(tournament?.mode || "standard");
   const [startDate, setStartDate] = useState(
     tournament?.startDate
       ? new Date(tournament.startDate).toISOString().slice(0, 16)
@@ -495,63 +496,139 @@ function TournamentFormModal({ mode = "create", tournament = null, onClose, onSu
       ? new Date(tournament.endDate).toISOString().slice(0, 16)
       : new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 16)
   );
-  const [initialBalance, setInitialBalance] = useState(tournament?.initialBalance || 1000000);
+  const [initialBalance, setInitialBalance] = useState(tournament?.initialBalance || 100000);
   const [maxParticipants, setMaxParticipants] = useState(tournament?.maxParticipants || 100);
   const [isPrivate, setIsPrivate] = useState(tournament?.isPrivate || false);
   const [inviteCode, setInviteCode] = useState(tournament?.inviteCode || "");
   const [allowLateJoin, setAllowLateJoin] = useState(tournament?.entryRules?.allowLateJoin ?? true);
   const [minTrades, setMinTrades] = useState(tournament?.entryRules?.minTrades || 0);
 
+  // Custom mode parameters
+  const [allowedSymbols, setAllowedSymbols] = useState(
+    (tournament?.tradingRules?.allowedSymbols || tournament?.entryRules?.allowedSymbols || []).join(", ")
+  );
+  const [allowMarket, setAllowMarket] = useState(
+    tournament?.tradingRules?.allowedOrderTypes ? tournament.tradingRules.allowedOrderTypes.includes("Market") : true
+  );
+  const [allowLimit, setAllowLimit] = useState(
+    tournament?.tradingRules?.allowedOrderTypes ? tournament.tradingRules.allowedOrderTypes.includes("Limit") : true
+  );
+  const [allowBuy, setAllowBuy] = useState(
+    tournament?.tradingRules?.allowedActions ? tournament.tradingRules.allowedActions.includes("BUY") : true
+  );
+  const [allowSell, setAllowSell] = useState(
+    tournament?.tradingRules?.allowedActions ? tournament.tradingRules.allowedActions.includes("SELL") : true
+  );
+  const [maxOrderQty, setMaxOrderQty] = useState(tournament?.tradingRules?.maxOrderQty || "");
+  const [maxOrders, setMaxOrders] = useState(tournament?.tradingRules?.maxOrders || "");
+  const [maxOpenPositions, setMaxOpenPositions] = useState(tournament?.tradingRules?.maxOpenPositions || "");
+  const [perStockQtyLimit, setPerStockQtyLimit] = useState(tournament?.tradingRules?.perStockQtyLimit || "");
+  const [rankingMetric, setRankingMetric] = useState(tournament?.tradingRules?.rankingMetric || "returnPercent");
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const validateForm = () => {
+    const errs = {};
+    if (!name.trim()) errs.name = "Tournament name is required.";
+    if (!description.trim()) errs.description = "Description is required.";
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (isNaN(start.getTime())) errs.startDate = "Valid start date is required.";
+    if (isNaN(end.getTime())) errs.endDate = "Valid end date is required.";
+    if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && start >= end) {
+      errs.endDate = "End date must be after start date.";
+    }
+
+    if (mode === "create") {
+      const numInit = Number(initialBalance);
+      if (isNaN(numInit) || numInit < 10000) {
+        errs.initialBalance = "Initial virtual balance must be at least ₹10,000.";
+      }
+    }
+
+    const numMax = Number(maxParticipants);
+    if (isNaN(numMax) || numMax < 2) {
+      errs.maxParticipants = "Max participants must be at least 2.";
+    }
+
+    if (isPrivate && !inviteCode.trim()) {
+      errs.inviteCode = "Invite code is required for private tournaments.";
+    }
+
+    if (tournamentMode === "custom") {
+      if (!allowMarket && !allowLimit) {
+        errs.orderTypes = "At least one order type (Market or Limit) must be allowed.";
+      }
+      if (!allowBuy && !allowSell) {
+        errs.actions = "At least one action (BUY or SELL) must be allowed.";
+      }
+    }
+
+    setFieldErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (!name.trim()) return setError("Tournament name is required.");
-    if (!description.trim()) return setError("Description is required.");
-
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      return setError("Valid start and end dates are required.");
-    }
-    if (start >= end) {
-      return setError("End date must be after start date.");
-    }
-
-    if (Number(initialBalance) < 10000) {
-      return setError("Initial virtual balance must be at least ₹10,000.");
-    }
-    if (Number(maxParticipants) < 2) {
-      return setError("Max participants must be at least 2.");
-    }
-    if (isPrivate && !inviteCode.trim()) {
-      return setError("Invite code is required for private tournaments.");
-    }
+    if (!validateForm()) return;
 
     setSubmitting(true);
     try {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      const parsedSymbols = allowedSymbols
+        .split(",")
+        .map((s) => s.trim().toUpperCase())
+        .filter(Boolean);
+
+      const orderTypes = [];
+      if (allowMarket) orderTypes.push("Market");
+      if (allowLimit) orderTypes.push("Limit");
+
+      const actions = [];
+      if (allowBuy) actions.push("BUY");
+      if (allowSell) actions.push("SELL");
+
       const payload = {
         name: name.trim(),
         description: description.trim(),
         tournamentType,
+        mode: tournamentMode,
         maxParticipants: Number(maxParticipants),
         isPrivate: Boolean(isPrivate),
         inviteCode: isPrivate ? inviteCode.trim().toUpperCase() : null,
+        endDate: end,
         entryRules: {
           allowLateJoin: Boolean(allowLateJoin),
+          allowedSymbols: parsedSymbols,
           minTrades: Number(minTrades) || 0,
+        },
+        tradingRules: {
+          allowedSymbols: parsedSymbols,
+          allowedOrderTypes: orderTypes.length ? orderTypes : ["Market", "Limit"],
+          allowedActions: actions.length ? actions : ["BUY", "SELL"],
+          maxOrderQty: Number(maxOrderQty) || 0,
+          maxOrders: Number(maxOrders) || 0,
+          maxOpenPositions: Number(maxOpenPositions) || 0,
+          perStockQtyLimit: Number(perStockQtyLimit) || 0,
+          rankingMetric,
         },
       };
 
       if (mode === "create") {
         payload.startDate = start;
-        payload.endDate = end;
         payload.initialBalance = Number(initialBalance);
         await adminCreateTournament(payload);
       } else {
+        if (tournament?.status === "upcoming") {
+          payload.startDate = start;
+        }
         await adminUpdateTournament(tournament._id, payload);
       }
 
@@ -565,7 +642,7 @@ function TournamentFormModal({ mode = "create", tournament = null, onClose, onSu
 
   return (
     <div className="admin-modal-overlay" onClick={onClose}>
-      <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="admin-modal admin-modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="admin-modal-header">
           <h4>{mode === "create" ? "Create New Tournament" : "Edit Tournament"}</h4>
           <button className="tourn-modal-close" onClick={onClose} disabled={submitting}>
@@ -573,38 +650,75 @@ function TournamentFormModal({ mode = "create", tournament = null, onClose, onSu
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
-          <div className="admin-modal-body">
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }} noValidate>
+          <div className="admin-modal-body" style={{ maxHeight: "75vh", overflowY: "auto" }}>
             {error && (
               <div className="tournament-error-banner mb-3" style={{ padding: "8px 12px" }}>
                 <i className="bi bi-exclamation-triangle-fill me-2"></i> {error}
               </div>
             )}
 
+            {/* Mode Selector */}
+            <div className="admin-form-group mb-3">
+              <label style={{ fontWeight: 600, display: "block", marginBottom: 6 }}>Tournament Mode</label>
+              <div style={{ display: "flex", gap: 12 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", background: tournamentMode === "standard" ? "#e3f2fd" : "#f8fafc", padding: "8px 14px", borderRadius: 6, border: "1px solid #cbd5e1" }}>
+                  <input
+                    type="radio"
+                    name="tournamentMode"
+                    value="standard"
+                    checked={tournamentMode === "standard"}
+                    onChange={() => setTournamentMode("standard")}
+                  />
+                  <span><strong>Standard</strong> (Sensible defaults, unrestricted trading)</span>
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", background: tournamentMode === "custom" ? "#e3f2fd" : "#f8fafc", padding: "8px 14px", borderRadius: 6, border: "1px solid #cbd5e1" }}>
+                  <input
+                    type="radio"
+                    name="tournamentMode"
+                    value="custom"
+                    checked={tournamentMode === "custom"}
+                    onChange={() => setTournamentMode("custom")}
+                  />
+                  <span><strong>Custom</strong> (Fine-grained rules & limits)</span>
+                </label>
+              </div>
+            </div>
+
             <div className="admin-form-group">
               <label>Tournament Name *</label>
               <input
                 type="text"
-                className="admin-form-input"
+                className={`admin-form-input ${fieldErrors.name ? "is-invalid" : ""}`}
                 placeholder="e.g. Nifty 50 Pro Championship"
                 value={name}
                 maxLength={100}
-                onChange={(e) => setName(e.target.value)}
-                required
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (fieldErrors.name) setFieldErrors({ ...fieldErrors, name: null });
+                }}
               />
+              {fieldErrors.name && (
+                <span style={{ color: "#d32f2f", fontSize: 11, marginTop: 3, display: "block" }}>{fieldErrors.name}</span>
+              )}
             </div>
 
             <div className="admin-form-group">
               <label>Description *</label>
               <textarea
-                className="admin-form-textarea"
-                rows={3}
+                className={`admin-form-textarea ${fieldErrors.description ? "is-invalid" : ""}`}
+                rows={2}
                 placeholder="Describe rules, objectives, and schedule…"
                 value={description}
                 maxLength={1000}
-                onChange={(e) => setDescription(e.target.value)}
-                required
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  if (fieldErrors.description) setFieldErrors({ ...fieldErrors, description: null });
+                }}
               />
+              {fieldErrors.description && (
+                <span style={{ color: "#d32f2f", fontSize: 11, marginTop: 3, display: "block" }}>{fieldErrors.description}</span>
+              )}
             </div>
 
             <div className="admin-form-grid-2">
@@ -623,60 +737,80 @@ function TournamentFormModal({ mode = "create", tournament = null, onClose, onSu
               </div>
 
               <div className="admin-form-group">
-                <label>Max Participants</label>
+                <label>Max Participants *</label>
                 <input
                   type="number"
-                  className="admin-form-input"
+                  className={`admin-form-input ${fieldErrors.maxParticipants ? "is-invalid" : ""}`}
                   min={2}
                   value={maxParticipants}
-                  onChange={(e) => setMaxParticipants(e.target.value)}
-                  required
+                  onChange={(e) => {
+                    setMaxParticipants(e.target.value);
+                    if (fieldErrors.maxParticipants) setFieldErrors({ ...fieldErrors, maxParticipants: null });
+                  }}
                 />
+                {fieldErrors.maxParticipants && (
+                  <span style={{ color: "#d32f2f", fontSize: 11, marginTop: 3, display: "block" }}>{fieldErrors.maxParticipants}</span>
+                )}
+              </div>
+            </div>
+
+            {/* Schedule Section */}
+            <div className="admin-form-grid-2">
+              <div className="admin-form-group">
+                <label>Start Date & Time (IST) *</label>
+                <input
+                  type="datetime-local"
+                  className={`admin-form-input ${fieldErrors.startDate ? "is-invalid" : ""}`}
+                  value={startDate}
+                  disabled={mode === "edit" && tournament?.status !== "upcoming"}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    if (fieldErrors.startDate) setFieldErrors({ ...fieldErrors, startDate: null });
+                  }}
+                />
+                {fieldErrors.startDate && (
+                  <span style={{ color: "#d32f2f", fontSize: 11, marginTop: 3, display: "block" }}>{fieldErrors.startDate}</span>
+                )}
+              </div>
+
+              <div className="admin-form-group">
+                <label>End Date & Time (IST) *</label>
+                <input
+                  type="datetime-local"
+                  className={`admin-form-input ${fieldErrors.endDate ? "is-invalid" : ""}`}
+                  value={endDate}
+                  onChange={(e) => {
+                    setEndDate(e.target.value);
+                    if (fieldErrors.endDate) setFieldErrors({ ...fieldErrors, endDate: null });
+                  }}
+                />
+                {fieldErrors.endDate && (
+                  <span style={{ color: "#d32f2f", fontSize: 11, marginTop: 3, display: "block" }}>{fieldErrors.endDate}</span>
+                )}
               </div>
             </div>
 
             {mode === "create" && (
-              <>
-                <div className="admin-form-grid-2">
-                  <div className="admin-form-group">
-                    <label>Start Date & Time (IST) *</label>
-                    <input
-                      type="datetime-local"
-                      className="admin-form-input"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="admin-form-group">
-                    <label>End Date & Time (IST) *</label>
-                    <input
-                      type="datetime-local"
-                      className="admin-form-input"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="admin-form-group">
-                  <label>Initial Virtual Capital (₹) *</label>
-                  <input
-                    type="number"
-                    className="admin-form-input"
-                    min={10000}
-                    step={10000}
-                    value={initialBalance}
-                    onChange={(e) => setInitialBalance(e.target.value)}
-                    required
-                  />
-                  <small style={{ color: "#888", fontSize: 11 }}>
-                    Standard default is ₹10,00,000 virtual cash per participant.
-                  </small>
-                </div>
-              </>
+              <div className="admin-form-group">
+                <label>Initial Virtual Capital (₹) *</label>
+                <input
+                  type="number"
+                  className={`admin-form-input ${fieldErrors.initialBalance ? "is-invalid" : ""}`}
+                  min={10000}
+                  step={10000}
+                  value={initialBalance}
+                  onChange={(e) => {
+                    setInitialBalance(e.target.value);
+                    if (fieldErrors.initialBalance) setFieldErrors({ ...fieldErrors, initialBalance: null });
+                  }}
+                />
+                <small style={{ color: "#888", fontSize: 11 }}>
+                  Standard default is ₹1,00,000 virtual cash per participant.
+                </small>
+                {fieldErrors.initialBalance && (
+                  <span style={{ color: "#d32f2f", fontSize: 11, marginTop: 3, display: "block" }}>{fieldErrors.initialBalance}</span>
+                )}
+              </div>
             )}
 
             <div className="admin-form-group" style={{ marginTop: 8 }}>
@@ -695,13 +829,18 @@ function TournamentFormModal({ mode = "create", tournament = null, onClose, onSu
                 <label>Invite Code *</label>
                 <input
                   type="text"
-                  className="admin-form-input"
+                  className={`admin-form-input ${fieldErrors.inviteCode ? "is-invalid" : ""}`}
                   placeholder="e.g. ALPHA2026"
                   value={inviteCode}
                   maxLength={20}
-                  onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                  required={isPrivate}
+                  onChange={(e) => {
+                    setInviteCode(e.target.value.toUpperCase());
+                    if (fieldErrors.inviteCode) setFieldErrors({ ...fieldErrors, inviteCode: null });
+                  }}
                 />
+                {fieldErrors.inviteCode && (
+                  <span style={{ color: "#d32f2f", fontSize: 11, marginTop: 3, display: "block" }}>{fieldErrors.inviteCode}</span>
+                )}
               </div>
             )}
 
@@ -728,6 +867,144 @@ function TournamentFormModal({ mode = "create", tournament = null, onClose, onSu
                 />
               </div>
             </div>
+
+            {/* Custom Mode Configuration Panel */}
+            {tournamentMode === "custom" && (
+              <div style={{ marginTop: 16, padding: 14, background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+                <h6 style={{ fontWeight: 600, fontSize: 13, marginBottom: 12, color: "#1e293b" }}>
+                  <i className="bi bi-sliders me-1 text-primary"></i> Custom Trading Rules & Risk Limits
+                </h6>
+
+                <div className="admin-form-group mb-2">
+                  <label>Allowed Stocks (Comma-separated symbols, leave empty for all):</label>
+                  <input
+                    type="text"
+                    className="admin-form-input"
+                    placeholder="e.g. RELIANCE, TCS, INFY, HDFCBANK"
+                    value={allowedSymbols}
+                    onChange={(e) => setAllowedSymbols(e.target.value)}
+                  />
+                  <small style={{ color: "#64748b", fontSize: 11 }}>Leave empty to allow all supported TrueData instruments.</small>
+                </div>
+
+                <div className="admin-form-grid-2 mb-2">
+                  <div className="admin-form-group">
+                    <label style={{ fontWeight: 600, fontSize: 12 }}>Permitted Order Types:</label>
+                    <div style={{ display: "flex", gap: 14, marginTop: 4 }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                        <input
+                          type="checkbox"
+                          checked={allowMarket}
+                          onChange={(e) => setAllowMarket(e.target.checked)}
+                        />
+                        Market Orders
+                      </label>
+                      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                        <input
+                          type="checkbox"
+                          checked={allowLimit}
+                          onChange={(e) => setAllowLimit(e.target.checked)}
+                        />
+                        Limit Orders
+                      </label>
+                    </div>
+                    {fieldErrors.orderTypes && (
+                      <span style={{ color: "#d32f2f", fontSize: 11, marginTop: 3, display: "block" }}>{fieldErrors.orderTypes}</span>
+                    )}
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label style={{ fontWeight: 600, fontSize: 12 }}>Permitted Actions:</label>
+                    <div style={{ display: "flex", gap: 14, marginTop: 4 }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                        <input
+                          type="checkbox"
+                          checked={allowBuy}
+                          onChange={(e) => setAllowBuy(e.target.checked)}
+                        />
+                        BUY
+                      </label>
+                      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                        <input
+                          type="checkbox"
+                          checked={allowSell}
+                          onChange={(e) => setAllowSell(e.target.checked)}
+                        />
+                        SELL
+                      </label>
+                    </div>
+                    {fieldErrors.actions && (
+                      <span style={{ color: "#d32f2f", fontSize: 11, marginTop: 3, display: "block" }}>{fieldErrors.actions}</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="admin-form-grid-2 mb-2">
+                  <div className="admin-form-group">
+                    <label>Max Order Qty (0 = unlimited):</label>
+                    <input
+                      type="number"
+                      className="admin-form-input"
+                      min={0}
+                      placeholder="Unlimited"
+                      value={maxOrderQty}
+                      onChange={(e) => setMaxOrderQty(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label>Max Orders per Trader (0 = unlimited):</label>
+                    <input
+                      type="number"
+                      className="admin-form-input"
+                      min={0}
+                      placeholder="Unlimited"
+                      value={maxOrders}
+                      onChange={(e) => setMaxOrders(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="admin-form-grid-2 mb-2">
+                  <div className="admin-form-group">
+                    <label>Max Open Positions (0 = unlimited):</label>
+                    <input
+                      type="number"
+                      className="admin-form-input"
+                      min={0}
+                      placeholder="Unlimited"
+                      value={maxOpenPositions}
+                      onChange={(e) => setMaxOpenPositions(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label>Per-Stock Qty Limit (0 = unlimited):</label>
+                    <input
+                      type="number"
+                      className="admin-form-input"
+                      min={0}
+                      placeholder="Unlimited"
+                      value={perStockQtyLimit}
+                      onChange={(e) => setPerStockQtyLimit(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="admin-form-group">
+                  <label>Ranking Metric:</label>
+                  <select
+                    className="admin-form-select"
+                    value={rankingMetric}
+                    onChange={(e) => setRankingMetric(e.target.value)}
+                  >
+                    <option value="returnPercent">Highest Return Percentage (%) [Default]</option>
+                    <option value="portfolioValue">Total Virtual Portfolio Value (₹)</option>
+                    <option value="realizedPnL">Highest Realized P&L (₹)</option>
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="admin-modal-footer">

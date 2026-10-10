@@ -47,16 +47,33 @@ const rankMedal = (rank) => {
 };
 
 // =========================================================================
-// INVITE CODE MODAL
+// =========================================================================
+// TOURNAMENT JOIN FORM MODAL
 // =========================================================================
 
-function InviteCodeModal({ tournament, onConfirm, onClose, loading }) {
+function TournamentJoinModal({ tournament, onConfirm, onClose, loading }) {
+  const [profile, setProfile] = useState(null);
   const [code, setCode] = useState("");
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = () => {
-    if (!code.trim()) {
-      setError("Please enter the invite code.");
+  useEffect(() => {
+    axios
+      .get("http://localhost:3000/api/auth/me", { withCredentials: true })
+      .then((res) => {
+        if (res.data?.user) setProfile(res.data.user);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (tournament?.isPrivate && !code.trim()) {
+      setError("Please enter the invite code for this private tournament.");
+      return;
+    }
+    if (!agreed) {
+      setError("Please agree to the tournament rules and fair play criteria.");
       return;
     }
     setError("");
@@ -65,42 +82,119 @@ function InviteCodeModal({ tournament, onConfirm, onClose, loading }) {
 
   return (
     <div className="invite-overlay" onClick={onClose}>
-      <div className="invite-modal" onClick={(e) => e.stopPropagation()}>
-        <h5>
-          <i className="bi bi-lock-fill me-2" style={{ color: "#f57f17" }}></i>
-          Private Tournament
-        </h5>
-        <p>Enter the invite code to join <strong>{tournament?.name}</strong>.</p>
-        <input
-          type="text"
-          placeholder="INVITE CODE"
-          value={code}
-          maxLength={20}
-          onChange={(e) => {
-            setCode(e.target.value.toUpperCase());
-            setError("");
-          }}
-          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-          autoFocus
-        />
-        {error && (
-          <div className="tourn-trade-error" style={{ marginBottom: 12 }}>
-            <i className="bi bi-exclamation-circle-fill"></i> {error}
-          </div>
-        )}
-        <div className="invite-modal-actions">
+      <div
+        className="invite-modal"
+        style={{ maxWidth: 520, width: "95%", textAlign: "left", borderRadius: 10, padding: 24 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <h5 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8, fontSize: 17 }}>
+            <i className="bi bi-trophy-fill" style={{ color: "#f57f17" }}></i>
+            Join Tournament
+          </h5>
           <button
             onClick={onClose}
-            style={{ background: "#f5f5f5", color: "#555", border: "1px solid #ddd" }}
+            style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#666" }}
+          >
+            &times;
+          </button>
+        </div>
+
+        <div style={{ background: "#f8fafc", padding: "12px 14px", borderRadius: 8, border: "1px solid #e2e8f0", marginBottom: 14 }}>
+          <div style={{ fontWeight: 600, fontSize: 15, color: "#1e293b", marginBottom: 4 }}>
+            {tournament?.name}
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 12, color: "#64748b" }}>
+            <span>Type: <strong>{tournament?.tournamentType}</strong></span>
+            <span>•</span>
+            <span>Starting Capital: <strong style={{ color: "#2e7d32" }}>₹{fmt(tournament?.initialBalance || 100000)}</strong></span>
+            <span>•</span>
+            <span>Capacity: <strong>{tournament?.participantCount || 0}/{tournament?.maxParticipants}</strong></span>
+          </div>
+        </div>
+
+        {/* Rules & Eligibility criteria */}
+        <div style={{ fontSize: 12, color: "#475569", background: "#f1f5f9", padding: "10px 14px", borderRadius: 6, marginBottom: 14 }}>
+          <div style={{ fontWeight: 600, marginBottom: 4, color: "#334155" }}>Tournament Rules:</div>
+          <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.5 }}>
+            <li>Min. trades required for leaderboard eligibility: <strong>{tournament?.entryRules?.minTrades || 0}</strong></li>
+            <li>Allowed stocks: <strong>{tournament?.entryRules?.allowedSymbols?.length ? tournament.entryRules.allowedSymbols.join(", ") : "All supported Nifty symbols"}</strong></li>
+            <li>Virtual capital is fully isolated from your real trading account.</li>
+          </ul>
+        </div>
+
+        {/* Prefilled verified trader details */}
+        {profile && (
+          <div style={{ fontSize: 12, marginBottom: 14, color: "#475569" }}>
+            <span style={{ fontWeight: 600 }}>Trader Profile: </span>
+            {profile.name} ({profile.email})
+            {profile.mobile ? ` • Mob: ${profile.mobile}` : ""}
+          </div>
+        )}
+
+        {/* Private invite code */}
+        {tournament?.isPrivate && (
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#334155", marginBottom: 4 }}>
+              Invite Code *
+            </label>
+            <input
+              type="text"
+              placeholder="ENTER INVITE CODE (e.g. ALPHA2026)"
+              value={code}
+              maxLength={20}
+              onChange={(e) => {
+                setCode(e.target.value.toUpperCase());
+                setError("");
+              }}
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #cbd5e1",
+                borderRadius: 6,
+                fontWeight: 600,
+                textTransform: "uppercase",
+              }}
+            />
+          </div>
+        )}
+
+        {/* Agreement Checkbox */}
+        <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: "#334155", cursor: "pointer", marginBottom: 14 }}>
+          <input
+            type="checkbox"
+            checked={agreed}
+            onChange={(e) => {
+              setAgreed(e.target.checked);
+              if (e.target.checked) setError("");
+            }}
+            style={{ marginTop: 2 }}
+          />
+          <span>I agree to the tournament trading rules, minimum trade requirements, and terms of fair competition.</span>
+        </label>
+
+        {error && (
+          <div className="tourn-trade-error" style={{ marginBottom: 14 }}>
+            <i className="bi bi-exclamation-circle-fill me-1"></i> {error}
+          </div>
+        )}
+
+        <div className="invite-modal-actions" style={{ justifyContent: "flex-end" }}>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            style={{ background: "#f5f5f5", color: "#555", border: "1px solid #ddd", padding: "8px 16px", borderRadius: 6 }}
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={loading}
-            style={{ background: "#387ed1", color: "#fff" }}
+            style={{ background: "#387ed1", color: "#fff", border: "none", padding: "8px 20px", borderRadius: 6, fontWeight: 600 }}
           >
-            {loading ? "Joining…" : "Join"}
+            {loading ? "Joining…" : "Confirm & Join"}
           </button>
         </div>
       </div>
@@ -428,7 +522,7 @@ function TournamentLobbyTab({ onViewPortfolio }) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [joiningId, setJoiningId] = useState(null);
-  const [inviteModal, setInviteModal] = useState(null);
+  const [joinModalTournament, setJoinModalTournament] = useState(null);
   const [successMsg, setSuccessMsg] = useState("");
 
   const fetchTournaments = useCallback(async () => {
@@ -454,12 +548,8 @@ function TournamentLobbyTab({ onViewPortfolio }) {
     fetchTournaments();
   }, [fetchTournaments]);
 
-  const handleJoin = async (tournament) => {
-    if (tournament.isPrivate) {
-      setInviteModal(tournament);
-      return;
-    }
-    await doJoin(tournament._id, null);
+  const handleJoin = (tournament) => {
+    setJoinModalTournament(tournament);
   };
 
   const doJoin = async (id, inviteCode) => {
@@ -468,12 +558,11 @@ function TournamentLobbyTab({ onViewPortfolio }) {
     try {
       await joinTournament(id, inviteCode);
       setSuccessMsg("✅ Successfully joined the tournament!");
-      setInviteModal(null);
+      setJoinModalTournament(null);
       await fetchTournaments();
       setTimeout(() => setSuccessMsg(""), 4000);
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to join tournament");
-      setInviteModal(null);
     } finally {
       setJoiningId(null);
     }
@@ -677,13 +766,13 @@ function TournamentLobbyTab({ onViewPortfolio }) {
         </div>
       )}
 
-      {/* Invite code modal */}
-      {inviteModal && (
-        <InviteCodeModal
-          tournament={inviteModal}
-          loading={joiningId === inviteModal._id}
-          onConfirm={(code) => doJoin(inviteModal._id, code)}
-          onClose={() => setInviteModal(null)}
+      {/* Tournament join form modal */}
+      {joinModalTournament && (
+        <TournamentJoinModal
+          tournament={joinModalTournament}
+          loading={joiningId === joinModalTournament._id}
+          onConfirm={(code) => doJoin(joinModalTournament._id, code)}
+          onClose={() => setJoinModalTournament(null)}
         />
       )}
     </div>
@@ -807,7 +896,7 @@ function TournamentPortfolioTab({ selectedTournamentId, onSelectTournament, onGo
     ? participation.virtualHoldings
     : [];
   const portfolioValue = Number(participation?.portfolioValue ?? 0);
-  const initialBalance = Number(participation?.initialBalance ?? 1000000);
+  const initialBalance = Number(participation?.initialBalance ?? 100000);
   const availableCash = Number(participation?.availableCash ?? 0);
   const reservedCash = Number(participation?.reservedCash ?? 0);
   const totalPnL = participation ? portfolioValue - initialBalance : 0;

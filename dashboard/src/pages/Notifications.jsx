@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "../styles/Notifications.css";
+
 function Notifications() {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
 
   const [category, setCategory] = useState("all");
@@ -177,8 +179,45 @@ function Notifications() {
       case "security":
         return "bi bi-shield-lock";
 
+      case "tournament_joined":
+        return "bi bi-trophy text-warning";
+
+      case "tournament_trade":
+        return "bi bi-arrow-left-right text-primary";
+
+      case "tournament_disqualified":
+        return "bi bi-slash-circle text-danger";
+
+      case "tournament_completed":
+        return "bi bi-award text-success";
+
+      case "tournament_started":
+        return "bi bi-play-circle text-success";
+
+      case "order_rejected":
+        return "bi bi-exclamation-triangle text-danger";
+
+      case "final_rank_available":
+        return "bi bi-award text-success";
+
       default:
         return "bi bi-info-circle";
+    }
+  };
+
+  const handleItemClick = (notification) => {
+    markAsRead(notification._id);
+    if (
+      notification.type === "tournament" ||
+      notification.event?.startsWith("tournament_") ||
+      notification.event === "final_rank_available"
+    ) {
+      navigate("/tournaments");
+    } else if (
+      notification.type === "order" ||
+      notification.event?.startsWith("order_")
+    ) {
+      navigate("/orders");
     }
   };
 
@@ -188,7 +227,7 @@ function Notifications() {
         <div>
           <h3>Notifications</h3>
 
-          <p>Stay updated with your trading activity.</p>
+          <p>Stay updated with your trading activity and tournaments.</p>
         </div>
 
         <div className="notification-page-actions">
@@ -208,6 +247,7 @@ function Notifications() {
             ["all", "All"],
             ["order", "Orders"],
             ["fund", "Funds"],
+            ["tournament", "Tournaments"],
             ["system", "System"],
           ].map((item) => (
             <button
@@ -250,7 +290,7 @@ function Notifications() {
                 !notification.isRead ? "notification-unread" : ""
               }`}
               key={notification._id}
-              onClick={() => markAsRead(notification._id)}
+              onClick={() => handleItemClick(notification)}
             >
               <div className="notification-icon">
                 <i className={getIcon(notification)}></i>

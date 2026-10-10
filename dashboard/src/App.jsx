@@ -44,6 +44,7 @@ function App() {
             <Route path="/journal" element={<TradingJournal />} />
             <Route path="/backtest" element={<StrategyBacktest />} />
             <Route path="/paper-trading" element={<PaperTrading />} />
+            <Route path="/tournaments" element={<Navigate to="/paper-trading" replace />} />
             <Route path="/admin/tournaments" element={<TournamentAdmin />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
