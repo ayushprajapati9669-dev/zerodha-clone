@@ -8,8 +8,9 @@ import Fund from "../models/FundsModel.js";
 import Notification from "../models/NotificationModel.js";
 const { ordersData, positionsData, holdingsData, fundsData, fundTransactionsData } = data;
 import Order from "../models/OrdersModel.js";
-
-
+import Tournament from "../models/TournamentModel.js";
+import TournamentParticipation from "../models/TournamentParticipationModel.js";
+import TournamentOrder from "../models/TournamentOrderModel.js";
 const initHoldingsData = async () => {
       try {
             await connectDB();
@@ -109,9 +110,39 @@ const deleteNotificationsData = async () => {
             console.log("some error in db (deleteNotificationsData.js): ", err);
       }
 }
-deleteOrdersData();
-deleteHoldingsData();
-deletePositionsData();
-deleteFundsTransaction();
-deleteFundsData();
-deleteNotificationsData();
+const deleteTournamentsData = async () => {
+      try {
+            await connectDB();
+            let response = await Tournament.deleteMany({});
+            console.log("data deleted successfully");
+      } catch (err) {
+            console.log("some error in db (deleteTournamentsData.js): ", err);
+      }
+}
+const deleteTournamentParticipationsData = async () => {
+      try {
+            await connectDB();
+            let response = await TournamentParticipation.deleteMany({});
+            console.log("data deleted successfully");
+      } catch (err) {
+            console.log("some error in db (deleteTournamentParticipationsData.js): ", err);
+      }
+}
+const deleteTournamentOrdersData = async () => {
+      try {
+            await connectDB();
+            let response = await TournamentOrder.deleteMany({});
+            console.log("data deleted successfully");
+      } catch (err) {
+            console.log("some error in db (deleteTournamentOrdersData.js): ", err);
+      }
+}
+// deleteOrdersData();
+// deleteHoldingsData();
+// deletePositionsData();
+// deleteFundsTransaction();
+// deleteFundsData();
+// deleteNotificationsData();
+deleteTournamentsData();
+deleteTournamentParticipationsData();
+deleteTournamentOrdersData();
