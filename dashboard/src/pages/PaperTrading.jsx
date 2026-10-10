@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useContext } from "react";
+import axios from "axios";
+import { AppContext } from "../context/AppContext";
 import "../styles/Tournament.css";
 import socket from "../socket.js";
 import {
@@ -47,26 +49,36 @@ const rankMedal = (rank) => {
 };
 
 // =========================================================================
-// =========================================================================
 // TOURNAMENT JOIN FORM MODAL
 // =========================================================================
 
-function TournamentJoinModal({ tournament, onConfirm, onClose, loading }) {
-  const [profile, setProfile] = useState(null);
+function TournamentJoinModal({ tournament, onConfirm, onClose, loading, initialError }) {
+  const { currentUser } = useContext(AppContext);
+  const [profile, setProfile] = useState(currentUser || null);
   const [code, setCode] = useState("");
   const [agreed, setAgreed] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initialError || "");
 
   useEffect(() => {
-    axios
-      .get("http://localhost:3000/api/auth/me", { withCredentials: true })
-      .then((res) => {
-        if (res.data?.user) setProfile(res.data.user);
-      })
-      .catch(() => {});
-  }, []);
+    if (currentUser) {
+      setProfile(currentUser);
+    } else {
+      axios
+        .get("http://localhost:3000/api/auth/me", { withCredentials: true })
+        .then((res) => {
+          if (res.data?.user) setProfile(res.data.user);
+        })
+        .catch(() => {});
+    }
+  }, [currentUser]);
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    if (initialError) {
+      setError(initialError);
+    }
+  }, [initialError]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (tournament?.isPrivate && !code.trim()) {
       setError("Please enter the invite code for this private tournament.");
@@ -77,7 +89,11 @@ function TournamentJoinModal({ tournament, onConfirm, onClose, loading }) {
       return;
     }
     setError("");
-    onConfirm(code.trim().toUpperCase());
+    try {
+      await onConfirm(code.trim().toUpperCase());
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || "Failed to join tournament");
+    }
   };
 
   return (
@@ -548,12 +564,16 @@ function TournamentLobbyTab({ onViewPortfolio }) {
     fetchTournaments();
   }, [fetchTournaments]);
 
+  const [joinModalError, setJoinModalError] = useState("");
+
   const handleJoin = (tournament) => {
+    setJoinModalError("");
     setJoinModalTournament(tournament);
   };
 
   const doJoin = async (id, inviteCode) => {
     setJoiningId(id);
+    setJoinModalError("");
     setError("");
     try {
       await joinTournament(id, inviteCode);
@@ -562,7 +582,10 @@ function TournamentLobbyTab({ onViewPortfolio }) {
       await fetchTournaments();
       setTimeout(() => setSuccessMsg(""), 4000);
     } catch (err) {
-      setError(err?.response?.data?.message || "Failed to join tournament");
+      const msg = err?.response?.data?.message || err?.message || "Failed to join tournament";
+      setJoinModalError(msg);
+      setError(msg);
+      throw err;
     } finally {
       setJoiningId(null);
     }
@@ -771,8 +794,12 @@ function TournamentLobbyTab({ onViewPortfolio }) {
         <TournamentJoinModal
           tournament={joinModalTournament}
           loading={joiningId === joinModalTournament._id}
+          initialError={joinModalError}
           onConfirm={(code) => doJoin(joinModalTournament._id, code)}
-          onClose={() => setJoinModalTournament(null)}
+          onClose={() => {
+            setJoinModalTournament(null);
+            setJoinModalError("");
+          }}
         />
       )}
     </div>

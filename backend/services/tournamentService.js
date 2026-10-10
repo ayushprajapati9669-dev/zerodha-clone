@@ -7,6 +7,97 @@ import marketStocks from "../data/marketStocks.js";
 import { io } from "../index.js";
 
 /**
+ * Finalizes a completed tournament by cancelling pending orders,
+ * releasing reservations, calculating final ranks, and dispatching notifications.
+ */
+export const finalizeTournamentCompletion = async (tournamentId) => {
+  if (!tournamentId) return;
+  const tournament = await Tournament.findById(tournamentId);
+  if (!tournament) return;
+
+  // 1. Cancel all pending limit orders and release reserved cash atomically
+  const pendingOrders = await TournamentOrder.find({
+    tournamentId,
+    status: "PENDING",
+  });
+
+  for (const order of pendingOrders) {
+    const cancelled = await TournamentOrder.findOneAndUpdate(
+      { _id: order._id, status: "PENDING" },
+      { $set: { status: "CANCELLED", rejectionReason: "Tournament completed" } },
+      { new: false }
+    );
+    if (!cancelled) continue;
+
+    if (cancelled.action === "BUY" && cancelled.reservedAmount > 0) {
+      await TournamentParticipation.findOneAndUpdate(
+        { _id: cancelled.participationId },
+        {
+          $inc: {
+            availableCash: cancelled.reservedAmount,
+            reservedCash: -cancelled.reservedAmount,
+          },
+        }
+      );
+    }
+  }
+
+  // 2. Final recalculation of leaderboard & eligibility
+  const ranked = await recalculateTournamentLeaderboard(tournamentId, { emitSocket: true });
+
+  // 3. Set finalRank on each participant
+  for (const part of ranked) {
+    part.finalRank = part.rank;
+    await part.save();
+
+    // 4. Send tournament completion notification (deduplicated)
+    try {
+      const Notification = (await import("../models/NotificationModel.js")).default;
+      const targetUserId = part.userId?._id || part.userId;
+      const alreadyNotified = await Notification.findOne({
+        userId: targetUserId,
+        event: { $in: ["tournament_completed", "final_rank_available"] },
+        "metadata.tournamentId": tournament._id,
+      });
+
+      if (!alreadyNotified) {
+        await Notification.create({
+          userId: targetUserId,
+          type: "tournament",
+          event: "tournament_completed",
+          title: `Tournament Completed: ${tournament.name}`,
+          message: `"${tournament.name}" has completed. Your final rank is #${part.rank} with a return of ${part.returnPercent}%.`,
+          priority: "normal",
+          metadata: {
+            tournamentId: tournament._id,
+            finalRank: part.rank,
+            returnPercent: part.returnPercent,
+            portfolioValue: part.portfolioValue,
+          },
+        });
+
+        await Notification.create({
+          userId: targetUserId,
+          type: "tournament",
+          event: "final_rank_available",
+          title: `Final Rank Available: ${tournament.name}`,
+          message: `Official final ranks are published for "${tournament.name}". You finished #${part.rank} with a return of ${part.returnPercent}%.`,
+          priority: "normal",
+          metadata: {
+            tournamentId: tournament._id,
+            finalRank: part.rank,
+            returnPercent: part.returnPercent,
+            portfolioValue: part.portfolioValue,
+          },
+        });
+      }
+    } catch (_err) {
+      // Non-fatal
+    }
+  }
+};
+
+/**
  * Dynamically computes and synchronizes tournament status based on current time
  */
 export const syncTournamentStatus = async (tournament) => {
@@ -25,9 +116,36 @@ export const syncTournamentStatus = async (tournament) => {
   }
 
   if (tournament.status !== computedStatus) {
+    const prevStatus = tournament.status;
     tournament.status = computedStatus;
     if (typeof tournament.save === "function") {
       await tournament.save();
+    }
+    if (computedStatus === "active" && prevStatus === "upcoming") {
+      try {
+        const Notification = (await import("../models/NotificationModel.js")).default;
+        const parts = await TournamentParticipation.find({
+          tournamentId: tournament._id,
+          status: "active",
+        });
+        for (const part of parts) {
+          const targetUserId = part.userId?._id || part.userId;
+          await Notification.create({
+            userId: targetUserId,
+            type: "tournament",
+            event: "tournament_started",
+            title: `Tournament Started: ${tournament.name}`,
+            message: `"${tournament.name}" is now live! Trading has begun.`,
+            priority: "normal",
+            metadata: { tournamentId: tournament._id },
+          }).catch(() => {});
+        }
+      } catch (_e) {
+        // Non-fatal
+      }
+    }
+    if (computedStatus === "completed" && prevStatus !== "completed") {
+      await finalizeTournamentCompletion(tournament._id);
     }
   }
 
@@ -84,12 +202,17 @@ export const recalculateTournamentLeaderboard = async (
 ) => {
   if (!tournamentId) return [];
 
+  const tournament = await Tournament.findById(tournamentId);
+
   const participations = await TournamentParticipation.find({
     tournamentId,
     status: "active",
   }).populate("userId", "name clientId");
 
   if (!participations.length) return [];
+
+  const minTradesRequired = tournament?.entryRules?.minTrades || 0;
+  const rankingMetric = tournament?.tradingRules?.rankingMetric || "returnPercent";
 
   // 1. Recalculate metrics for each participant
   for (const part of participations) {
@@ -131,6 +254,8 @@ export const recalculateTournamentLeaderboard = async (
         ? Number(((totalPnL / part.initialBalance) * 100).toFixed(2))
         : 0;
 
+    // Minimum trades eligibility enforcement
+    part.isEligible = Boolean(minTradesRequired === 0 || (part.tradeCount || 0) >= minTradesRequired);
     part.virtualHoldings = updatedHoldings;
     part.unrealizedPnL = Number(totalUnrealizedPnL.toFixed(2));
     part.portfolioValue = portfolioVal;
@@ -139,10 +264,21 @@ export const recalculateTournamentLeaderboard = async (
     await part.save();
   }
 
-  // 2. Deterministic sort: Return % DESC, Portfolio Value DESC, Joined date ASC
+  // 2. Deterministic sort:
+  // - Eligible active participants rank before ineligible
+  // - Primary criterion: rankingMetric (returnPercent, portfolioValue, or realizedPnL)
+  // - Secondary tie-breaker: Portfolio Value DESC
+  // - Tertiary tie-breaker: Earliest join date ASC
   participations.sort((a, b) => {
-    if (b.returnPercent !== a.returnPercent) {
-      return b.returnPercent - a.returnPercent;
+    if (a.isEligible !== b.isEligible) {
+      return a.isEligible ? -1 : 1;
+    }
+    if (rankingMetric === "portfolioValue") {
+      if (b.portfolioValue !== a.portfolioValue) return b.portfolioValue - a.portfolioValue;
+    } else if (rankingMetric === "realizedPnL") {
+      if ((b.realizedPnL || 0) !== (a.realizedPnL || 0)) return (b.realizedPnL || 0) - (a.realizedPnL || 0);
+    } else {
+      if (b.returnPercent !== a.returnPercent) return b.returnPercent - a.returnPercent;
     }
     if (b.portfolioValue !== a.portfolioValue) {
       return b.portfolioValue - a.portfolioValue;
@@ -212,22 +348,90 @@ export const placeTournamentOrder = async ({
   }
 
   // Check allowed symbols rule
-  if (
-    tournament.entryRules?.allowedSymbols?.length > 0 &&
-    !tournament.entryRules.allowedSymbols.includes(normalizedSymbol)
-  ) {
+  const allowedSymbols = tournament.tradingRules?.allowedSymbols?.length
+    ? tournament.tradingRules.allowedSymbols
+    : tournament.entryRules?.allowedSymbols || [];
+  if (allowedSymbols.length > 0 && !allowedSymbols.includes(normalizedSymbol)) {
     throw new Error(`Symbol ${normalizedSymbol} is not permitted in this tournament.`);
   }
 
+  // Check allowed order types rule
+  const allowedOrderTypes = tournament.tradingRules?.allowedOrderTypes?.length
+    ? tournament.tradingRules.allowedOrderTypes
+    : ["Market", "Limit"];
+  if (!allowedOrderTypes.includes(validOrderType)) {
+    throw new Error(`Order type ${validOrderType} is not permitted in this tournament.`);
+  }
+
+  // Check allowed actions rule
+  const allowedActions = tournament.tradingRules?.allowedActions?.length
+    ? tournament.tradingRules.allowedActions
+    : ["BUY", "SELL"];
+  if (!allowedActions.includes(validAction)) {
+    throw new Error(`Action ${validAction} is not permitted in this tournament.`);
+  }
+
+  // Check max order quantity rule
+  const maxOrderQty = tournament.tradingRules?.maxOrderQty;
+  if (maxOrderQty > 0 && numQty > maxOrderQty) {
+    throw new Error(`Order quantity (${numQty}) exceeds tournament maximum limit of ${maxOrderQty} shares.`);
+  }
+
   // 2. Fetch participation
-  let participation = await TournamentParticipation.findOne({
+  const anyPart = await TournamentParticipation.findOne({
     tournamentId,
     userId,
-    status: "active",
   });
 
-  if (!participation) {
+  if (!anyPart) {
     throw new Error("You must join this tournament before trading.");
+  }
+  if (anyPart.status === "disqualified") {
+    throw new Error("You have been disqualified from this tournament and cannot trade.");
+  }
+  let participation = anyPart;
+
+  // Check max total orders per participant rule
+  const maxOrders = tournament.tradingRules?.maxOrders;
+  if (maxOrders > 0) {
+    const totalOrders = await TournamentOrder.countDocuments({
+      participationId: participation._id,
+    });
+    if (totalOrders >= maxOrders) {
+      throw new Error(`Maximum order limit (${maxOrders}) reached for this tournament.`);
+    }
+  }
+
+  // Check max open positions rule for BUY orders
+  if (validAction === "BUY") {
+    const maxOpenPositions = tournament.tradingRules?.maxOpenPositions;
+    if (maxOpenPositions > 0) {
+      const alreadyHeld = participation.virtualHoldings.some(
+        (h) => h.symbol === normalizedSymbol && h.quantity > 0
+      );
+      if (!alreadyHeld) {
+        const currentActivePositions = participation.virtualHoldings.filter(
+          (h) => h.quantity > 0
+        ).length;
+        if (currentActivePositions >= maxOpenPositions) {
+          throw new Error(`Maximum open positions limit (${maxOpenPositions}) reached for this tournament.`);
+        }
+      }
+    }
+
+    // Check per-stock quantity limit rule
+    const perStockQtyLimit = tournament.tradingRules?.perStockQtyLimit;
+    if (perStockQtyLimit > 0) {
+      const existingHolding = participation.virtualHoldings.find(
+        (h) => h.symbol === normalizedSymbol
+      );
+      const currentQty = existingHolding ? existingHolding.quantity : 0;
+      if (currentQty + numQty > perStockQtyLimit) {
+        throw new Error(
+          `Holding limit of ${perStockQtyLimit} shares exceeded for ${normalizedSymbol}. Currently held: ${currentQty}.`
+        );
+      }
+    }
   }
 
   // 3. Obtain execution price or validate limit price
@@ -527,6 +731,14 @@ export const checkPendingTournamentLimitOrders = async (symbol, currentPrice) =>
       if (!participation || participation.status !== "active") continue;
 
       if (order.action === "BUY" && currentPrice <= order.price) {
+        // Atomic lock check to prevent concurrent double-execution or race with cancellation
+        const lockedOrder = await TournamentOrder.findOneAndUpdate(
+          { _id: order._id, status: "PENDING" },
+          { $set: { status: "PROCESSING" } },
+          { new: true }
+        );
+        if (!lockedOrder) continue;
+
         // Execute BUY Limit Order
         const totalCost = Number((order.quantity * order.price).toFixed(2));
         participation.reservedCash = Math.max(
@@ -565,7 +777,33 @@ export const checkPendingTournamentLimitOrders = async (symbol, currentPrice) =>
         await order.save();
 
         executedTournaments.add(order.tournamentId.toString());
+
+        // Notify participant about order execution
+        try {
+          const Notification = (await import("../models/NotificationModel.js")).default;
+          await Notification.create({
+            userId: order.userId,
+            type: "tournament",
+            event: "order_executed",
+            title: `Limit BUY Executed: ${order.symbol}`,
+            message: `Your pending Limit BUY order for ${order.quantity} ${order.symbol} @ ₹${order.price} has executed.`,
+            priority: "normal",
+            metadata: {
+              tournamentId: order.tournamentId,
+              orderId: order._id,
+              symbol: order.symbol,
+              action: "BUY",
+            },
+          });
+        } catch (_nErr) {}
       } else if (order.action === "SELL" && currentPrice >= order.price) {
+        const lockedOrder = await TournamentOrder.findOneAndUpdate(
+          { _id: order._id, status: "PENDING" },
+          { $set: { status: "PROCESSING" } },
+          { new: true }
+        );
+        if (!lockedOrder) continue;
+
         // Execute SELL Limit Order
         const existingHolding = participation.virtualHoldings.find(
           (h) => h.symbol === normalized
@@ -602,10 +840,36 @@ export const checkPendingTournamentLimitOrders = async (symbol, currentPrice) =>
           await order.save();
 
           executedTournaments.add(order.tournamentId.toString());
+
+          // Notify participant about order execution
+          try {
+            const Notification = (await import("../models/NotificationModel.js")).default;
+            await Notification.create({
+              userId: order.userId,
+              type: "tournament",
+              event: "order_executed",
+              title: `Limit SELL Executed: ${order.symbol}`,
+              message: `Your pending Limit SELL order for ${order.quantity} ${order.symbol} @ ₹${order.price} has executed.`,
+              priority: "normal",
+              metadata: {
+                tournamentId: order.tournamentId,
+                orderId: order._id,
+                symbol: order.symbol,
+                action: "SELL",
+              },
+            });
+          } catch (_nErr) {}
+        } else {
+          // Could not execute (e.g. holding changed); revert lock
+          await TournamentOrder.updateOne({ _id: order._id }, { $set: { status: "PENDING" } });
         }
       }
     } catch (err) {
       console.error(`Error processing limit order ${order._id}:`, err.message);
+      await TournamentOrder.updateOne(
+        { _id: order._id, status: "PROCESSING" },
+        { $set: { status: "PENDING" } }
+      ).catch(() => {});
     }
   }
 
@@ -613,5 +877,23 @@ export const checkPendingTournamentLimitOrders = async (symbol, currentPrice) =>
   // This prevents socket tick floods when orders are simply pending.
   for (const tid of executedTournaments) {
     recalculateTournamentLeaderboard(tid).catch(() => {});
+  }
+};
+
+/**
+ * Background lifecycle worker: checks upcoming and active tournaments,
+ * activates upcoming ones when startDate arrives, and finalizes completed ones
+ * when endDate passes.
+ */
+export const syncActiveTournamentsLifecycle = async () => {
+  try {
+    const tournaments = await Tournament.find({
+      status: { $in: ["upcoming", "active"] },
+    });
+    for (const t of tournaments) {
+      await syncTournamentStatus(t);
+    }
+  } catch (err) {
+    // Non-fatal background error
   }
 };

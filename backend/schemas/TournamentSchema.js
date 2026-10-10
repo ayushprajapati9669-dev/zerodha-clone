@@ -32,7 +32,7 @@ const tournamentSchema = new Schema(
       type: Number,
       required: true,
       min: 10000,
-      default: 1000000, // ₹10,00,000 virtual balance
+      default: 100000, // ₹1,00,000 virtual balance
     },
     maxParticipants: {
       type: Number,
@@ -50,6 +50,11 @@ const tournamentSchema = new Schema(
       enum: ["upcoming", "active", "completed", "cancelled"],
       default: "upcoming",
     },
+    mode: {
+      type: String,
+      enum: ["standard", "custom"],
+      default: "standard",
+    },
     entryRules: {
       allowLateJoin: {
         type: Boolean,
@@ -64,6 +69,41 @@ const tournamentSchema = new Schema(
         default: 0,
       },
     },
+    tradingRules: {
+      allowedSymbols: {
+        type: [String],
+        default: [], // empty = all supported symbols
+      },
+      allowedOrderTypes: {
+        type: [String],
+        default: ["Market", "Limit"],
+      },
+      allowedActions: {
+        type: [String],
+        default: ["BUY", "SELL"],
+      },
+      maxOrderQty: {
+        type: Number,
+        default: 0, // 0 = unlimited
+      },
+      maxOrders: {
+        type: Number,
+        default: 0, // 0 = unlimited
+      },
+      maxOpenPositions: {
+        type: Number,
+        default: 0, // 0 = unlimited
+      },
+      perStockQtyLimit: {
+        type: Number,
+        default: 0, // 0 = unlimited
+      },
+      rankingMetric: {
+        type: String,
+        enum: ["returnPercent", "portfolioValue", "realizedPnL"],
+        default: "returnPercent",
+      },
+    },
     isPrivate: {
       type: Boolean,
       default: false,
@@ -73,7 +113,6 @@ const tournamentSchema = new Schema(
       trim: true,
       uppercase: true,
       default: null,
-      sparse: true,
     },
     createdBy: {
       type: Schema.Types.ObjectId,
@@ -84,9 +123,10 @@ const tournamentSchema = new Schema(
   { timestamps: true }
 );
 
-// Indexes for fast listing and filtering
+// Indexes for fast listing, unique name constraint, and filtering
+tournamentSchema.index({ name: 1 }, { unique: true, collation: { locale: "en", strength: 2 } });
 tournamentSchema.index({ status: 1, startDate: 1 });
 tournamentSchema.index({ tournamentType: 1, status: 1 });
-tournamentSchema.index({ inviteCode: 1 });
+tournamentSchema.index({ inviteCode: 1 }, { sparse: true });
 
 export default tournamentSchema;

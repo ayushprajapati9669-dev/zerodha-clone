@@ -8,8 +8,32 @@ import {
   placeTournamentOrder,
   cancelTournamentOrder,
   getMarketDataStatus,
+  finalizeTournamentCompletion,
 } from "../services/tournamentService.js";
 import { logAdminAction } from "../utils/adminAudit.js";
+import Notification from "../models/NotificationModel.js";
+
+/**
+ * Fire-and-forget tournament notification helper.
+ * Uses direct Notification.create to avoid requiring a session (tournament
+ * actions do not run inside transactions). Failures are silently logged
+ * so they never block the primary operation.
+ */
+const sendTournamentNotification = async ({ userId, event, title, message, metadata = {} }) => {
+  try {
+    await Notification.create({
+      userId,
+      type: "tournament",
+      event,
+      title,
+      message,
+      priority: "normal",
+      metadata,
+    });
+  } catch (err) {
+    console.error("Tournament notification failed:", err.message);
+  }
+};
 
 /**
  * List tournaments with optional filtering and pagination
@@ -177,17 +201,30 @@ export const createTournament = async (req, res) => {
       tournamentType = "daily",
       startDate,
       endDate,
-      initialBalance = 1000000,
+      initialBalance = 100000,
       maxParticipants = 100,
       isPrivate = false,
       inviteCode,
+      mode = "standard",
       entryRules = {},
+      tradingRules = {},
     } = req.body;
 
     if (!name || !description || !startDate || !endDate) {
       return res.status(400).json({
         success: false,
         message: "Name, description, start date, and end date are required.",
+      });
+    }
+
+    const trimmedName = String(name).trim();
+    const existing = await Tournament.findOne({
+      name: { $regex: new RegExp(`^${trimmedName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
+    });
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        message: `A tournament with the name "${trimmedName}" already exists.`,
       });
     }
 
@@ -243,7 +280,7 @@ export const createTournament = async (req, res) => {
     }
 
     const tournament = new Tournament({
-      name: String(name).trim(),
+      name: trimmedName,
       description: String(description).trim(),
       tournamentType,
       startDate: start,
@@ -252,10 +289,21 @@ export const createTournament = async (req, res) => {
       maxParticipants: numMax,
       isPrivate: Boolean(isPrivate),
       inviteCode: cleanInviteCode,
+      mode: mode === "custom" ? "custom" : "standard",
       entryRules: {
         allowLateJoin: entryRules.allowLateJoin ?? true,
-        allowedSymbols: entryRules.allowedSymbols || [],
-        minTrades: entryRules.minTrades || 0,
+        allowedSymbols: entryRules.allowedSymbols || tradingRules.allowedSymbols || [],
+        minTrades: Number(entryRules.minTrades || tradingRules.minTrades || 0),
+      },
+      tradingRules: {
+        allowedSymbols: tradingRules.allowedSymbols || entryRules.allowedSymbols || [],
+        allowedOrderTypes: tradingRules.allowedOrderTypes || ["Market", "Limit"],
+        allowedActions: tradingRules.allowedActions || ["BUY", "SELL"],
+        maxOrderQty: Number(tradingRules.maxOrderQty || 0),
+        maxOrders: Number(tradingRules.maxOrders || 0),
+        maxOpenPositions: Number(tradingRules.maxOpenPositions || 0),
+        perStockQtyLimit: Number(tradingRules.perStockQtyLimit || 0),
+        rankingMetric: tradingRules.rankingMetric || "returnPercent",
       },
       createdBy: req.user?.userId || null,
     });
@@ -283,6 +331,12 @@ export const createTournament = async (req, res) => {
       data: tournament,
     });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "A tournament with this name already exists.",
+      });
+    }
     console.error("Error creating tournament:", error);
     return res.status(500).json({
       success: false,
@@ -299,7 +353,14 @@ export const joinTournament = async (req, res) => {
   try {
     const { id } = req.params;
     const { inviteCode } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required. Please log in.",
+      });
+    }
 
     const tournament = await Tournament.findById(id);
     if (!tournament) {
@@ -318,7 +379,7 @@ export const joinTournament = async (req, res) => {
       });
     }
 
-    if (tournament.status === "active" && !tournament.entryRules?.allowLateJoin) {
+    if (tournament.status === "active" && tournament.entryRules?.allowLateJoin === false) {
       return res.status(400).json({
         success: false,
         message: "Late joining is disabled for this tournament.",
@@ -335,7 +396,8 @@ export const joinTournament = async (req, res) => {
     // Check private tournament invite code
     if (tournament.isPrivate) {
       const code = String(inviteCode || "").trim().toUpperCase();
-      if (!code || code !== tournament.inviteCode) {
+      const expectedCode = String(tournament.inviteCode || "").trim().toUpperCase();
+      if (!code || code !== expectedCode) {
         return res.status(403).json({
           success: false,
           message: "Invalid or missing invite code for this private tournament.",
@@ -343,17 +405,19 @@ export const joinTournament = async (req, res) => {
       }
     }
 
-    // Check if user already joined
+    // Check if user already joined or was disqualified
     const existing = await TournamentParticipation.findOne({
       tournamentId: id,
       userId,
-      status: "active",
     });
 
     if (existing) {
       return res.status(400).json({
         success: false,
-        message: "You have already joined this tournament.",
+        message:
+          existing.status === "disqualified"
+            ? "You were disqualified from this tournament and cannot re-join."
+            : "You have already joined this tournament.",
       });
     }
 
@@ -384,6 +448,15 @@ export const joinTournament = async (req, res) => {
 
     // Recalculate ranks
     recalculateTournamentLeaderboard(id).catch(() => {});
+
+    // Notify user about successful join
+    sendTournamentNotification({
+      userId,
+      event: "tournament_joined",
+      title: "Tournament Joined",
+      message: `You have successfully joined "${tournament.name}". Starting capital: ₹${Number(tournament.initialBalance).toLocaleString("en-IN")}. Good luck!`,
+      metadata: { tournamentId: id, tournamentName: tournament.name },
+    });
 
     return res.status(200).json({
       success: true,
@@ -627,9 +700,27 @@ export const placeTrade = async (req, res) => {
       limitPrice,
     });
 
+    const isExecuted = result.order.status === "EXECUTED";
+    sendTournamentNotification({
+      userId,
+      event: isExecuted ? "order_executed" : "order_placed",
+      title: isExecuted ? `Tournament ${action} Executed` : `Tournament ${action} Order Placed`,
+      message: isExecuted
+        ? `${action} ${quantity} ${symbol} @ ₹${result.order.executionPrice || result.order.price} executed. Cash remaining: ₹${Number(result.participation.availableCash).toLocaleString("en-IN")}.`
+        : `Limit ${action} ${quantity} ${symbol} @ ₹${result.order.price} placed. Cash reserved: ₹${Number(result.order.reservedAmount || 0).toLocaleString("en-IN")}.`,
+      metadata: {
+        tournamentId: id,
+        orderId: result.order._id,
+        symbol,
+        action,
+        orderType,
+        quantity,
+      },
+    });
+
     return res.status(201).json({
       success: true,
-      message: `Virtual ${action} order placed successfully!`,
+      message: `Virtual ${action} order ${isExecuted ? "executed" : "placed"} successfully!`,
       data: {
         order: result.order,
         availableCash: result.participation.availableCash,
@@ -639,6 +730,15 @@ export const placeTrade = async (req, res) => {
     });
   } catch (error) {
     console.error("Error placing tournament trade:", error);
+    if (req.user?.userId) {
+      sendTournamentNotification({
+        userId: req.user.userId,
+        event: "order_rejected",
+        title: `Order Rejected: ${req.body?.action || ""} ${req.body?.symbol || ""}`.trim(),
+        message: error.message || "Failed to execute paper trade",
+        metadata: { tournamentId: req.params.id, ...req.body },
+      });
+    }
     return res.status(400).json({
       success: false,
       message: error.message || "Failed to execute paper trade",
@@ -658,6 +758,14 @@ export const cancelOrder = async (req, res) => {
       userId,
       tournamentId: id,
       orderId,
+    });
+
+    sendTournamentNotification({
+      userId,
+      event: "order_cancelled",
+      title: "Tournament Order Cancelled",
+      message: `Your virtual pending ${cancelled.action} order for ${cancelled.quantity} ${cancelled.symbol} was cancelled.`,
+      metadata: { tournamentId: id, orderId },
     });
 
     return res.status(200).json({
@@ -763,7 +871,7 @@ export const seedTournaments = async (req, res) => {
         tournamentType: "daily",
         startDate: new Date(now.getTime() - 2 * 3600 * 1000), // Started 2 hours ago
         endDate: new Date(now.getTime() + 22 * 3600 * 1000), // Ends in 22 hours
-        initialBalance: 1000000,
+        initialBalance: 100000,
         maxParticipants: 150,
         isPrivate: false,
         entryRules: { allowLateJoin: true, minTrades: 1 },
@@ -775,7 +883,7 @@ export const seedTournaments = async (req, res) => {
         tournamentType: "weekly",
         startDate: new Date(now.getTime() - 24 * 3600 * 1000), // Started yesterday
         endDate: new Date(now.getTime() + 6 * 24 * 3600 * 1000), // Ends in 6 days
-        initialBalance: 1500000,
+        initialBalance: 150000,
         maxParticipants: 250,
         isPrivate: false,
         entryRules: { allowLateJoin: true, minTrades: 3 },
@@ -787,7 +895,7 @@ export const seedTournaments = async (req, res) => {
         tournamentType: "monthly",
         startDate: new Date(now.getTime() - 3 * 24 * 3600 * 1000), // Started 3 days ago
         endDate: new Date(now.getTime() + 27 * 24 * 3600 * 1000), // Ends in 27 days
-        initialBalance: 2500000,
+        initialBalance: 250000,
         maxParticipants: 500,
         isPrivate: false,
         entryRules: { allowLateJoin: true, minTrades: 5 },
@@ -799,7 +907,7 @@ export const seedTournaments = async (req, res) => {
         tournamentType: "weekly",
         startDate: new Date(now.getTime() + 2 * 24 * 3600 * 1000), // Starts in 2 days
         endDate: new Date(now.getTime() + 9 * 24 * 3600 * 1000),
-        initialBalance: 1000000,
+        initialBalance: 100000,
         maxParticipants: 100,
         isPrivate: false,
         entryRules: { allowLateJoin: false, minTrades: 2 },
@@ -811,7 +919,7 @@ export const seedTournaments = async (req, res) => {
         tournamentType: "private",
         startDate: new Date(now.getTime() - 1 * 3600 * 1000),
         endDate: new Date(now.getTime() + 5 * 24 * 3600 * 1000),
-        initialBalance: 2000000,
+        initialBalance: 200000,
         maxParticipants: 50,
         isPrivate: true,
         inviteCode: "ALPHA2026",
@@ -961,6 +1069,13 @@ export const adminUpdateTournament = async (req, res) => {
       return res.status(404).json({ success: false, message: "Tournament not found" });
     }
 
+    if (tournament.status === "completed" || tournament.status === "cancelled") {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot edit a ${tournament.status} tournament.`,
+      });
+    }
+
     const {
       name,
       description,
@@ -968,14 +1083,60 @@ export const adminUpdateTournament = async (req, res) => {
       maxParticipants,
       isPrivate,
       inviteCode,
+      startDate,
+      endDate,
+      mode,
       entryRules,
+      tradingRules,
     } = req.body;
 
-    if (name) tournament.name = String(name).trim();
+    if (name) {
+      const trimmedName = String(name).trim();
+      if (trimmedName.toLowerCase() !== tournament.name.toLowerCase()) {
+        const existing = await Tournament.findOne({
+          _id: { $ne: tournament._id },
+          name: { $regex: new RegExp(`^${trimmedName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
+        });
+        if (existing) {
+          return res.status(409).json({
+            success: false,
+            message: `Another tournament with the name "${trimmedName}" already exists.`,
+          });
+        }
+      }
+      tournament.name = trimmedName;
+    }
+
     if (description) tournament.description = String(description).trim();
     if (tournamentType && ["daily", "weekly", "monthly", "private"].includes(tournamentType)) {
       tournament.tournamentType = tournamentType;
     }
+    if (mode && ["standard", "custom"].includes(mode)) {
+      tournament.mode = mode;
+    }
+
+    if (startDate && tournament.status === "upcoming") {
+      const start = new Date(startDate);
+      if (isNaN(start.getTime())) {
+        return res.status(400).json({ success: false, message: "Invalid start date format." });
+      }
+      if (start >= new Date(tournament.endDate)) {
+        return res.status(400).json({ success: false, message: "Start date must be before end date." });
+      }
+      tournament.startDate = start;
+    }
+
+    if (endDate) {
+      const end = new Date(endDate);
+      if (isNaN(end.getTime())) {
+        return res.status(400).json({ success: false, message: "Invalid end date format." });
+      }
+      if (end <= new Date(tournament.startDate)) {
+        return res.status(400).json({ success: false, message: "End date must be after start date." });
+      }
+      tournament.endDate = end;
+    }
+
     if (maxParticipants !== undefined) {
       const numMax = Number(maxParticipants);
       if (isNaN(numMax) || numMax < Math.max(2, tournament.participantCount)) {
@@ -1000,7 +1161,14 @@ export const adminUpdateTournament = async (req, res) => {
         ...entryRules,
       };
     }
+    if (tradingRules && typeof tradingRules === "object") {
+      tournament.tradingRules = {
+        ...tournament.tradingRules,
+        ...tradingRules,
+      };
+    }
 
+    await syncTournamentStatus(tournament);
     await tournament.save();
 
     logAdminAction({
@@ -1017,6 +1185,12 @@ export const adminUpdateTournament = async (req, res) => {
       data: tournament,
     });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "Another tournament with this name already exists.",
+      });
+    }
     return res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -1083,34 +1257,55 @@ export const adminUpdateTournamentStatus = async (req, res) => {
       tournament.status = "active";
       await tournament.save();
       await recalculateTournamentLeaderboard(id, { emitSocket: true });
+
+      if (currentStatus === "upcoming") {
+        try {
+          const parts = await TournamentParticipation.find({
+            tournamentId: id,
+            status: "active",
+          });
+          for (const part of parts) {
+            sendTournamentNotification({
+              userId: part.userId,
+              event: "tournament_started",
+              title: `Tournament Started: ${tournament.name}`,
+              message: `"${tournament.name}" is now live! Trading has begun.`,
+              metadata: { tournamentId: id },
+            });
+          }
+        } catch (_e) {}
+      }
     } else if (targetStatus === "completed") {
-      // End tournament: set end date to now, recalculate final leaderboard
+      // End tournament: set end date to now, recalculate final leaderboard and release reservations
       tournament.endDate = now;
       tournament.status = "completed";
       await tournament.save();
-      await recalculateTournamentLeaderboard(id, { emitSocket: true });
+      await finalizeTournamentCompletion(id);
     } else if (targetStatus === "cancelled") {
       tournament.status = "cancelled";
       await tournament.save();
 
-      // Cancel all pending limit orders and release reserved cash
+      // Cancel all pending limit orders and release reserved cash atomically
       const pendingOrders = await TournamentOrder.find({
         tournamentId: id,
         status: "PENDING",
       });
 
       for (const order of pendingOrders) {
-        order.status = "CANCELLED";
-        order.rejectionReason = "Tournament cancelled by administrator";
-        await order.save();
+        const cancelled = await TournamentOrder.findOneAndUpdate(
+          { _id: order._id, status: "PENDING" },
+          { $set: { status: "CANCELLED", rejectionReason: "Tournament cancelled by administrator" } },
+          { new: false }
+        );
+        if (!cancelled) continue;
 
-        if (order.action === "BUY" && order.reservedAmount > 0) {
+        if (cancelled.action === "BUY" && cancelled.reservedAmount > 0) {
           await TournamentParticipation.findOneAndUpdate(
-            { _id: order.participationId },
+            { _id: cancelled.participationId },
             {
               $inc: {
-                availableCash: order.reservedAmount,
-                reservedCash: -order.reservedAmount,
+                availableCash: cancelled.reservedAmount,
+                reservedCash: -cancelled.reservedAmount,
               },
             }
           );
@@ -1292,6 +1487,21 @@ export const adminDisqualifyParticipant = async (req, res) => {
         reason,
       },
     });
+
+    // Notify the disqualified user
+    if (participation.userId?._id) {
+      sendTournamentNotification({
+        userId: participation.userId._id,
+        event: "tournament_disqualified",
+        title: "Tournament Disqualification",
+        message: `You have been disqualified from "${tournament?.name || "a tournament"}". Reason: ${reason}`,
+        metadata: {
+          tournamentId: id,
+          tournamentName: tournament?.name,
+          reason,
+        },
+      });
+    }
 
     return res.status(200).json({
       success: true,

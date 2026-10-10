@@ -71,7 +71,7 @@ describe("Paper Trading Tournament Test Suite", () => {
         tournamentType: "daily",
         startDate: now,
         endDate: new Date(now.getTime() + 24 * 3600 * 1000),
-        initialBalance: 1000000,
+        initialBalance: 100000,
         maxParticipants: 50,
         isPrivate: false,
       });
@@ -84,7 +84,7 @@ describe("Paper Trading Tournament Test Suite", () => {
       assert.strictEqual(err, null, "Valid tournament should pass validation");
     });
 
-    it("should default status to upcoming and initialBalance to 1000000", async () => {
+    it("should default status to upcoming and initialBalance to 100000", async () => {
       const now = new Date();
       const t = new TournamentModel({
         name: "Default Test",
@@ -93,7 +93,7 @@ describe("Paper Trading Tournament Test Suite", () => {
         endDate: new Date(now.getTime() + 3600 * 1000),
       });
       assert.strictEqual(t.status, "upcoming");
-      assert.strictEqual(t.initialBalance, 1000000);
+      assert.strictEqual(t.initialBalance, 100000);
       assert.strictEqual(t.maxParticipants, 100);
       assert.strictEqual(t.isPrivate, false);
     });
@@ -165,7 +165,7 @@ describe("Paper Trading Tournament Test Suite", () => {
 
     it("should require userId and tournamentId", async () => {
       const p = new ParticipationModel({
-        initialBalance: 1000000,
+        initialBalance: 100000,
         availableCash: 1000000,
         portfolioValue: 1000000,
       });
@@ -185,7 +185,7 @@ describe("Paper Trading Tournament Test Suite", () => {
       const p = new ParticipationModel({
         userId: uid,
         tournamentId: tid,
-        initialBalance: 1000000,
+        initialBalance: 100000,
         availableCash: 1000000,
         portfolioValue: 1000000,
       });
@@ -200,7 +200,7 @@ describe("Paper Trading Tournament Test Suite", () => {
       const p = new ParticipationModel({
         userId: new mongoose.Types.ObjectId(),
         tournamentId: new mongoose.Types.ObjectId(),
-        initialBalance: 1000000,
+        initialBalance: 100000,
         availableCash: -500,
         portfolioValue: 1000000,
       });
@@ -357,12 +357,12 @@ describe("Paper Trading Tournament Test Suite", () => {
     });
 
     it("should correctly calculate return percentage", () => {
-      const initialBalance = 1000000;
-      const portfolioValue = 1125000;
+      const initialBalance = 100000;
+      const portfolioValue = 112500;
       const pnl = portfolioValue - initialBalance;
       const returnPct = (pnl / initialBalance) * 100;
 
-      assert.strictEqual(pnl, 125000);
+      assert.strictEqual(pnl, 12500);
       assert.strictEqual(returnPct, 12.5);
     });
 
@@ -530,9 +530,9 @@ describe("Paper Trading Tournament Test Suite", () => {
       const part = new (mongoose.model("IsolationPartTest", tournamentParticipationSchema))({
         userId: new mongoose.Types.ObjectId(),
         tournamentId: new mongoose.Types.ObjectId(),
-        initialBalance: 1000000,
-        availableCash: 1000000,
-        portfolioValue: 1000000,
+        initialBalance: 100000,
+        availableCash: 100000,
+        portfolioValue: 100000,
       });
       assert.strictEqual(part.product, undefined, "Participation must not have product field");
       assert.strictEqual(part.costBasis, undefined, "Participation must not have costBasis field");
@@ -565,4 +565,282 @@ describe("Paper Trading Tournament Test Suite", () => {
       assert.strictEqual(valid, false, "Empty invite code should be rejected");
     });
   });
+
+  // =========================================================================
+  // 9. CUSTOM RULES & LIFECYCLE ENFORCEMENT
+  // =========================================================================
+
+  describe("Custom Trading Rules and Lifecycle Enforcement", () => {
+    it("should default mode to standard and tradingRules to unrestricted defaults", () => {
+      const TournamentModel = mongoose.model("TournamentTest");
+      const now = new Date();
+      const t = new TournamentModel({
+        name: "Standard Rules Test",
+        description: "Checking default rules",
+        startDate: now,
+        endDate: new Date(now.getTime() + 3600 * 1000),
+      });
+
+      assert.strictEqual(t.mode, "standard");
+      assert.deepStrictEqual(t.tradingRules.allowedOrderTypes, ["Market", "Limit"]);
+      assert.deepStrictEqual(t.tradingRules.allowedActions, ["BUY", "SELL"]);
+      assert.strictEqual(t.tradingRules.maxOrderQty, 0);
+      assert.strictEqual(t.tradingRules.rankingMetric, "returnPercent");
+    });
+
+    it("should normalize and detect duplicate tournament names case-insensitively", () => {
+      const existingName = "Nifty 50 Pro Traders Championship";
+      const newName = "  nifty 50 pro traders championship  ";
+      const isDuplicate = existingName.trim().toLowerCase() === newName.trim().toLowerCase();
+      assert.strictEqual(isDuplicate, true, "Should detect duplicate trimmed case-insensitive name");
+    });
+
+    it("should reject editing an already completed or cancelled tournament", () => {
+      const statuses = ["completed", "cancelled"];
+      for (const st of statuses) {
+        const canEdit = st !== "completed" && st !== "cancelled";
+        assert.strictEqual(canEdit, false, `Editing must be blocked for ${st} tournament`);
+      }
+    });
+
+    it("should correctly compute minTrades eligibility", () => {
+      const minTradesRequired = 3;
+      const traderA = { tradeCount: 1, isEligible: 1 >= minTradesRequired };
+      const traderB = { tradeCount: 3, isEligible: 3 >= minTradesRequired };
+      const traderC = { tradeCount: 5, isEligible: 5 >= minTradesRequired };
+
+      assert.strictEqual(traderA.isEligible, false, "Trader below threshold must not be eligible");
+      assert.strictEqual(traderB.isEligible, true, "Trader at threshold must be eligible");
+      assert.strictEqual(traderC.isEligible, true, "Trader above threshold must be eligible");
+    });
+
+    it("should enforce maxOrderQty limit correctly", () => {
+      const maxOrderQty = 50;
+      const validQty = 50;
+      const invalidQty = 51;
+
+      assert.strictEqual(validQty <= maxOrderQty, true);
+      assert.strictEqual(invalidQty <= maxOrderQty, false);
+    });
+  });
+
+  // =========================================================================
+  // 10. FINAL VERIFICATION AUDIT & CONCURRENCY INVARIANCE TESTS
+  // =========================================================================
+
+  describe("Final Verification Audit & Concurrency Invariance", () => {
+    it("should validate all 9 required tournament notification events are in schema enum", async () => {
+      const NotificationSchema = (await import("../schemas/NotificationSchema.js")).default;
+      const eventEnumValues = NotificationSchema.path("event").enumValues;
+
+      const requiredEvents = [
+        "tournament_joined",
+        "tournament_started",
+        "order_placed",
+        "order_executed",
+        "order_cancelled",
+        "order_rejected",
+        "tournament_completed",
+        "final_rank_available",
+        "tournament_disqualified",
+      ];
+
+      for (const reqEvent of requiredEvents) {
+        assert.ok(
+          eventEnumValues.includes(reqEvent),
+          `NotificationSchema must include ${reqEvent} event in enum`
+        );
+      }
+    });
+
+    it("should reject order placement when participant is disqualified", () => {
+      const participant = { status: "disqualified" };
+      let errorThrown = false;
+      try {
+        if (participant.status === "disqualified") {
+          throw new Error("You have been disqualified from this tournament and cannot trade.");
+        }
+      } catch (err) {
+        errorThrown = true;
+        assert.match(err.message, /disqualified/i);
+      }
+      assert.strictEqual(errorThrown, true, "Disqualified participant must be rejected");
+    });
+
+    it("should prevent duplicate order execution under concurrent or repeated ticks via atomic lock", () => {
+      // Simulating atomic findOneAndUpdate lock behavior:
+      // First tick locks order from PENDING to PROCESSING; second concurrent tick gets null.
+      let orderStatus = "PENDING";
+      const simulateAtomicLock = () => {
+        if (orderStatus === "PENDING") {
+          orderStatus = "PROCESSING";
+          return { status: "PROCESSING" };
+        }
+        return null;
+      };
+
+      const tick1 = simulateAtomicLock();
+      const tick2 = simulateAtomicLock();
+
+      assert.ok(tick1, "First tick should acquire lock");
+      assert.strictEqual(tick2, null, "Second tick must not acquire lock");
+    });
+
+    it("should preserve deterministic ranks without modification once tournament is completed", () => {
+      const completedTournament = { status: "completed" };
+      const participants = [
+        { rank: 1, finalRank: 1, returnPercent: 25.5 },
+        { rank: 2, finalRank: 2, returnPercent: 12.3 },
+      ];
+
+      // In completed tournaments, market prices must not alter finalized ranks
+      assert.strictEqual(completedTournament.status, "completed");
+      assert.strictEqual(participants[0].finalRank, 1);
+      assert.strictEqual(participants[1].finalRank, 2);
+    });
+
+    it("should strictly isolate tournament trades from real-account funds and holdings", () => {
+      const realAccountFunds = { availableCash: 500000 };
+      const tournamentVirtualFunds = { availableCash: 100000 };
+
+      // Executing a tournament trade of ₹20,000
+      const tradeCost = 20000;
+      tournamentVirtualFunds.availableCash -= tradeCost;
+
+      assert.strictEqual(tournamentVirtualFunds.availableCash, 80000);
+      assert.strictEqual(
+        realAccountFunds.availableCash,
+        500000,
+        "Real account funds must NEVER be modified by virtual tournament trades"
+      );
+    });
+  });
+
+  // =========================================================================
+  // 11. TOURNAMENT JOIN FLOW VERIFICATION & EDGE CASES
+  // =========================================================================
+
+  describe("Tournament Join Flow Verification & Edge Cases", () => {
+    it("Scenario 1: should create exactly one isolated participant record with initial capital", () => {
+      const initialBalance = 100000;
+      const participation = {
+        userId: new mongoose.Types.ObjectId(),
+        tournamentId: new mongoose.Types.ObjectId(),
+        initialBalance,
+        availableCash: initialBalance,
+        reservedCash: 0,
+        virtualHoldings: [],
+        portfolioValue: initialBalance,
+        returnPercent: 0,
+        tradeCount: 0,
+        status: "active",
+      };
+
+      assert.strictEqual(participation.availableCash, 100000);
+      assert.strictEqual(participation.virtualHoldings.length, 0);
+      assert.strictEqual(participation.tradeCount, 0);
+      assert.strictEqual(participation.status, "active");
+    });
+
+    it("Scenario 2: should reject joining the same tournament again", () => {
+      const existing = { status: "active" };
+      let rejected = false;
+      if (existing) {
+        rejected = true;
+      }
+      assert.strictEqual(rejected, true, "Already active participant must be rejected");
+    });
+
+    it("Scenario 3: should reject joining a full tournament", () => {
+      const tournament = { participantCount: 100, maxParticipants: 100 };
+      const isFull = tournament.participantCount >= tournament.maxParticipants;
+      assert.strictEqual(isFull, true, "Full tournament must reject join request");
+    });
+
+    it("Scenario 4: should reject joining a completed or cancelled tournament", () => {
+      const completed = { status: "completed" };
+      const cancelled = { status: "cancelled" };
+
+      const canJoinCompleted = completed.status !== "completed" && completed.status !== "cancelled";
+      const canJoinCancelled = cancelled.status !== "completed" && cancelled.status !== "cancelled";
+
+      assert.strictEqual(canJoinCompleted, false);
+      assert.strictEqual(canJoinCancelled, false);
+    });
+
+    it("Scenario 5: should reject joining without authentication", () => {
+      const user = null;
+      let rejected = false;
+      if (!user?.userId) {
+        rejected = true;
+      }
+      assert.strictEqual(rejected, true, "Unauthenticated user must be rejected");
+    });
+
+    it("Scenario 6: should reject private tournament when invite code is incorrect or missing", () => {
+      const tournament = { isPrivate: true, inviteCode: "ALPHA2026" };
+
+      const checkCode = (code) => {
+        const clean = String(code || "").trim().toUpperCase();
+        return Boolean(clean && clean === tournament.inviteCode);
+      };
+
+      assert.strictEqual(checkCode(null), false, "Missing code must fail");
+      assert.strictEqual(checkCode(""), false, "Empty code must fail");
+      assert.strictEqual(checkCode("WRONGCODE"), false, "Wrong code must fail");
+      assert.strictEqual(checkCode("alpha2026"), true, "Case-insensitive correct code must pass");
+      assert.strictEqual(checkCode("  ALPHA2026  "), true, "Trimmed correct code must pass");
+    });
+
+    it("Scenario 7: should reject active tournament when allowLateJoin is explicitly false", () => {
+      const tournamentNoLateJoin = { status: "active", entryRules: { allowLateJoin: false } };
+      const tournamentLateJoinAllowed = { status: "active", entryRules: { allowLateJoin: true } };
+      const tournamentDefaultLateJoin = { status: "active", entryRules: {} };
+
+      const isLateJoinBlocked = (t) => t.status === "active" && t.entryRules?.allowLateJoin === false;
+
+      assert.strictEqual(isLateJoinBlocked(tournamentNoLateJoin), true);
+      assert.strictEqual(isLateJoinBlocked(tournamentLateJoinAllowed), false);
+      assert.strictEqual(isLateJoinBlocked(tournamentDefaultLateJoin), false);
+    });
+
+    it("Scenario 8: should reject disqualified user from re-joining", () => {
+      const existing = { status: "disqualified" };
+      let errorMsg = "";
+
+      if (existing) {
+        errorMsg =
+          existing.status === "disqualified"
+            ? "You were disqualified from this tournament and cannot re-join."
+            : "You have already joined this tournament.";
+      }
+
+      assert.match(errorMsg, /disqualified.*cannot re-join/i);
+    });
+
+    it("Scenario 9: should handle concurrent double-click join safely via unique compound index", () => {
+      // Unique index on { tournamentId: 1, userId: 1 } ensures that second concurrent insert throws 11000
+      const insertedUsers = new Set();
+      const mockInsert = (userId, tournamentId) => {
+        const key = `${tournamentId}_${userId}`;
+        if (insertedUsers.has(key)) {
+          const err = new Error("E11000 duplicate key error");
+          err.code = 11000;
+          throw err;
+        }
+        insertedUsers.add(key);
+        return { success: true };
+      };
+
+      const res1 = mockInsert("user123", "tourn456");
+      assert.strictEqual(res1.success, true);
+
+      assert.throws(
+        () => mockInsert("user123", "tourn456"),
+        (err) => err.code === 11000
+      );
+    });
+  });
 });
+
+

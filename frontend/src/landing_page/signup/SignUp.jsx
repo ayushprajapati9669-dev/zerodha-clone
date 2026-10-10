@@ -106,16 +106,23 @@ function SignUp() {
 
     try {
       setLoading(true);
-      const response = await axios.post("http://localhost:3000/api/auth/register", {
-        name,
-        email,
-        mobile,
-        password,
-        verificationToken,
-      });
+      const response = await axios.post(
+        "http://localhost:3000/api/auth/register",
+        {
+          name,
+          email,
+          mobile,
+          password,
+          verificationToken,
+        },
+        { withCredentials: true }
+      );
 
-      console.log(response.data);
       setStep(4);
+      // Auto-login and redirect to dashboard
+      setTimeout(() => {
+        window.location.href = "http://localhost:5174/dashboard";
+      }, 1500);
     } catch (error) {
       const errors = error.response?.data?.errors;
       if (errors && errors.length > 0) {
@@ -356,7 +363,7 @@ function SignUp() {
           </form>
         )}
 
-        {/* STEP 4: Success */}
+        {/* STEP 4: Success & Auto-redirect */}
         {step === 4 && (
           <div className="text-center">
             <div
@@ -367,11 +374,11 @@ function SignUp() {
             </div>
             <h4 className="fw-semibold mb-2" style={{ color: "#424242" }}>Account created successfully!</h4>
             <p className="text-muted mb-4" style={{ fontSize: "0.9rem" }}>
-              Your account has been created successfully. You can now login and access your dashboard.
+              Welcome aboard! You have been automatically logged in. Redirecting to your dashboard...
             </p>
-            <Link to="/login" className="btn btn-primary w-100 py-2">
-              Login to your account
-            </Link>
+            <a href="http://localhost:5174/dashboard" className="btn btn-primary w-100 py-2">
+              Go to Dashboard Now
+            </a>
           </div>
         )}
         

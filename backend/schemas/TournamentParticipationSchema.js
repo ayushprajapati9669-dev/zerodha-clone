@@ -103,6 +103,18 @@ const tournamentParticipationSchema = new Schema(
       enum: ["active", "left", "disqualified"],
       default: "active",
     },
+    isEligible: {
+      type: Boolean,
+      default: true,
+    },
+    disqualificationReason: {
+      type: String,
+      default: null,
+    },
+    finalRank: {
+      type: Number,
+      default: null,
+    },
   },
   { timestamps: true }
 );

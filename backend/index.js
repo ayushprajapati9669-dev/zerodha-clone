@@ -27,6 +27,7 @@ import backtestRoutes from "./routes/backtestRoutes.js";
 import tournamentRoutes from "./routes/tournamentRoutes.js";
 
 import { connectTrueData } from "./services/trueDataService.js";
+import { syncActiveTournamentsLifecycle } from "./services/tournamentService.js";
 
 dotenv.config();
 
@@ -166,6 +167,8 @@ const startServer = async () => {
                   console.log(
                         `Server is listening on port ${PORT}`,
                   );
+                  // Periodic tournament lifecycle background worker (every 30 seconds)
+                  setInterval(syncActiveTournamentsLifecycle, 30000);
             });
       } catch (error) {
             console.error(

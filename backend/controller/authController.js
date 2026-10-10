@@ -114,10 +114,32 @@ const registerUser = async (req, res) => {
                   usedBalance: 0,
                   reservedBalance: 0
             });
-            // 7. Successful response
+
+            // Auto-login: generate JWT token and set cookie
+            const token = jwt.sign(
+                  {
+                        userId: user._id.toString(),
+                        role: user.role,
+                        tokenVersion: user.tokenVersion || 0,
+                  },
+                  process.env.JWT_SECRET,
+                  {
+                        expiresIn: "1d",
+                  }
+            );
+
+            res.cookie("token", token, {
+                  httpOnly: true,
+                  secure: false, // localhost
+                  sameSite: "lax",
+                  maxAge: 24 * 60 * 60 * 1000,
+            });
+
+            // 7. Successful response with auto-login token
             return res.status(201).json({
                   success: true,
                   message: "User registered successfully",
+                  token,
                   user: {
                         id: user._id,
                         name: user.name,
