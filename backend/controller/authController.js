@@ -4,6 +4,7 @@ import User from "../models/UserModel.js";
 import passport from "../config/passport.js";
 import Fund from "../models/FundsModel.js";
 import generateClientId from "../services/generateClientId.js";
+import OtpChallenge from "../models/OtpChallengeModel.js";
 // ===============================
 // REGISTER USER
 // ===============================
@@ -21,8 +22,9 @@ const registerUser = async (req, res) => {
                   });
             }
 
+            let decoded;
             try {
-                  const decoded = jwt.verify(verificationToken, process.env.JWT_SECRET);
+                  decoded = jwt.verify(verificationToken, process.env.JWT_SECRET);
                   if (decoded.mobile !== mobile || !decoded.verified) {
                         throw new Error("Invalid verification token");
                   }
@@ -30,6 +32,33 @@ const registerUser = async (req, res) => {
                   return res.status(400).json({
                         success: false,
                         message: "Invalid or expired mobile verification token",
+                  });
+            }
+
+            // Verify single-use verification challenge
+            let challenge = null;
+            if (decoded.challengeId) {
+                  challenge = await OtpChallenge.findById(decoded.challengeId);
+            } else {
+                  challenge = await OtpChallenge.findOne({
+                        mobile,
+                        purpose: "signup",
+                        isConsumed: true,
+                        usedForRegistration: false,
+                  }).sort({ createdAt: -1 });
+            }
+
+            if (!challenge || challenge.mobile !== mobile || !challenge.isConsumed) {
+                  return res.status(400).json({
+                        success: false,
+                        message: "Mobile number has not been verified. Please verify with OTP.",
+                  });
+            }
+
+            if (challenge.usedForRegistration) {
+                  return res.status(400).json({
+                        success: false,
+                        message: "This mobile verification has already been used. Please verify again.",
                   });
             }
 
@@ -72,6 +101,13 @@ const registerUser = async (req, res) => {
             });
 
             await user.save();
+
+            // Mark challenge as used to guarantee single-use verification
+            if (challenge) {
+                  challenge.usedForRegistration = true;
+                  await challenge.save();
+            }
+
             await Fund.create({
                   userId: user._id,
                   availableBalance: 0,

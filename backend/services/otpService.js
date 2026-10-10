@@ -17,7 +17,10 @@ export const createChallenge = async (mobile, purpose) => {
   });
 
   if (recentChallenges >= 3) {
-    throw new Error("Too many OTP requests. Please try again later.");
+    const error = new Error("Too many OTP requests. Please try again later.");
+    error.statusCode = 429;
+    error.code = "RATE_LIMIT_EXCEEDED";
+    throw error;
   }
 
   // With Twilio Verify, we don't generate the OTP locally, but we store a dummy hash 
@@ -65,19 +68,28 @@ export const verifyChallenge = async (mobile, purpose, otp) => {
   }).sort({ createdAt: -1 });
 
   if (!challenge) {
-    throw new Error("No active OTP challenge found.");
+    const error = new Error("No active OTP challenge found.");
+    error.statusCode = 404;
+    error.code = "CHALLENGE_NOT_FOUND";
+    throw error;
   }
 
   if (new Date() > challenge.expiresAt) {
     challenge.isConsumed = true;
     await challenge.save();
-    throw new Error("OTP has expired.");
+    const error = new Error("OTP has expired.");
+    error.statusCode = 400;
+    error.code = "OTP_EXPIRED";
+    throw error;
   }
 
   if (challenge.failedAttempts >= MAX_FAILED_ATTEMPTS) {
     challenge.isConsumed = true;
     await challenge.save();
-    throw new Error("Maximum verification attempts exceeded. Please request a new OTP.");
+    const error = new Error("Maximum verification attempts exceeded. Please request a new OTP.");
+    error.statusCode = 429;
+    error.code = "MAX_ATTEMPTS_EXCEEDED";
+    throw error;
   }
 
   // Use Twilio Verify Check API
@@ -86,12 +98,15 @@ export const verifyChallenge = async (mobile, purpose, otp) => {
   if (!isValid) {
     challenge.failedAttempts += 1;
     await challenge.save();
-    throw new Error("Invalid OTP.");
+    const error = new Error("Invalid OTP.");
+    error.statusCode = 400;
+    error.code = "INVALID_OTP";
+    throw error;
   }
 
   // Mark as consumed on success
   challenge.isConsumed = true;
   await challenge.save();
 
-  return true;
+  return challenge;
 };

@@ -72,6 +72,18 @@ function TopNavigation() {
       return "Settings";
     }
 
+    if (path.includes("/backtest")) {
+      return "Strategy Backtest";
+    }
+
+    if (path.includes("/admin/tournaments")) {
+      return "Tournament Management";
+    }
+
+    if (path.includes("/paper-trading")) {
+      return "Paper Trading Tournaments";
+    }
+
     return "Dashboard";
   };
 

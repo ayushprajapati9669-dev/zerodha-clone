@@ -11,6 +11,8 @@ import PortfolioAnalytics from "./pages/PortfolioAnalytics";
 import RiskManagement from "./pages/RiskManagement";
 import TradingJournal from "./pages/TradingJournal";
 import StrategyBacktest from "./pages/StrategyBacktest";
+import PaperTrading from "./pages/PaperTrading";
+import TournamentAdmin from "./pages/TournamentAdmin";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import AppProvider from "./context/AppContext";
@@ -41,6 +43,8 @@ function App() {
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/journal" element={<TradingJournal />} />
             <Route path="/backtest" element={<StrategyBacktest />} />
+            <Route path="/paper-trading" element={<PaperTrading />} />
+            <Route path="/admin/tournaments" element={<TournamentAdmin />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

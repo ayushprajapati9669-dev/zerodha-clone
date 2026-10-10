@@ -3,6 +3,7 @@ import WebSocket from "ws";
 
 import checkPendingLimitOrders from "./checkPendingLimitOrders.js";
 import { evaluateAlerts } from "../controller/priceAlertController.js";
+import { checkPendingTournamentLimitOrders } from "./tournamentService.js";
 
 // =====================================================
 // TRUE DATA CREDENTIALS
@@ -201,7 +202,7 @@ const processStockTick = (stock) => {
             console.error(`❌ Alert evaluation failed for ${normalizedSymbol}:`, error.message);
       });
 
-      // Check limit orders
+      // Check real limit orders
       if (!limitOrderChecksInProgress.has(normalizedSymbol)) {
             limitOrderChecksInProgress.add(normalizedSymbol);
 
@@ -217,6 +218,12 @@ const processStockTick = (stock) => {
                         limitOrderChecksInProgress.delete(normalizedSymbol);
                   });
       }
+
+      // Check tournament paper trading limit orders (non-blocking, does NOT touch real accounts)
+      checkPendingTournamentLimitOrders(normalizedSymbol, latestPriceData.currentPrice)
+            .catch((error) => {
+                  console.error(`❌ Tournament limit order check failed for ${normalizedSymbol}:`, error.message);
+            });
 };
 
 

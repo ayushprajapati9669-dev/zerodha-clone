@@ -45,6 +45,14 @@ const userValidationSchema = Joi.object({
                   "string.max": "Password cannot exceed 30 characters",
                   "any.required": "Password is required",
             }),
+
+      verificationToken: Joi.string()
+            .trim()
+            .required()
+            .messages({
+                  "string.empty": "Mobile number must be verified before registration",
+                  "any.required": "Mobile number must be verified before registration",
+            }),
 });
 
 export default userValidationSchema;

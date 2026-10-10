@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useContext } from "react";
 import { AppContext } from "../context/AppContext";
 function Sidebar() {
-  const { handleLogout, logoutErrorMsg } = useContext(AppContext);
+  const { currentUser, handleLogout, logoutErrorMsg } = useContext(AppContext);
   return (
     <div className="sidebar">
       {/* Logo */}
@@ -64,6 +64,18 @@ function Sidebar() {
           <i className="bi bi-cpu"></i>
           <span>Backtest</span>
         </NavLink>
+
+        <NavLink to={"/paper-trading"} className="sidebar-link">
+          <i className="bi bi-trophy"></i>
+          <span>Paper Trading</span>
+        </NavLink>
+
+        {currentUser?.role === "admin" && (
+          <NavLink to={"/admin/tournaments"} className="sidebar-link sidebar-admin-link">
+            <i className="bi bi-shield-lock"></i>
+            <span>Tournament Admin</span>
+          </NavLink>
+        )}
       </div>
 
       {/* Bottom menu */}

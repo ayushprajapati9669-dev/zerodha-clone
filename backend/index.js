@@ -24,6 +24,7 @@ import analyticsRoutes from "./routes/analyticsRoutes.js";
 import riskRoutes from "./routes/riskRoutes.js";
 import journalRoutes from "./routes/journalRoutes.js";
 import backtestRoutes from "./routes/backtestRoutes.js";
+import tournamentRoutes from "./routes/tournamentRoutes.js";
 
 import { connectTrueData } from "./services/trueDataService.js";
 
@@ -98,6 +99,8 @@ app.use("/api/journal", journalRoutes);
 
 app.use("/api/backtest", backtestRoutes);
 
+app.use("/api/tournaments", tournamentRoutes);
+
 
 // ===============================
 // SOCKET.IO
@@ -125,6 +128,18 @@ io.on("connection", (socket) => {
                   );
             },
       );
+
+      // Tournament leaderboard room — participants join to get live updates
+      socket.on("join-tournament-room", (tournamentId) => {
+            if (!tournamentId) return;
+            const room = `tournament:${tournamentId}`;
+            socket.join(room);
+      });
+
+      socket.on("leave-tournament-room", (tournamentId) => {
+            if (!tournamentId) return;
+            socket.leave(`tournament:${tournamentId}`);
+      });
 
       socket.on("disconnect", () => {
             console.log(

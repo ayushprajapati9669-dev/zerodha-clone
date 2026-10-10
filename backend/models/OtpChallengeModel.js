@@ -28,6 +28,10 @@ const otpChallengeSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  usedForRegistration: {
+    type: Boolean,
+    default: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
