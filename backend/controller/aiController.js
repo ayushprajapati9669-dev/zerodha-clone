@@ -5,7 +5,7 @@ import Position from "../models/PositionsModel.js";
 import Order from "../models/OrdersModel.js";
 import Fund from "../models/FundsModel.js";
 import Chat from "../models/ChatModel.js";
-import Watchlist from "../models/WatchlistModel.js";
+import WatchlistList from "../models/WatchlistListModel.js";
 
 export const chatWithAI = async (req, res, next) => {
       try {
@@ -59,8 +59,8 @@ export const chatWithAI = async (req, res, next) => {
 
                   Fund.findOne({ userId }).lean(),
 
-                  Watchlist.find({ userId })
-                        .sort({ createdAt: 1 })
+                  WatchlistList.find({ userId })
+                        .sort({ isDefault: -1, createdAt: 1 })
                         .lean(),
             ]);
 
@@ -231,14 +231,23 @@ export const chatWithAI = async (req, res, next) => {
             // WATCHLIST
             // --------------------
 
-            const cleanWatchlist =
-                  watchlist.map((stock) => ({
-                        symbol:
-                              stock.symbol,
+            const cleanWatchlists = (watchlist || []).map((list) => ({
+                  name: list.name,
+                  isDefault: Boolean(list.isDefault),
+                  stocks: (list.symbols || []).map((stock) => ({
+                        symbol: stock.symbol,
+                        companyName: stock.companyName,
+                  })),
+            }));
 
-                        companyName:
-                              stock.companyName,
-                  }));
+            // Flattened list of watched stocks for prompt
+            const cleanWatchlist = Array.from(
+                  new Map(
+                        cleanWatchlists
+                              .flatMap((w) => w.stocks)
+                              .map((s) => [s.symbol, s])
+                  ).values()
+            );
 
             // --------------------
             // WATCHLIST SUMMARY

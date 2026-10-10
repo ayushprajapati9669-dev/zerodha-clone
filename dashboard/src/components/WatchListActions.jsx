@@ -5,7 +5,12 @@ import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 
 import { AppContext } from "../context/AppContext";
 
-function WatchListActions({ stock, isInWatchlist, onToggleWatchlist }) {
+function WatchListActions({
+  stock,
+  isInWatchlist,
+  onToggleWatchlist,
+  onSetAlert,
+}) {
   const {
     setSelectedStock,
     setStockType,
@@ -226,6 +231,21 @@ function WatchListActions({ stock, isInWatchlist, onToggleWatchlist }) {
               <i className="bi bi-info-circle"></i>
               <span>Stock Details</span>
             </button>
+
+            {/* PRICE ALERT */}
+            {onSetAlert && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsMoreOptionsOpen(false);
+                  onSetAlert(stock);
+                }}
+              >
+                <i className="bi bi-bell"></i>
+                <span>Set Price Alert</span>
+              </button>
+            )}
 
             <div className="more-menu-divider"></div>
 

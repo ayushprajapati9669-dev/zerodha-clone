@@ -54,6 +54,15 @@ function TradePopup() {
   // Amount for Limit order
   const estimatedAmount = Number(quantity || 0) * Number(price || 0);
 
+  // Prevent background scrolling while modal is open
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
   // Fetch holdings
   useEffect(() => {
     const getAllHoldings = async () => {
@@ -276,16 +285,32 @@ function TradePopup() {
   };
 
   return (
-    <div className="trade-popup-overlay">
-      <div className="trade-popup">
-        {/* Popup Header */}
+    <div
+      className="trade-popup-overlay"
+      onClick={() => {
+        setIsTradePopupOpen(false);
+        setIsExitMode(false);
+      }}
+    >
+      <div
+        className="trade-popup"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="trade-popup-title"
+      >
+        {/* Pinned Header */}
         <div className="trade-popup-header">
           <div>
-            <h4>
-              {stockType === "buy" ? "Buy" : "Sell"}{" "}
-              <small className="text-muted" style={{ fontWeight: "400" }}>
-                {selectedStock.symbol}
-              </small>
+            <h4 id="trade-popup-title">
+              <span
+                className={`trade-type-badge ${
+                  stockType === "buy" ? "buy" : "sell"
+                } me-2`}
+              >
+                {stockType === "buy" ? "BUY" : "SELL"}
+              </span>
+              {selectedStock.symbol}
             </h4>
 
             <span>{selectedStock.companyName}</span>
@@ -304,285 +329,302 @@ function TradePopup() {
           </button>
         </div>
 
-        {/* Stock Information */}
-        <div className="trade-stock-info">
-          {/* Market Price */}
-          <div>
-            <span>Market Price</span>
+        {/* Trade Form with Scrollable Body and Pinned Footer */}
+        <form
+          className="trade-popup-form needs-validation"
+          noValidate
+          onSubmit={handleTrade}
+        >
+          {/* Scrollable Body */}
+          <div className="trade-popup-body">
+            {/* Stock Information */}
+            <div className="trade-stock-info">
+              {/* Market Price */}
+              <div>
+                <span>Market Price</span>
+                <strong>₹{Number(marketPrice).toLocaleString("en-IN")}</strong>
+              </div>
 
-            <strong>₹{Number(marketPrice).toLocaleString("en-IN")}</strong>
-          </div>
+              {/* Available Information */}
+              <div>
+                {stockType === "buy" ? (
+                  <>
+                    <span>Available Balance</span>
+                    <strong>
+                      ₹{Number(availableBalance).toLocaleString("en-IN")}
+                    </strong>
+                  </>
+                ) : (
+                  <>
+                    <span>Available</span>
+                    <strong>
+                      {product === "CNC"
+                        ? `${availableHolding} shares`
+                        : `${availablePosition} shares`}
+                    </strong>
+                  </>
+                )}
+              </div>
+            </div>
 
-          {/* Available Information */}
-          <div>
-            {stockType === "buy" ? (
-              <>
-                <span>Available Balance</span>
+            <div className="trade-form">
+              {/* Row 1: Quantity & Price */}
+              <div className="trade-form-row">
+                <div className="form-group">
+                  <label htmlFor="quantity">Quantity</label>
+                  <input
+                    id="quantity"
+                    type="number"
+                    placeholder="Enter quantity"
+                    className="form-control"
+                    required
+                    min="1"
+                    step="1"
+                    value={quantity}
+                    disabled={isExitMode}
+                    onChange={(e) => {
+                      const value = e.target.value;
 
-                <strong>
-                  ₹{Number(availableBalance).toLocaleString("en-IN")}
-                </strong>
-              </>
-            ) : (
-              <>
-                <span>Available</span>
+                      if (value === "" || Number(value) >= 1) {
+                        setQuantity(value === "" ? "" : Number(value));
+                      }
 
-                <strong>
-                  {product === "CNC"
-                    ? `${availableHolding} shares`
-                    : `${availablePosition} shares`}
-                </strong>
-              </>
+                      setBalanceError("");
+                      setHoldingsError("");
+                    }}
+                  />
+                  <div className="invalid-feedback">
+                    Please enter a valid quantity
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="price">Price</label>
+                  <input
+                    id="price"
+                    type="number"
+                    className="form-control"
+                    min="0.01"
+                    step="0.01"
+                    required={orderType === "Limit"}
+                    placeholder="Enter price"
+                    value={
+                      orderType === "Market"
+                        ? Number(marketPrice).toFixed(2)
+                        : price
+                    }
+                    disabled={orderType === "Market"}
+                    onChange={(e) => {
+                      setPrice(e.target.value);
+                      setBalanceError("");
+                      setHoldingsError("");
+                    }}
+                  />
+                  <div className="invalid-feedback">
+                    Please enter a valid price
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 2: Order Type & Product */}
+              <div className="trade-form-row">
+                <div className="form-group">
+                  <label htmlFor="orderType">Order Type</label>
+                  <select
+                    id="orderType"
+                    className="form-select"
+                    value={orderType}
+                    onChange={(e) => {
+                      setOrderType(e.target.value);
+                      setBalanceError("");
+                      setHoldingsError("");
+                    }}
+                  >
+                    <option value="Market">Market</option>
+                    <option value="Limit">Limit</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="product">Product</label>
+                  <select
+                    id="product"
+                    className="form-select"
+                    value={product}
+                    onChange={(e) => {
+                      setProduct(e.target.value);
+                      setBalanceError("");
+                      setHoldingsError("");
+                    }}
+                    disabled={isProductDisabled}
+                  >
+                    <option value="CNC">CNC</option>
+                    <option value="MIS">MIS</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 3: Stop-Loss & Target (Optional) */}
+              <div className="trade-form-row">
+                <div className="form-group">
+                  <label htmlFor="stopLossPrice">Stop-Loss (Optional)</label>
+                  <input
+                    id="stopLossPrice"
+                    type="number"
+                    className="form-control"
+                    min="0.01"
+                    step="0.01"
+                    placeholder="Trigger price"
+                    value={stopLossPrice}
+                    onChange={(e) => setStopLossPrice(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="targetPrice">Target (Optional)</label>
+                  <input
+                    id="targetPrice"
+                    type="number"
+                    className="form-control"
+                    min="0.01"
+                    step="0.01"
+                    placeholder="Target price"
+                    value={targetPrice}
+                    onChange={(e) => setTargetPrice(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Pre-Trade Risk Guard Widget */}
+            {riskCheckResult && (
+              <div className="pretrade-checker-container">
+                <div className="pretrade-checker-header">
+                  <span className="pretrade-title">
+                    <i className="bi bi-shield-check me-1"></i> Pre-Trade Risk Checker
+                  </span>
+                  <span
+                    className={`badge ${
+                      riskCheckResult.allowed ? "bg-success" : "bg-danger"
+                    }`}
+                  >
+                    {riskCheckResult.allowed ? "ALLOWED" : "REJECTED (STRICT)"}
+                  </span>
+                </div>
+
+                <div className="pretrade-grid">
+                  <div>
+                    <span className="pretrade-label">Trade Value:</span>
+                    <div className="pretrade-val">
+                      ₹{riskCheckResult.estimatedTradeValue?.toLocaleString("en-IN")}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="pretrade-label">Est. Loss at Stop:</span>
+                    <div className="pretrade-val text-danger">
+                      {riskCheckResult.estimatedLoss !== null
+                        ? `₹${riskCheckResult.estimatedLoss.toLocaleString("en-IN")}`
+                        : "N/A"}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="pretrade-label">Risk/Reward:</span>
+                    <div className="pretrade-val text-primary">
+                      {riskCheckResult.riskRewardRatio !== null
+                        ? `1 : ${riskCheckResult.riskRewardRatio}`
+                        : "N/A"}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="pretrade-label">Daily Budget Left:</span>
+                    <div className="pretrade-val">
+                      {riskCheckResult.remainingDailyRiskBudget !== null
+                        ? `₹${riskCheckResult.remainingDailyRiskBudget.toLocaleString("en-IN")}`
+                        : "Unlimited"}
+                    </div>
+                  </div>
+                </div>
+
+                {riskCheckResult.violations?.length > 0 && (
+                  <div className="pretrade-violation-badge">
+                    <i className="bi bi-exclamation-triangle-fill me-1"></i>
+                    {riskCheckResult.violations.join(" | ")}
+                  </div>
+                )}
+
+                {riskCheckResult.warnings?.length > 0 &&
+                  riskCheckResult.violations?.length === 0 && (
+                    <div className="pretrade-warning-badge">
+                      <i className="bi bi-info-circle-fill me-1"></i>
+                      {riskCheckResult.warnings.join(" | ")}
+                    </div>
+                  )}
+              </div>
             )}
-          </div>
-        </div>
 
-        {/* Trade Form */}
-        <form className="needs-validation" noValidate onSubmit={handleTrade}>
-          <div className="trade-form">
-            {/* Quantity */}
-            <div className="form-group">
-              <label htmlFor="quantity">Quantity</label>
-
-              <input
-                id="quantity"
-                type="number"
-                placeholder="Enter quantity"
-                className="form-control"
-                required
-                min="1"
-                step="1"
-                value={quantity}
-                disabled={isExitMode}
-                onChange={(e) => {
-                  const value = e.target.value;
-
-                  if (value === "" || Number(value) >= 1) {
-                    setQuantity(value === "" ? "" : Number(value));
-                  }
-
-                  setBalanceError("");
-                  setHoldingsError("");
-                }}
-              />
-
-              <div className="invalid-feedback">
-                Please enter a valid quantity
-              </div>
-            </div>
-
-            {/* Order Type */}
-            <div className="form-group">
-              <label htmlFor="orderType">Order Type</label>
-
-              <select
-                id="orderType"
-                className="form-select"
-                value={orderType}
-                onChange={(e) => {
-                  setOrderType(e.target.value);
-                  setBalanceError("");
-                  setHoldingsError("");
-                }}
-              >
-                <option value="Market">Market</option>
-                <option value="Limit">Limit</option>
-              </select>
-            </div>
-
-            {/* Product */}
-            <div className="form-group">
-              <label htmlFor="product">Product</label>
-
-              <select
-                id="product"
-                className="form-select"
-                value={product}
-                onChange={(e) => {
-                  setProduct(e.target.value);
-                  setBalanceError("");
-                  setHoldingsError("");
-                }}
-                disabled={isProductDisabled}
-              >
-                <option value="CNC">CNC</option>
-                <option value="MIS">MIS</option>
-              </select>
-            </div>
-
-            {/* Price */}
-            <div className="form-group">
-              <label htmlFor="price">Price</label>
-
-              <input
-                id="price"
-                type="number"
-                className="form-control"
-                min="0.01"
-                step="0.01"
-                required={orderType === "Limit"}
-                placeholder="Enter price"
-                value={
-                  orderType === "Market"
-                    ? Number(marketPrice).toFixed(2)
-                    : price
-                }
-                disabled={orderType === "Market"}
-                onChange={(e) => {
-                  setPrice(e.target.value);
-                  setBalanceError("");
-                  setHoldingsError("");
-                }}
-              />
-
-              <div className="invalid-feedback">Please enter a valid price</div>
-            </div>
-
-            {/* Stop-Loss Price (Optional) */}
-            <div className="form-group">
-              <label htmlFor="stopLossPrice">Stop-Loss (Optional)</label>
-              <input
-                id="stopLossPrice"
-                type="number"
-                className="form-control"
-                min="0.01"
-                step="0.01"
-                placeholder="Trigger price"
-                value={stopLossPrice}
-                onChange={(e) => setStopLossPrice(e.target.value)}
-              />
-            </div>
-
-            {/* Target Price (Optional) */}
-            <div className="form-group">
-              <label htmlFor="targetPrice">Target (Optional)</label>
-              <input
-                id="targetPrice"
-                type="number"
-                className="form-control"
-                min="0.01"
-                step="0.01"
-                placeholder="Target price"
-                value={targetPrice}
-                onChange={(e) => setTargetPrice(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Pre-Trade Risk Guard Widget */}
-          {riskCheckResult && (
-            <div className="pretrade-checker-container">
-              <div className="pretrade-checker-header">
-                <span className="pretrade-title">
-                  <i className="bi bi-shield-check me-1"></i> Pre-Trade Risk Checker
-                </span>
-                <span className={`badge ${riskCheckResult.allowed ? "bg-success" : "bg-danger"}`}>
-                  {riskCheckResult.allowed ? "ALLOWED" : "REJECTED (STRICT)"}
-                </span>
+            {/* Order Summary */}
+            <div className="trade-summary">
+              <div>
+                <span>Quantity</span>
+                <strong>{quantity || 0}</strong>
               </div>
 
-              <div className="pretrade-grid">
-                <div>
-                  <span className="pretrade-label">Trade Value:</span>
-                  <div className="pretrade-val">₹{riskCheckResult.estimatedTradeValue?.toLocaleString("en-IN")}</div>
-                </div>
-
-                <div>
-                  <span className="pretrade-label">Est. Loss at Stop:</span>
-                  <div className="pretrade-val text-danger">
-                    {riskCheckResult.estimatedLoss !== null ? `₹${riskCheckResult.estimatedLoss.toLocaleString("en-IN")}` : "N/A"}
-                  </div>
-                </div>
-
-                <div>
-                  <span className="pretrade-label">Risk/Reward:</span>
-                  <div className="pretrade-val text-primary">
-                    {riskCheckResult.riskRewardRatio !== null ? `1 : ${riskCheckResult.riskRewardRatio}` : "N/A"}
-                  </div>
-                </div>
-
-                <div>
-                  <span className="pretrade-label">Daily Budget Left:</span>
-                  <div className="pretrade-val">
-                    {riskCheckResult.remainingDailyRiskBudget !== null ? `₹${riskCheckResult.remainingDailyRiskBudget.toLocaleString("en-IN")}` : "Unlimited"}
-                  </div>
-                </div>
+              <div>
+                <span>Estimated Amount</span>
+                <strong>
+                  ₹
+                  {(orderType === "Market"
+                    ? Number(marketPrice) * Number(quantity || 0)
+                    : estimatedAmount
+                  ).toLocaleString("en-IN")}
+                </strong>
               </div>
-
-              {riskCheckResult.violations?.length > 0 && (
-                <div className="pretrade-violation-badge">
-                  <i className="bi bi-exclamation-triangle-fill me-1"></i>
-                  {riskCheckResult.violations.join(" | ")}
-                </div>
-              )}
-
-              {riskCheckResult.warnings?.length > 0 && riskCheckResult.violations?.length === 0 && (
-                <div className="pretrade-warning-badge">
-                  <i className="bi bi-info-circle-fill me-1"></i>
-                  {riskCheckResult.warnings.join(" | ")}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Order Summary */}
-          <div className="trade-summary">
-            <div>
-              <span>Quantity</span>
-              <strong>{quantity || 0}</strong>
-            </div>
-
-            <div>
-              <span>Estimated Amount</span>
-
-              <strong>
-                ₹
-                {(orderType === "Market"
-                  ? Number(marketPrice) * Number(quantity || 0)
-                  : estimatedAmount
-                ).toLocaleString("en-IN")}
-              </strong>
             </div>
 
             {/* Balance Error */}
             {balanceError && (
-              <div className="alert alert-danger m-3" role="alert">
+              <div className="alert alert-danger mx-3 my-2" role="alert">
                 {balanceError}
               </div>
             )}
 
             {/* Holdings Error */}
             {holdingsError && (
-              <div className="alert alert-danger m-3" role="alert">
+              <div className="alert alert-danger mx-3 my-2" role="alert">
                 {holdingsError}
               </div>
             )}
           </div>
 
-          {/* Popup Actions */}
-          <div className="trade-popup-actions">
-            <button
-              type="button"
-              className="trade-cancel-btn"
-              onClick={() => {
-                setIsTradePopupOpen(false);
-                setIsExitMode(false);
-              }}
-            >
-              Cancel
-            </button>
+          {/* Pinned Footer Actions */}
+          <div className="trade-popup-footer">
+            <div className="trade-popup-actions">
+              <button
+                type="button"
+                className="trade-cancel-btn"
+                onClick={() => {
+                  setIsTradePopupOpen(false);
+                  setIsExitMode(false);
+                }}
+              >
+                Cancel
+              </button>
 
-            <button
-              type="submit"
-              className="trade-buy-btn"
-              disabled={isFundLoading}
-            >
-              {isFundLoading
-                ? "Loading..."
-                : stockType === "buy"
-                  ? "Buy"
-                  : "Sell"}
-            </button>
+              <button
+                type="submit"
+                className={stockType === "sell" ? "trade-sell-btn" : "trade-buy-btn"}
+                disabled={isFundLoading}
+              >
+                {isFundLoading
+                  ? "Loading..."
+                  : stockType === "buy"
+                    ? "Buy"
+                    : "Sell"}
+              </button>
+            </div>
           </div>
         </form>
       </div>

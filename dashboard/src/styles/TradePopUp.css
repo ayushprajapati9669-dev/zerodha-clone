@@ -1,188 +1,457 @@
+/* =========================================================
+   TRADE POPUP OVERLAY
+========================================================= */
+
 .trade-popup-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.45);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 16px;
+  box-sizing: border-box;
+  animation: fadeInTradeOverlay 0.15s ease-out;
 }
+
+@keyframes fadeInTradeOverlay {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* =========================================================
+   TRADE POPUP MODAL CARD
+========================================================= */
 
 .trade-popup {
-      width: 420px;
-      background: #fff;
-      border-radius: 8px;
-      padding: 24px;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 460px;
+  max-height: min(90vh, calc(100dvh - 32px));
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  animation: slideUpTradeModal 0.18s ease-out;
 }
 
-/* Header */
+@keyframes slideUpTradeModal {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* =========================================================
+   HEADER (PINNED AT TOP)
+========================================================= */
 
 .trade-popup-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 22px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  background: #ffffff;
 }
 
 .trade-popup-header h4 {
-      margin: 0;
-      font-size: 20px;
-      font-weight: 600;
-      color: #424242;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #222222;
+  display: flex;
+  align-items: center;
 }
 
 .trade-popup-header span {
-      display: block;
-      margin-top: 5px;
-      font-size: 13px;
-      color: #888;
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: #777777;
+}
+
+.trade-type-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.trade-type-badge.buy {
+  background: #e8f0fe;
+  color: #1a73e8;
+}
+
+.trade-type-badge.sell {
+  background: #fce8e6;
+  color: #d93025;
 }
 
 .trade-popup-close {
-      border: none;
-      background: transparent;
-      font-size: 18px;
-      color: #777;
-      cursor: pointer;
-      padding: 3px 5px;
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  color: #777777;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: all 0.15s ease;
 }
 
 .trade-popup-close:hover {
-      color: #387ed1;
+  color: #222222;
+  background: #f5f5f5;
 }
 
+/* =========================================================
+   FORM CONTAINER & SCROLLABLE BODY
+========================================================= */
 
-/* Stock Information */
+.trade-popup-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.trade-popup-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px 20px;
+}
+
+/* Modern thin scrollbar */
+.trade-popup-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.trade-popup-body::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 4px;
+}
+
+.trade-popup-body::-webkit-scrollbar-thumb:hover {
+  background: #b0b0b0;
+}
+
+.trade-popup-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* =========================================================
+   STOCK INFORMATION BAR
+========================================================= */
 
 .trade-stock-info {
-      display: flex;
-      justify-content: space-between;
-      background: #f8f9fa;
-      border-radius: 6px;
-      padding: 14px;
-      margin-bottom: 22px;
+  display: flex;
+  justify-content: space-between;
+  background: #f8f9fa;
+  border: 1px solid #eef0f2;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
 }
 
 .trade-stock-info div {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .trade-stock-info span {
-      font-size: 12px;
-      color: #888;
+  font-size: 11px;
+  color: #777777;
 }
 
 .trade-stock-info strong {
-      font-size: 15px;
-      color: #424242;
+  font-size: 14px;
+  color: #222222;
+  font-weight: 600;
 }
 
-
-/* Form */
+/* =========================================================
+   FORM FIELDS & 2-COLUMN GRID
+========================================================= */
 
 .trade-form {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trade-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
 
 .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
 }
 
 .form-group label {
-      font-size: 13px;
-      font-weight: 500;
-      color: #555;
+  font-size: 12px;
+  font-weight: 500;
+  color: #555555;
 }
 
 .form-group input,
 .form-group select {
-      width: 100%;
-      height: 42px;
-      padding: 0 12px;
-      border: 1px solid #d9d9d9;
-      border-radius: 5px;
-      font-size: 14px;
-      color: #424242;
-      background: #fff;
-      outline: none;
-      box-sizing: border-box;
+  width: 100%;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid #d9d9d9;
+  border-radius: 5px;
+  font-size: 13px;
+  color: #333333;
+  background: #ffffff;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
 }
 
 .form-group input:focus,
 .form-group select:focus {
-      border-color: #387ed1;
+  border-color: #387ed1;
+  box-shadow: 0 0 0 2px rgba(56, 126, 209, 0.15);
 }
 
+.form-group input:disabled,
+.form-group select:disabled {
+  background: #f5f5f5;
+  color: #888888;
+  cursor: not-allowed;
+}
 
-/* Summary */
+/* =========================================================
+   PRE-TRADE RISK CHECKER WIDGET
+========================================================= */
+
+.pretrade-checker-container {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+}
+
+.pretrade-checker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.pretrade-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  display: flex;
+  align-items: center;
+}
+
+.pretrade-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  font-size: 11px;
+}
+
+.pretrade-grid > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pretrade-label {
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pretrade-val {
+  font-weight: 600;
+  color: #111827;
+  word-break: break-word;
+}
+
+.pretrade-warning-badge {
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: #fef3c7;
+  color: #92400e;
+  margin-top: 8px;
+  display: block;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.pretrade-violation-badge {
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-weight: 600;
+  margin-top: 8px;
+  display: block;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+/* =========================================================
+   SUMMARY
+========================================================= */
 
 .trade-summary {
-      margin-top: 22px;
-      padding-top: 16px;
-      border-top: 1px solid #eee;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .trade-summary div {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .trade-summary span {
-      font-size: 13px;
-      color: #777;
+  font-size: 12px;
+  color: #777777;
 }
 
 .trade-summary strong {
-      font-size: 14px;
-      color: #424242;
+  font-size: 13px;
+  color: #333333;
+  font-weight: 600;
 }
 
+/* =========================================================
+   FOOTER ACTIONS (PINNED / NON-SCROLLING)
+========================================================= */
 
-/* Buttons */
+.trade-popup-footer {
+  flex-shrink: 0;
+  padding: 12px 20px;
+  border-top: 1px solid #eeeeee;
+  background: #ffffff;
+}
 
 .trade-popup-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 24px;
+  display: flex;
+  gap: 10px;
+  margin-top: 0;
 }
 
 .trade-popup-actions button {
-      flex: 1;
-      height: 42px;
-      border-radius: 5px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: 0.2s ease;
+  flex: 1;
+  height: 40px;
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .trade-cancel-btn {
-      background: #fff;
-      border: 1px solid #d9d9d9;
-      color: #555;
+  background: #ffffff;
+  border: 1px solid #d9d9d9;
+  color: #555555;
 }
 
 .trade-cancel-btn:hover {
-      background: #f5f5f5;
+  background: #f5f5f5;
+  color: #222222;
 }
 
 .trade-buy-btn {
-      background: #387ed1;
-      border: 1px solid #387ed1;
-      color: #fff;
+  background: #387ed1;
+  border: 1px solid #387ed1;
+  color: #ffffff;
 }
 
-.trade-buy-btn:hover {
-      background: #2f6fba;
+.trade-buy-btn:hover:not(:disabled) {
+  background: #2f6fba;
+  border-color: #2f6fba;
+}
+
+.trade-sell-btn {
+  background: #df514c;
+  border: 1px solid #df514c;
+  color: #ffffff;
+}
+
+.trade-sell-btn:hover:not(:disabled) {
+  background: #c93b36;
+  border-color: #c93b36;
+}
+
+.trade-buy-btn:disabled,
+.trade-sell-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   MOBILE RESPONSIVENESS
+========================================================= */
+
+@media (max-width: 480px) {
+  .trade-popup-overlay {
+    padding: 10px;
+  }
+
+  .trade-popup {
+    max-height: calc(100dvh - 20px);
+  }
+
+  .trade-popup-header {
+    padding: 14px 16px 10px;
+  }
+
+  .trade-popup-body {
+    padding: 12px 16px;
+  }
+
+  .trade-popup-footer {
+    padding: 10px 16px;
+  }
+
+  .trade-form-row {
+    gap: 8px;
+  }
 }

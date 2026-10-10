@@ -832,3 +832,112 @@
             padding: 25px 15px;
       }
 }
+
+/* =========================================================
+   WATCHLIST TABS & CONTROLS
+========================================================= */
+
+.watchlist-tabs-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color, #e0e0e0);
+      background: var(--bg-primary, #ffffff);
+      padding: 0 8px;
+      overflow-x: auto;
+      gap: 4px;
+}
+
+.watchlist-tabs-scroll {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+}
+
+.watchlist-tabs-scroll::-webkit-scrollbar {
+      display: none;
+}
+
+.watchlist-tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-secondary, #666666);
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.15s ease;
+}
+
+.watchlist-tab-btn:hover {
+      color: var(--text-primary, #222222);
+      background: var(--bg-hover, rgba(0, 0, 0, 0.03));
+}
+
+.watchlist-tab-btn.active {
+      color: #387ed1;
+      border-bottom-color: #387ed1;
+      font-weight: 600;
+}
+
+.watchlist-tab-label {
+      max-width: 110px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+}
+
+.watchlist-tab-count {
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 10px;
+      background: var(--bg-secondary, #f0f0f0);
+      color: var(--text-secondary, #666666);
+      font-weight: 600;
+}
+
+.watchlist-tab-btn.active .watchlist-tab-count {
+      background: #e7f0fa;
+      color: #387ed1;
+}
+
+.watchlist-tabs-controls {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding-left: 4px;
+}
+
+.btn-tab-action {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary, #777777);
+      width: 26px;
+      height: 26px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.15s ease;
+}
+
+.btn-tab-action:hover {
+      background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+      color: var(--text-primary, #000000);
+}
+
+.header-alerts-btn {
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 4px;
+}

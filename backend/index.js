@@ -15,6 +15,8 @@ import positonRoutes from "./routes/position.js";
 import fundRoutes from "./routes/fund.js";
 import authRoutes from "./routes/auth.js";
 import watchlistRoutes from "./routes/watchlistRoutes.js";
+import watchlistsRoutes from "./routes/watchlistsRoutes.js";
+import priceAlertRoutes from "./routes/priceAlertRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import marketRoutes from "./routes/marketRoutes.js";
@@ -80,10 +82,11 @@ app.use(
 
 app.use("/api/ai", aiRoutes);
 
-app.use(
-      "/api/watchlist",
-      watchlistRoutes,
-);
+app.use("/api/watchlist", watchlistRoutes);
+app.use("/api/watchlists", watchlistsRoutes);
+
+// New: price alerts
+app.use("/api/price-alerts", priceAlertRoutes);
 
 app.use("/api/market", marketRoutes);
 

@@ -2,6 +2,7 @@ import axios from "axios";
 import WebSocket from "ws";
 
 import checkPendingLimitOrders from "./checkPendingLimitOrders.js";
+import { evaluateAlerts } from "../controller/priceAlertController.js";
 
 // =====================================================
 // TRUE DATA CREDENTIALS
@@ -194,6 +195,11 @@ const processStockTick = (stock) => {
       };
 
       latestTrueDataPrices.set(normalizedSymbol, latestPriceData);
+
+      // Evaluate price alerts
+      evaluateAlerts(normalizedSymbol, latestPriceData.currentPrice).catch((error) => {
+            console.error(`❌ Alert evaluation failed for ${normalizedSymbol}:`, error.message);
+      });
 
       // Check limit orders
       if (!limitOrderChecksInProgress.has(normalizedSymbol)) {
