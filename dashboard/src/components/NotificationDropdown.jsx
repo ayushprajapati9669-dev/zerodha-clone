@@ -1,17 +1,10 @@
 import { useContext, useEffect, useRef, useState } from "react";
-
 import axios from "axios";
-
-import { io } from "socket.io-client";
-
+import socket from "../socket.js";
 import { AppContext } from "../context/AppContext";
-
 import { useNavigate } from "react-router-dom";
+import NotificationDetailModal from "./NotificationDetailModal.jsx";
 import "../styles/NotificationDropdown.css";
-const socket = io("http://localhost:3000", {
-  withCredentials: true,
-  autoConnect: false,
-});
 
 function NotificationDropdown() {
   const navigate = useNavigate();
@@ -24,6 +17,7 @@ function NotificationDropdown() {
   } = useContext(AppContext);
 
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState(null);
 
   const notificationDropdownRef = useRef(null);
 
@@ -56,8 +50,6 @@ function NotificationDropdown() {
 
     return () => {
       socket.off("new-notification", handleNewNotification);
-
-      socket.disconnect();
     };
   }, [currentUser?._id, setNotifications]);
 
@@ -137,8 +129,11 @@ function NotificationDropdown() {
   };
 
   const handleNotificationClick = (notification) => {
-    markNotificationAsRead(notification._id);
-
+    if (!notification.isRead) {
+      markNotificationAsRead(notification._id);
+    }
+    setSelectedNotification({ ...notification, isRead: true });
+    setIsNotificationOpen(false);
   };
 
   // ======================================
@@ -311,14 +306,7 @@ function NotificationDropdown() {
                   className={`notification-item ${!notification.isRead ? "notification-unread" : ""
                     } ${getPriorityClass(notification.priority)}`}
                   key={notification._id}
-                  onClick={() => {
-                    if (!notification.isRead) {
-                      handleNotificationClick(notification)
-                    } else {
-                      navigate("/notifications")
-                      setIsNotificationOpen(false)
-                    }
-                  }}
+                  onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="notification-icon">
                     <i className={getNotificationIcon(notification)}></i>
@@ -372,6 +360,13 @@ function NotificationDropdown() {
             </button>
           )}
         </div>
+      )}
+
+      {selectedNotification && (
+        <NotificationDetailModal
+          notification={selectedNotification}
+          onClose={() => setSelectedNotification(null)}
+        />
       )}
     </div>
   );

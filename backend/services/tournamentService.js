@@ -5,6 +5,7 @@ import User from "../models/UserModel.js";
 import { getTrueDataPrice, getTrueDataSymbols, isTrueDataConnected } from "./trueDataService.js";
 import marketStocks from "../data/marketStocks.js";
 import { io } from "../index.js";
+import { emitNewNotification } from "../utils/notificationSocket.js";
 
 /**
  * Finalizes a completed tournament by cancelling pending orders,
@@ -45,9 +46,31 @@ export const finalizeTournamentCompletion = async (tournamentId) => {
   // 2. Final recalculation of leaderboard & eligibility
   const ranked = await recalculateTournamentLeaderboard(tournamentId, { emitSocket: true });
 
-  // 3. Set finalRank on each participant
+  // 3. Set finalRank and write immutable closedSnapshot on each participant
+  const snapshotAt = new Date();
   for (const part of ranked) {
     part.finalRank = part.rank;
+    // Write closedSnapshot exactly once – guard with null check prevents second-write
+    if (!part.closedSnapshot) {
+      part.closedSnapshot = {
+        availableCash: part.availableCash,
+        reservedCash: part.reservedCash || 0,
+        portfolioValue: part.portfolioValue,
+        returnPercent: part.returnPercent,
+        realizedPnL: part.realizedPnL || 0,
+        unrealizedPnL: part.unrealizedPnL || 0,
+        virtualHoldings: (part.virtualHoldings || []).map((h) => ({
+          symbol: h.symbol,
+          quantity: h.quantity,
+          averagePrice: h.averagePrice,
+          currentPrice: h.currentPrice,
+          marketValue: h.marketValue,
+          unrealizedPnL: h.unrealizedPnL,
+        })),
+        closedAt: snapshotAt,
+        reason: "completed",
+      };
+    }
     await part.save();
 
     // 4. Send tournament completion notification (deduplicated)
@@ -61,7 +84,7 @@ export const finalizeTournamentCompletion = async (tournamentId) => {
       });
 
       if (!alreadyNotified) {
-        await Notification.create({
+        const notif1 = await Notification.create({
           userId: targetUserId,
           type: "tournament",
           event: "tournament_completed",
@@ -75,8 +98,9 @@ export const finalizeTournamentCompletion = async (tournamentId) => {
             portfolioValue: part.portfolioValue,
           },
         });
+        emitNewNotification(notif1);
 
-        await Notification.create({
+        const notif2 = await Notification.create({
           userId: targetUserId,
           type: "tournament",
           event: "final_rank_available",
@@ -90,6 +114,7 @@ export const finalizeTournamentCompletion = async (tournamentId) => {
             portfolioValue: part.portfolioValue,
           },
         });
+        emitNewNotification(notif2);
       }
     } catch (_err) {
       // Non-fatal
@@ -347,6 +372,14 @@ export const placeTournamentOrder = async ({
     throw new Error(`Trading is only allowed in active tournaments. Current status: ${tournament.status}`);
   }
 
+  // Verify that the symbol is supported and tradable
+  const isTradable = marketStocks.some(
+    (s) => s.symbol === normalizedSymbol && s.symbol !== "NIFTY 50" && s.symbol !== "SENSEX"
+  );
+  if (!isTradable) {
+    throw new Error(`Symbol ${normalizedSymbol} is not supported for paper trading.`);
+  }
+
   // Check allowed symbols rule
   const allowedSymbols = tournament.tradingRules?.allowedSymbols?.length
     ? tournament.tradingRules.allowedSymbols
@@ -389,7 +422,32 @@ export const placeTournamentOrder = async ({
   if (anyPart.status === "disqualified") {
     throw new Error("You have been disqualified from this tournament and cannot trade.");
   }
-  let participation = anyPart;
+
+  // Atomic concurrency guard: lock participation in MongoDB across concurrent requests and instances
+  const lockedPart = await TournamentParticipation.findOneAndUpdate(
+    {
+      _id: anyPart._id,
+      $or: [
+        { orderLock: false },
+        { orderLock: { $exists: false } },
+        { orderLockExpires: { $lt: new Date() } },
+      ],
+    },
+    {
+      $set: {
+        orderLock: true,
+        orderLockExpires: new Date(Date.now() + 5000), // 5-second automatic expiry recovery
+      },
+    },
+    { new: true }
+  );
+
+  if (!lockedPart) {
+    throw new Error("Another order is currently processing for this portfolio. Please retry.");
+  }
+  let participation = lockedPart;
+
+  try {
 
   // Check max total orders per participant rule
   const maxOrders = tournament.tradingRules?.maxOrders;
@@ -589,10 +647,24 @@ export const placeTournamentOrder = async ({
     const reservedQty = pendingSellOrders.reduce((sum, o) => sum + o.quantity, 0);
     const availableToSell = existingHolding.quantity - reservedQty;
 
+    // Strict invariant check: reserved quantity cannot exceed total holding
+    if (reservedQty > existingHolding.quantity) {
+      throw new Error(
+        `Inconsistent holding state for ${normalizedSymbol}: reserved quantity (${reservedQty}) exceeds total owned (${existingHolding.quantity}).`
+      );
+    }
+
     if (availableToSell < numQty) {
       throw new Error(
         `Insufficient available holding quantity for ${normalizedSymbol}. Total holding: ${existingHolding.quantity}, Reserved in pending orders: ${reservedQty}, Available to sell: ${availableToSell}`
       );
+    }
+
+    if (orderStatus === "PENDING") {
+      existingHolding.reservedQuantity = Number(
+        ((existingHolding.reservedQuantity || 0) + numQty).toFixed(4)
+      );
+      await participation.save();
     }
 
     if (orderStatus === "EXECUTED") {
@@ -655,7 +727,14 @@ export const placeTournamentOrder = async ({
     console.error("Leaderboard recalculation error:", err.message)
   );
 
-  return { order, participation };
+    return { order, participation };
+  } finally {
+    // Failure recovery & completion: always release MongoDB orderLock atomically
+    await TournamentParticipation.updateOne(
+      { _id: anyPart._id },
+      { $set: { orderLock: false }, $unset: { orderLockExpires: "" } }
+    ).catch(() => {});
+  }
 };
 
 /**
@@ -697,6 +776,19 @@ export const cancelTournamentOrder = async ({ userId, tournamentId, orderId }) =
         },
       }
     );
+  } else if (order.action === "SELL") {
+    // Release reserved shares on virtual holding exactly once
+    const part = await TournamentParticipation.findOne({
+      _id: order.participationId,
+      userId,
+    });
+    if (part) {
+      const h = part.virtualHoldings.find((x) => x.symbol === order.symbol);
+      if (h) {
+        h.reservedQuantity = Math.max(0, (h.reservedQuantity || 0) - order.quantity);
+        await part.save();
+      }
+    }
   }
 
   // Recalculate leaderboard after cancellation
@@ -729,6 +821,14 @@ export const checkPendingTournamentLimitOrders = async (symbol, currentPrice) =>
         order.participationId
       );
       if (!participation || participation.status !== "active") continue;
+
+      const tournament = await Tournament.findById(order.tournamentId);
+      if (!tournament || tournament.status !== "active") continue;
+
+      const allowedSymbols = tournament.tradingRules?.allowedSymbols?.length
+        ? tournament.tradingRules.allowedSymbols
+        : tournament.entryRules?.allowedSymbols || [];
+      if (allowedSymbols.length > 0 && !allowedSymbols.includes(normalized)) continue;
 
       if (order.action === "BUY" && currentPrice <= order.price) {
         // Atomic lock check to prevent concurrent double-execution or race with cancellation
@@ -781,7 +881,7 @@ export const checkPendingTournamentLimitOrders = async (symbol, currentPrice) =>
         // Notify participant about order execution
         try {
           const Notification = (await import("../models/NotificationModel.js")).default;
-          await Notification.create({
+          const notif = await Notification.create({
             userId: order.userId,
             type: "tournament",
             event: "order_executed",
@@ -795,6 +895,7 @@ export const checkPendingTournamentLimitOrders = async (symbol, currentPrice) =>
               action: "BUY",
             },
           });
+          emitNewNotification(notif);
         } catch (_nErr) {}
       } else if (order.action === "SELL" && currentPrice >= order.price) {
         const lockedOrder = await TournamentOrder.findOneAndUpdate(
@@ -824,6 +925,10 @@ export const checkPendingTournamentLimitOrders = async (symbol, currentPrice) =>
           );
 
           existingHolding.quantity -= order.quantity;
+          existingHolding.reservedQuantity = Math.max(
+            0,
+            (existingHolding.reservedQuantity || 0) - order.quantity
+          );
           if (existingHolding.quantity === 0) {
             participation.virtualHoldings = participation.virtualHoldings.filter(
               (h) => h.symbol !== normalized
@@ -844,7 +949,7 @@ export const checkPendingTournamentLimitOrders = async (symbol, currentPrice) =>
           // Notify participant about order execution
           try {
             const Notification = (await import("../models/NotificationModel.js")).default;
-            await Notification.create({
+            const notif = await Notification.create({
               userId: order.userId,
               type: "tournament",
               event: "order_executed",
@@ -858,6 +963,7 @@ export const checkPendingTournamentLimitOrders = async (symbol, currentPrice) =>
                 action: "SELL",
               },
             });
+            emitNewNotification(notif);
           } catch (_nErr) {}
         } else {
           // Could not execute (e.g. holding changed); revert lock

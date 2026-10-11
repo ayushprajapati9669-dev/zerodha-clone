@@ -39,6 +39,7 @@ const notificationSchema = new mongoose.Schema(
                         "tournament_completed",
                         "order_rejected",
                         "final_rank_available",
+                        "tournament_cancelled",
                   ],
                   default: "system",
             },

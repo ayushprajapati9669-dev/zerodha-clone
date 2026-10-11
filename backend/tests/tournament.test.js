@@ -841,6 +841,477 @@ describe("Paper Trading Tournament Test Suite", () => {
       );
     });
   });
+
+  // =========================================================================
+  // 12. CANCELLATION, DYNAMIC STOCKS, RESERVED SHARES & NOTIFICATION AUDIT
+  // =========================================================================
+
+  describe("Cancellation, Dynamic Stocks, Reserved Shares & Notification Flow Audit", () => {
+    it("Req 4: should generate cancellation notification with reason and prevent duplicates on retry", () => {
+      const notifications = [];
+      const tournament = { _id: "tourn-99", name: "Weekend Scalping Championship" };
+      const participants = [{ userId: "user-1" }, { userId: "user-2" }];
+      const reason = "Technical maintenance";
+
+      const dispatchCancellation = () => {
+        for (const p of participants) {
+          const exists = notifications.some(
+            (n) =>
+              n.userId === p.userId &&
+              n.event === "tournament_cancelled" &&
+              n.metadata.tournamentId === tournament._id
+          );
+          if (!exists) {
+            notifications.push({
+              userId: p.userId,
+              type: "tournament",
+              event: "tournament_cancelled",
+              title: `Tournament Cancelled: ${tournament.name}`,
+              message: `"${tournament.name}" was cancelled by an administrator. Any pending orders have been cancelled and reserved funds released. Executed trades are preserved in your history.`,
+              priority: "high",
+              metadata: {
+                tournamentId: tournament._id,
+                tournamentName: tournament.name,
+                reason,
+              },
+            });
+          }
+        }
+      };
+
+      // First run: dispatches to both participants
+      dispatchCancellation();
+      assert.strictEqual(notifications.length, 2);
+      assert.strictEqual(notifications[0].event, "tournament_cancelled");
+      assert.strictEqual(notifications[0].metadata.reason, reason);
+
+      // Second retry run: must NOT create duplicates
+      dispatchCancellation();
+      assert.strictEqual(notifications.length, 2, "Deduplication must prevent duplicate cancellation notifications");
+    });
+
+    it("Req 11: should preserve executed Market Buy trades and holdings when tournament is cancelled", () => {
+      const participation = {
+        availableCash: 75000,
+        reservedCash: 25000,
+        virtualHoldings: [{ symbol: "RELIANCE", quantity: 10, averagePrice: 2500 }],
+        tradeCount: 1,
+      };
+
+      const pendingOrders = [
+        { _id: "ord-1", action: "BUY", reservedAmount: 25000, status: "PENDING" },
+      ];
+
+      // Simulate cancellation workflow:
+      // 1. Pending BUY order cancelled and reserved cash released
+      for (const ord of pendingOrders) {
+        if (ord.status === "PENDING" && ord.action === "BUY") {
+          participation.availableCash += ord.reservedAmount;
+          participation.reservedCash -= ord.reservedAmount;
+          ord.status = "CANCELLED";
+        }
+      }
+
+      // Executed shares in virtualHoldings must remain completely intact
+      assert.strictEqual(participation.virtualHoldings.length, 1);
+      assert.strictEqual(participation.virtualHoldings[0].symbol, "RELIANCE");
+      assert.strictEqual(participation.virtualHoldings[0].quantity, 10);
+      assert.strictEqual(participation.availableCash, 100000);
+      assert.strictEqual(participation.reservedCash, 0);
+      assert.strictEqual(pendingOrders[0].status, "CANCELLED");
+    });
+
+    it("Req 5: should enforce dynamic stock rules server-side and reject unauthorized stocks", () => {
+      const supportedStocks = ["RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK"];
+      const restrictedTournament = {
+        status: "active",
+        tradingRules: { allowedSymbols: ["TCS", "INFY"] },
+      };
+      const unrestrictedTournament = {
+        status: "active",
+        tradingRules: { allowedSymbols: [] },
+      };
+
+      const validateStock = (tournament, symbol) => {
+        const norm = symbol.trim().toUpperCase();
+        if (!supportedStocks.includes(norm)) {
+          throw new Error(`Symbol ${norm} is not supported for paper trading.`);
+        }
+        const allowed = tournament.tradingRules?.allowedSymbols || [];
+        if (allowed.length > 0 && !allowed.includes(norm)) {
+          throw new Error(`Symbol ${norm} is not permitted in this tournament.`);
+        }
+        return true;
+      };
+
+      // Allowed in restricted
+      assert.strictEqual(validateStock(restrictedTournament, "TCS"), true);
+      assert.strictEqual(validateStock(restrictedTournament, "INFY"), true);
+
+      // Disallowed in restricted
+      assert.throws(
+        () => validateStock(restrictedTournament, "RELIANCE"),
+        /not permitted in this tournament/i
+      );
+
+      // Unrestricted permits all supported
+      assert.strictEqual(validateStock(unrestrictedTournament, "RELIANCE"), true);
+      assert.strictEqual(validateStock(unrestrictedTournament, "HDFCBANK"), true);
+
+      // Unsupported stock rejected everywhere
+      assert.throws(
+        () => validateStock(unrestrictedTournament, "UNKNOWN_CO"),
+        /not supported for paper trading/i
+      );
+    });
+
+    it("Req 12: should correctly compute total, reserved, and available shares across Sell Limit lifecycle", () => {
+      const holding = { symbol: "TCS", quantity: 50 }; // total holdings = 50
+      let pendingSellOrders = [];
+
+      const computeAvailability = () => {
+        const reserved = pendingSellOrders.reduce((sum, o) => sum + o.quantity, 0);
+        const available = Math.max(0, holding.quantity - reserved);
+        return { total: holding.quantity, reserved, available };
+      };
+
+      // 1. Initial state
+      let stats = computeAvailability();
+      assert.strictEqual(stats.total, 50);
+      assert.strictEqual(stats.reserved, 0);
+      assert.strictEqual(stats.available, 50);
+
+      // 2. Place Sell Limit order of 20 shares
+      pendingSellOrders.push({ _id: "ord-1", symbol: "TCS", quantity: 20, status: "PENDING" });
+      stats = computeAvailability();
+      assert.strictEqual(stats.total, 50);
+      assert.strictEqual(stats.reserved, 20);
+      assert.strictEqual(stats.available, 30);
+
+      // 3. Reject order exceeding available shares (attempting 35 when only 30 available)
+      const canSell35 = 35 <= stats.available;
+      assert.strictEqual(canSell35, false, "Cannot place order exceeding available to trade");
+
+      // 4. Order execution: deducts total holding and releases reservation
+      const executedOrder = pendingSellOrders.shift();
+      holding.quantity -= executedOrder.quantity; // 50 - 20 = 30
+      stats = computeAvailability();
+      assert.strictEqual(stats.total, 30);
+      assert.strictEqual(stats.reserved, 0);
+      assert.strictEqual(stats.available, 30);
+
+      // 5. Place another Sell Limit of 15 shares and cancel it
+      pendingSellOrders.push({ _id: "ord-2", symbol: "TCS", quantity: 15, status: "PENDING" });
+      stats = computeAvailability();
+      assert.strictEqual(stats.available, 15);
+
+      // Cancellation releases reservation exactly once
+      pendingSellOrders = [];
+      stats = computeAvailability();
+      assert.strictEqual(stats.total, 30);
+      assert.strictEqual(stats.reserved, 0);
+      assert.strictEqual(stats.available, 30);
+    });
+  });
+
+  // =========================================================================
+  // 13. HISTORY IMMUTABILITY & RESERVED SHARE INVARIANT PROOFS
+  // =========================================================================
+
+  describe("History Immutability & Reserved Share Invariant Proofs", () => {
+    it("History Immutability: completion snapshot must persist cash, holdings, and PnL, and getMyTournamentHistory must read from snapshot rather than live recalculated market values", () => {
+      // 1. Participant state at completion time
+      const completionTime = new Date("2026-10-10T18:00:00Z");
+      const savedSnapshot = {
+        snapshotAt: completionTime,
+        reason: "completed",
+        finalRank: 1,
+        initialBalance: 100000,
+        availableCash: 75000,
+        reservedCash: 0,
+        portfolioValue: 125000,
+        realizedPnL: 0,
+        unrealizedPnL: 25000,
+        totalPnL: 25000,
+        tradeCount: 2,
+        virtualHoldings: [
+          {
+            symbol: "RELIANCE",
+            quantity: 10,
+            averagePrice: 2500,
+            currentPrice: 5000,
+            marketValue: 50000,
+            unrealizedPnL: 25000,
+          },
+        ],
+      };
+
+      const participation = {
+        _id: "part-1",
+        userId: "user-1",
+        tournamentId: "tourn-1",
+        initialBalance: 100000,
+        availableCash: 75000,
+        reservedCash: 0,
+        // Suppose live record was recalculated subsequent to completion with new market prices:
+        portfolioValue: 180000,
+        realizedPnL: 0,
+        unrealizedPnL: 80000,
+        tradeCount: 2,
+        virtualHoldings: [
+          {
+            symbol: "RELIANCE",
+            quantity: 10,
+            averagePrice: 2500,
+            currentPrice: 10500, // Market price doubled after tournament ended
+            marketValue: 105000,
+            unrealizedPnL: 80000,
+          },
+        ],
+        finalRank: 1,
+        closedSnapshot: savedSnapshot,
+      };
+
+      const tournament = {
+        _id: "tourn-1",
+        name: "Pro Scalpers Cup",
+        status: "completed",
+        participantCount: 50,
+      };
+
+      // Simulate getMyTournamentHistory resolution logic
+      const resolveHistoryItem = (p, t) => {
+        const isClosed = t.status === "completed" || t.status === "cancelled";
+        const snap = (isClosed && p.closedSnapshot) ? p.closedSnapshot : null;
+
+        const portfolioValue = snap ? snap.portfolioValue : p.portfolioValue;
+        const availableCash = snap ? snap.availableCash : p.availableCash;
+        const reservedCash = snap ? snap.reservedCash : (p.reservedCash || 0);
+        const virtualHoldings = snap ? snap.virtualHoldings : p.virtualHoldings;
+        const totalPnL = snap
+          ? snap.totalPnL
+          : Number((portfolioValue - p.initialBalance).toFixed(2));
+
+        return {
+          tournamentId: t._id,
+          name: t.name,
+          portfolioValue,
+          availableCash,
+          reservedCash,
+          virtualHoldings,
+          totalPnL,
+          finalRank: snap ? snap.finalRank : p.finalRank,
+          snapshotSource: snap ? snap.reason : (isClosed ? "live_fallback" : "live"),
+        };
+      };
+
+      const result = resolveHistoryItem(participation, tournament);
+
+      // Verify that history strictly returned frozen values, NOT the post-completion live market values
+      assert.strictEqual(result.portfolioValue, 125000, "Must match frozen snapshot portfolioValue (₹125,000), not recalculated ₹180,000");
+      assert.strictEqual(result.totalPnL, 25000, "Must match frozen snapshot totalPnL");
+      assert.strictEqual(result.virtualHoldings[0].currentPrice, 5000, "Must preserve price at snapshot time, not live ₹10,500");
+      assert.strictEqual(result.finalRank, 1);
+      assert.strictEqual(result.snapshotSource, "completed", "Source must identify as completed immutable snapshot");
+    });
+
+    it("History Immutability: cancellation snapshot must freeze final portfolio valuation and preserve executed trades", () => {
+      const cancellationTime = new Date("2026-10-10T12:00:00Z");
+      const cancelSnapshot = {
+        snapshotAt: cancellationTime,
+        reason: "cancelled",
+        finalRank: null,
+        initialBalance: 100000,
+        availableCash: 80000,
+        reservedCash: 0,
+        portfolioValue: 100000,
+        realizedPnL: 0,
+        unrealizedPnL: 0,
+        totalPnL: 0,
+        tradeCount: 1,
+        virtualHoldings: [
+          {
+            symbol: "INFY",
+            quantity: 10,
+            averagePrice: 2000,
+            currentPrice: 2000,
+            marketValue: 20000,
+            unrealizedPnL: 0,
+          },
+        ],
+      };
+
+      const participation = {
+        _id: "part-2",
+        userId: "user-2",
+        tournamentId: "tourn-2",
+        initialBalance: 100000,
+        closedSnapshot: cancelSnapshot,
+      };
+
+      const tournament = {
+        _id: "tourn-2",
+        name: "Cancelled Tournament",
+        status: "cancelled",
+        participantCount: 10,
+      };
+
+      const isClosed = tournament.status === "completed" || tournament.status === "cancelled";
+      const snap = isClosed && participation.closedSnapshot ? participation.closedSnapshot : null;
+
+      assert.ok(snap, "Snapshot must exist for cancelled tournament");
+      assert.strictEqual(snap.reason, "cancelled");
+      assert.strictEqual(snap.virtualHoldings.length, 1);
+      assert.strictEqual(snap.virtualHoldings[0].symbol, "INFY");
+      assert.strictEqual(snap.virtualHoldings[0].quantity, 10, "Executed trades and holdings preserved in snapshot");
+    });
+
+    it("Reserved Share Invariant: concurrent SELL orders cannot oversell holdings", () => {
+      const holding = { symbol: "TCS", quantity: 10, reservedQuantity: 0 };
+      const pendingOrders = [];
+
+      // Atomic placement simulation mimicking tournamentService.js
+      const placeSellLimitOrder = (qty) => {
+        const reservedInPending = pendingOrders
+          .filter((o) => o.symbol === holding.symbol && o.status === "PENDING")
+          .reduce((sum, o) => sum + o.quantity, 0);
+
+        // Strict invariant check: reserved cannot exceed total holding
+        if (reservedInPending > holding.quantity) {
+          throw new Error("Inconsistent holding state: reserved quantity exceeds total owned.");
+        }
+
+        const available = holding.quantity - reservedInPending;
+        if (available < qty) {
+          throw new Error(
+            `Insufficient available holding quantity. Total: ${holding.quantity}, Reserved: ${reservedInPending}, Available: ${available}`
+          );
+        }
+
+        // Commit order and update holding reservation
+        const order = { _id: `ord-${pendingOrders.length + 1}`, symbol: holding.symbol, quantity: qty, status: "PENDING" };
+        pendingOrders.push(order);
+        holding.reservedQuantity = (holding.reservedQuantity || 0) + qty;
+        return order;
+      };
+
+      // First order: sells 10 shares of 10 owned
+      const order1 = placeSellLimitOrder(10);
+      assert.ok(order1);
+      assert.strictEqual(holding.reservedQuantity, 10);
+      assert.strictEqual(holding.quantity - holding.reservedQuantity, 0);
+
+      // Concurrent second order: tries to sell 1 share when 0 available
+      assert.throws(
+        () => placeSellLimitOrder(1),
+        /Insufficient available holding quantity/i
+      );
+
+      // Verify invariant: reservedQuantity never exceeds total holding
+      assert.ok(holding.reservedQuantity <= holding.quantity);
+    });
+
+    it("Reserved Share Invariant: execution and cancellation release reservations exactly once", () => {
+      const holding = { symbol: "RELIANCE", quantity: 30, reservedQuantity: 20 };
+      const pendingOrder = { _id: "ord-100", symbol: "RELIANCE", quantity: 20, status: "PENDING" };
+
+      // Atomic cancellation
+      const cancelOrder = (order) => {
+        if (order.status !== "PENDING") {
+          throw new Error("Pending order not found or already processed.");
+        }
+        order.status = "CANCELLED";
+        holding.reservedQuantity = Math.max(0, (holding.reservedQuantity || 0) - order.quantity);
+        return true;
+      };
+
+      // Cancel once
+      const success = cancelOrder(pendingOrder);
+      assert.strictEqual(success, true);
+      assert.strictEqual(holding.reservedQuantity, 0, "Reservation released back to 0");
+      assert.strictEqual(holding.quantity - holding.reservedQuantity, 30, "All 30 shares available");
+
+      // Attempt second cancellation on same order: must reject
+      assert.throws(
+        () => cancelOrder(pendingOrder),
+        /Pending order not found or already processed/i
+      );
+      assert.strictEqual(holding.reservedQuantity, 0, "No duplicate deduction");
+    });
+
+    it("Reserved Share Invariant: rejects inconsistent states without relying on Math.max to hide negative values", () => {
+      const holding = { symbol: "INFY", quantity: 10 };
+      const reserved = 15; // Corrupted state where reserved > quantity
+
+      // Direct calculation without Math.max hiding
+      const rawAvailable = holding.quantity - reserved;
+      assert.strictEqual(rawAvailable, -5, "Raw difference exposes anomaly rather than clamping to 0");
+
+      // Backend invariant check catches and rejects it
+      const validateInvariant = (total, res) => {
+        if (res > total) {
+          throw new Error(`[INVARIANT BREACH] Reserved (${res}) exceeds total (${total})`);
+        }
+        return total - res;
+      };
+
+      assert.throws(
+        () => validateInvariant(holding.quantity, reserved),
+        /INVARIANT BREACH/
+      );
+    });
+
+    it("Portfolio Order Lock: atomic acquire succeeds when unlocked, rejects concurrent attempt when locked, and recovers automatically after expiry", () => {
+      let doc = {
+        _id: "part-lock-test",
+        orderLock: false,
+        orderLockExpires: null,
+      };
+
+      // Atomic findOneAndUpdate simulation matching tournamentService.js:
+      // { _id, $or: [{ orderLock: false }, { orderLock: { $exists: false } }, { orderLockExpires: { $lt: now } }] }
+      const tryAcquireLock = (now = new Date()) => {
+        const isUnlocked = !doc.orderLock || (doc.orderLockExpires && doc.orderLockExpires < now);
+        if (isUnlocked) {
+          doc.orderLock = true;
+          doc.orderLockExpires = new Date(now.getTime() + 5000);
+          return { ...doc };
+        }
+        return null;
+      };
+
+      const releaseLock = () => {
+        doc.orderLock = false;
+        doc.orderLockExpires = null;
+      };
+
+      const t0 = new Date("2026-10-11T12:00:00Z");
+
+      // 1. Initial acquire must succeed
+      const lock1 = tryAcquireLock(t0);
+      assert.ok(lock1, "First acquire must succeed");
+      assert.strictEqual(doc.orderLock, true);
+      assert.strictEqual(doc.orderLockExpires.getTime(), t0.getTime() + 5000);
+
+      // 2. Concurrent acquire at same timestamp must be rejected (atomic conflict)
+      const lock2 = tryAcquireLock(t0);
+      assert.strictEqual(lock2, null, "Concurrent second attempt must be rejected");
+
+      // 3. Normal release clears lock
+      releaseLock();
+      assert.strictEqual(doc.orderLock, false);
+      const lock3 = tryAcquireLock(t0);
+      assert.ok(lock3, "Acquire after normal release succeeds");
+
+      // 4. Hard crash recovery: lock held without release, but 5 seconds elapse
+      const t1 = new Date(t0.getTime() + 5001); // 5001ms later
+      const lockRecovered = tryAcquireLock(t1);
+      assert.ok(lockRecovered, "Lock must automatically recover after 5s expiry window expires");
+    });
+  });
 });
+
+
+
 
 

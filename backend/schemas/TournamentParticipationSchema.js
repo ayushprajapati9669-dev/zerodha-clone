@@ -14,6 +14,11 @@ const virtualHoldingSchema = new Schema(
       min: 0,
       default: 0,
     },
+    reservedQuantity: {
+      type: Number,
+      min: 0,
+      default: 0,
+    },
     averagePrice: {
       type: Number,
       required: true,
@@ -114,6 +119,35 @@ const tournamentParticipationSchema = new Schema(
     finalRank: {
       type: Number,
       default: null,
+    },
+    orderLock: {
+      type: Boolean,
+      default: false,
+    },
+    orderLockExpires: {
+      type: Date,
+      default: null,
+    },
+    /**
+     * Immutable snapshot written ONCE at tournament completion or cancellation.
+     * getMyTournamentHistory reads from this instead of live recalculated values
+     * so that subsequent market-price ticks cannot retroactively alter history.
+     * Only written if null to prevent any second-write scenario.
+     */
+    closedSnapshot: {
+      type: {
+        availableCash: { type: Number },
+        reservedCash: { type: Number },
+        portfolioValue: { type: Number },
+        returnPercent: { type: Number },
+        realizedPnL: { type: Number },
+        unrealizedPnL: { type: Number },
+        virtualHoldings: { type: Array, default: [] },
+        closedAt: { type: Date },
+        reason: { type: String, default: null },
+      },
+      default: null,
+      _id: false,
     },
   },
   { timestamps: true }

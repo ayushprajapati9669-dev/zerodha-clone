@@ -12,6 +12,7 @@ import {
 } from "../services/tournamentService.js";
 import { logAdminAction } from "../utils/adminAudit.js";
 import Notification from "../models/NotificationModel.js";
+import { emitNewNotification } from "../utils/notificationSocket.js";
 
 /**
  * Fire-and-forget tournament notification helper.
@@ -21,7 +22,7 @@ import Notification from "../models/NotificationModel.js";
  */
 const sendTournamentNotification = async ({ userId, event, title, message, metadata = {} }) => {
   try {
-    await Notification.create({
+    const notif = await Notification.create({
       userId,
       type: "tournament",
       event,
@@ -30,6 +31,7 @@ const sendTournamentNotification = async ({ userId, event, title, message, metad
       priority: "normal",
       metadata,
     });
+    emitNewNotification(notif);
   } catch (err) {
     console.error("Tournament notification failed:", err.message);
   }
@@ -570,10 +572,40 @@ export const getMyParticipation = async (req, res) => {
     const tournament = await Tournament.findById(id);
     await syncTournamentStatus(tournament);
 
+    // Compute reservedQuantity and availableQuantity per virtual holding
+    const pendingSellOrders = await TournamentOrder.find({
+      participationId: participation._id,
+      tournamentId: id,
+      action: "SELL",
+      status: "PENDING",
+    });
+
+    const holdingsWithAvailability = (participation.virtualHoldings || []).map((h) => {
+      const hObj = h.toObject ? h.toObject() : { ...h };
+      const reserved = pendingSellOrders
+        .filter((o) => o.symbol === h.symbol)
+        .reduce((sum, o) => sum + (o.quantity || 0), 0);
+      hObj.reservedQuantity = reserved;
+      hObj.availableQuantity = (h.quantity || 0) - reserved;
+      if (reserved > (h.quantity || 0)) {
+        console.error(
+          `[INVARIANT BREACH] Inconsistent backend quantity for ${h.symbol}: reserved (${reserved}) exceeds total owned (${h.quantity})`
+        );
+      }
+      return hObj;
+    });
+
+    const participationObj = participation.toObject ? participation.toObject() : { ...participation };
+    participationObj.virtualHoldings = holdingsWithAvailability;
+
+    const allowedSymbols = tournament?.tradingRules?.allowedSymbols?.length
+      ? tournament.tradingRules.allowedSymbols
+      : tournament?.entryRules?.allowedSymbols || [];
+
     return res.status(200).json({
       success: true,
       data: {
-        participation,
+        participation: participationObj,
         tournament: tournament
           ? {
               _id: tournament._id,
@@ -581,6 +613,9 @@ export const getMyParticipation = async (req, res) => {
               status: tournament.status,
               tournamentType: tournament.tournamentType,
               initialBalance: tournament.initialBalance,
+              allowedSymbols,
+              entryRules: tournament.entryRules,
+              tradingRules: tournament.tradingRules,
             }
           : null,
       },
@@ -820,27 +855,59 @@ export const getMyTournamentHistory = async (req, res) => {
       .populate("tournamentId")
       .sort({ createdAt: -1 });
 
-    const history = participations
-      .filter((p) => p.tournamentId)
-      .map((p) => {
-        const t = p.tournamentId;
-        return {
-          participationId: p._id,
-          tournamentId: t._id,
-          name: t.name,
-          tournamentType: t.tournamentType,
-          status: t.status,
-          startDate: t.startDate,
-          endDate: t.endDate,
-          initialBalance: p.initialBalance,
-          portfolioValue: p.portfolioValue,
-          returnPercent: p.returnPercent,
-          totalPnL: Number((p.portfolioValue - p.initialBalance).toFixed(2)),
-          tradeCount: p.tradeCount,
-          finalRank: p.rank,
-          totalParticipants: t.participantCount,
-        };
-      });
+    const history = await Promise.all(
+      participations
+        .filter((p) => p.tournamentId)
+        .map(async (p) => {
+          const t = p.tournamentId;
+          const userOrders = await TournamentOrder.find({
+            tournamentId: t._id,
+            userId,
+          }).sort({ createdAt: -1 });
+
+          const isCompleted = t.status === "completed";
+          const isCancelled = t.status === "cancelled";
+          const isClosed = isCompleted || isCancelled;
+
+          // For closed tournaments: read from the immutable snapshot written at close time.
+          // For active/upcoming: use live recalculated values.
+          const snap = isClosed && p.closedSnapshot ? p.closedSnapshot : null;
+
+          const availableCash = snap ? snap.availableCash : p.availableCash;
+          const reservedCash = snap ? snap.reservedCash : (p.reservedCash || 0);
+          const portfolioValue = snap ? snap.portfolioValue : p.portfolioValue;
+          const returnPercent = snap ? snap.returnPercent : p.returnPercent;
+          const realizedPnL = snap ? snap.realizedPnL : (p.realizedPnL || 0);
+          const unrealizedPnL = snap ? snap.unrealizedPnL : (p.unrealizedPnL || 0);
+          const virtualHoldings = snap ? (snap.virtualHoldings || []) : (p.virtualHoldings || []);
+
+          return {
+            participationId: p._id,
+            tournamentId: t._id,
+            name: t.name,
+            tournamentType: t.tournamentType,
+            status: t.status,
+            startDate: t.startDate,
+            endDate: t.endDate,
+            cancelledAt: isCancelled ? (snap?.closedAt || t.updatedAt || t.endDate) : null,
+            initialBalance: p.initialBalance,
+            availableCash,
+            reservedCash,
+            portfolioValue,
+            returnPercent,
+            realizedPnL,
+            unrealizedPnL,
+            totalPnL: Number((portfolioValue - p.initialBalance).toFixed(2)),
+            tradeCount: p.tradeCount,
+            finalRank: isCompleted ? (p.finalRank || p.rank) : null,
+            totalParticipants: t.participantCount,
+            virtualHoldings,
+            orders: userOrders || [],
+            // Indicate whether history is from a frozen snapshot or live values
+            snapshotSource: snap ? snap.reason : (isClosed ? "live_fallback" : "live"),
+          };
+              })
+    );
 
     return res.status(200).json({
       success: true,
@@ -1309,10 +1376,80 @@ export const adminUpdateTournamentStatus = async (req, res) => {
               },
             }
           );
+        } else if (cancelled.action === "SELL") {
+          const part = await TournamentParticipation.findById(cancelled.participationId);
+          if (part) {
+            const h = part.virtualHoldings.find((x) => x.symbol === cancelled.symbol);
+            if (h && h.reservedQuantity > 0) {
+              h.reservedQuantity = Math.max(0, h.reservedQuantity - cancelled.quantity);
+              await part.save();
+            }
+          }
         }
       }
 
       await recalculateTournamentLeaderboard(id, { emitSocket: true });
+
+      // Dispatch cancellation notification to every active participant (deduplicated)
+      // Also persist an immutable closedSnapshot so history is frozen at this moment.
+      try {
+        const parts = await TournamentParticipation.find({
+          tournamentId: id,
+          status: "active",
+        });
+        const cancellationReason = req.body?.reason || "Cancelled by administrator";
+        const snapshotAt = new Date();
+        for (const part of parts) {
+          // Write closedSnapshot exactly once (null-guard prevents overwrite on retry)
+          if (!part.closedSnapshot) {
+            part.closedSnapshot = {
+              availableCash: part.availableCash,
+              reservedCash: part.reservedCash || 0,
+              portfolioValue: part.portfolioValue,
+              returnPercent: part.returnPercent,
+              realizedPnL: part.realizedPnL || 0,
+              unrealizedPnL: part.unrealizedPnL || 0,
+              virtualHoldings: (part.virtualHoldings || []).map((h) => ({
+                symbol: h.symbol,
+                quantity: h.quantity,
+                averagePrice: h.averagePrice,
+                currentPrice: h.currentPrice,
+                marketValue: h.marketValue,
+                unrealizedPnL: h.unrealizedPnL,
+              })),
+              closedAt: snapshotAt,
+              reason: "cancelled",
+            };
+            await part.save();
+          }
+
+          const targetUserId = part.userId?._id || part.userId;
+          const alreadyNotified = await Notification.findOne({
+            userId: targetUserId,
+            event: "tournament_cancelled",
+            "metadata.tournamentId": tournament._id,
+          });
+          if (!alreadyNotified) {
+            const notif = await Notification.create({
+              userId: targetUserId,
+              type: "tournament",
+              event: "tournament_cancelled",
+              title: `Tournament Cancelled: ${tournament.name}`,
+              message: `"${tournament.name}" was cancelled by an administrator. Any pending orders have been cancelled and reserved funds released. Executed trades are preserved in your history.`,
+              priority: "high",
+              metadata: {
+                tournamentId: tournament._id,
+                tournamentName: tournament.name,
+                cancelledAt: now,
+                reason: cancellationReason,
+              },
+            });
+            emitNewNotification(notif);
+          }
+        }
+      } catch (_notifErr) {
+        console.error("Failed to dispatch cancellation notifications:", _notifErr.message);
+      }
     }
 
     logAdminAction({
@@ -1460,6 +1597,11 @@ export const adminDisqualifyParticipant = async (req, res) => {
           0,
           Number(((participation.reservedCash || 0) - order.reservedAmount).toFixed(2))
         );
+      } else if (order.action === "SELL") {
+        const h = participation.virtualHoldings.find((x) => x.symbol === order.symbol);
+        if (h && h.reservedQuantity > 0) {
+          h.reservedQuantity = Math.max(0, h.reservedQuantity - order.quantity);
+        }
       }
     }
     await participation.save();

@@ -1,0 +1,255 @@
+/* NotificationDetailModal.css */
+.notif-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 16px;
+  animation: notifFadeIn 0.2s ease-out;
+}
+
+.notif-modal-card {
+  background: #ffffff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: notifScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.notif-modal-header {
+  padding: 18px 22px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.notif-modal-header-title {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.notif-modal-header-title h4 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.notif-type-tag {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.notif-type-tag.notif-type-tournament {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.notif-type-tag.notif-type-order {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.notif-type-tag.notif-type-fund {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.notif-type-tag.notif-type-system {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.notif-modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.notif-modal-close-btn:hover {
+  color: #0f172a;
+}
+
+.notif-modal-meta-bar {
+  padding: 10px 22px;
+  background: #f8fafc;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.notif-meta-item {
+  display: flex;
+  align-items: center;
+}
+
+.notif-priority-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.notif-priority-pill.priority-high {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.notif-priority-pill.priority-normal {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.notif-priority-pill.priority-low {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.notif-read-status {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.notif-read-status.status-read {
+  color: #10b981;
+}
+
+.notif-read-status.status-unread {
+  color: #f59e0b;
+}
+
+.notif-modal-body {
+  padding: 20px 22px;
+  overflow-y: auto;
+  max-height: 55vh;
+}
+
+.notif-modal-message {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #334155;
+}
+
+.notif-metadata-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.notif-metadata-heading {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.notif-metadata-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 14px;
+}
+
+.metadata-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metadata-field.full-width {
+  grid-column: span 2;
+}
+
+.field-label {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.field-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.field-value.action-BUY {
+  color: #2563eb;
+}
+
+.field-value.action-SELL {
+  color: #dc2626;
+}
+
+.field-value.rank-highlight {
+  color: #d97706;
+  font-weight: 700;
+}
+
+.field-value.font-mono {
+  font-family: monospace;
+}
+
+.notif-modal-footer {
+  padding: 14px 22px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+  background: #ffffff;
+}
+
+.notif-close-button {
+  background: #387ed1;
+  color: #ffffff;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.notif-close-button:hover {
+  background: #2b67ad;
+}
+
+@keyframes notifFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes notifScaleIn {
+  from { transform: scale(0.96); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}

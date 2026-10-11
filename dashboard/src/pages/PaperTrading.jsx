@@ -219,25 +219,76 @@ function TournamentJoinModal({ tournament, onConfirm, onClose, loading, initialE
 }
 
 // =========================================================================
+// SUPPORTED TRADABLE STOCKS
+// =========================================================================
+
+const ALL_SUPPORTED_STOCKS = [
+  { symbol: "RELIANCE", name: "Reliance Industries" },
+  { symbol: "TCS", name: "Tata Consultancy Services" },
+  { symbol: "INFY", name: "Infosys" },
+  { symbol: "HDFCBANK", name: "HDFC Bank" },
+  { symbol: "ICICIBANK", name: "ICICI Bank" },
+  { symbol: "SBIN", name: "State Bank of India" },
+  { symbol: "ITC", name: "ITC Limited" },
+  { symbol: "BHARTIARTL", name: "Bharti Airtel" },
+  { symbol: "WIPRO", name: "Wipro" },
+  { symbol: "AXISBANK", name: "Axis Bank" },
+  { symbol: "KOTAKBANK", name: "Kotak Mahindra Bank" },
+  { symbol: "MARUTI", name: "Maruti Suzuki" },
+  { symbol: "HINDUNILVR", name: "Hindustan Unilever" },
+  { symbol: "BAJFINANCE", name: "Bajaj Finance" },
+  { symbol: "LT", name: "Larsen & Toubro" },
+];
+
+// =========================================================================
 // PAPER TRADE MODAL
 // =========================================================================
 
-function TournamentTradeModal({ action, symbol, availableCash, availableQty, onClose, onPlace }) {
+function TournamentTradeModal({
+  action,
+  symbol: initialSymbol,
+  availableCash,
+  availableQty,
+  totalQty,
+  reservedQty = 0,
+  allowedSymbols = [],
+  onClose,
+  onPlace,
+}) {
+  const stockList =
+    Array.isArray(allowedSymbols) && allowedSymbols.length > 0
+      ? ALL_SUPPORTED_STOCKS.filter((s) => allowedSymbols.includes(s.symbol)).concat(
+          allowedSymbols
+            .filter((sym) => !ALL_SUPPORTED_STOCKS.some((s) => s.symbol === sym))
+            .map((sym) => ({ symbol: sym, name: sym }))
+        )
+      : ALL_SUPPORTED_STOCKS;
+
+  const [symbol, setSymbol] = useState(
+    initialSymbol || (stockList.length > 0 ? stockList[0].symbol : "RELIANCE")
+  );
   const [qty, setQty] = useState(1);
   const [orderType, setOrderType] = useState("Market");
   const [limitPrice, setLimitPrice] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const totalEst = orderType === "Limit" && limitPrice
-    ? (Number(qty) * Number(limitPrice)).toLocaleString("en-IN", { maximumFractionDigits: 2 })
-    : "Market price";
+  const totalEst =
+    orderType === "Limit" && limitPrice
+      ? (Number(qty) * Number(limitPrice)).toLocaleString("en-IN", {
+          maximumFractionDigits: 2,
+        })
+      : "Market price";
 
   const handleSubmit = async () => {
     setError("");
     const numQty = Number(qty);
     if (!Number.isInteger(numQty) || numQty < 1) {
       setError("Quantity must be a positive whole number.");
+      return;
+    }
+    if (action === "SELL" && availableQty !== undefined && numQty > availableQty) {
+      setError(`Cannot sell more than available shares (${availableQty}).`);
       return;
     }
     if (orderType === "Limit") {
@@ -249,7 +300,13 @@ function TournamentTradeModal({ action, symbol, availableCash, availableQty, onC
     }
     setSubmitting(true);
     try {
-      await onPlace({ symbol, action, orderType, quantity: numQty, limitPrice: limitPrice || undefined });
+      await onPlace({
+        symbol,
+        action,
+        orderType,
+        quantity: numQty,
+        limitPrice: limitPrice || undefined,
+      });
     } catch (err) {
       setError(err?.response?.data?.message || err.message || "Trade failed");
     } finally {
@@ -288,16 +345,52 @@ function TournamentTradeModal({ action, symbol, availableCash, availableQty, onC
         </div>
 
         <div className="tourn-trade-modal-body">
+          {action === "BUY" && (
+            <div className="tourn-form-group" style={{ marginBottom: 14 }}>
+              <label>Select Stock</label>
+              <select
+                className="form-select"
+                value={symbol}
+                onChange={(e) => setSymbol(e.target.value)}
+              >
+                {stockList.map((s) => (
+                  <option key={s.symbol} value={s.symbol}>
+                    {s.symbol} — {s.name}
+                  </option>
+                ))}
+              </select>
+              {allowedSymbols?.length > 0 && (
+                <small style={{ color: "#64748b", fontSize: 11, marginTop: 4, display: "block" }}>
+                  Tournament restricted to {allowedSymbols.length} specific stocks.
+                </small>
+              )}
+            </div>
+          )}
+
           <div className="tourn-price-info">
             <div className="info-item">
               <label>Available Cash</label>
               <span>₹{fmt(availableCash)}</span>
             </div>
             {action === "SELL" && (
-              <div className="info-item">
-                <label>Shares Available</label>
-                <span>{availableQty ?? "—"}</span>
-              </div>
+              <>
+                <div className="info-item">
+                  <label>Total Shares</label>
+                  <span>{totalQty ?? availableQty ?? "—"}</span>
+                </div>
+                {reservedQty > 0 && (
+                  <div className="info-item">
+                    <label>Reserved in Orders</label>
+                    <span style={{ color: "#d97706" }}>{reservedQty}</span>
+                  </div>
+                )}
+                <div className="info-item">
+                  <label>Available to Sell</label>
+                  <span style={{ fontWeight: 700, color: "#16a34a" }}>
+                    {availableQty ?? "—"}
+                  </span>
+                </div>
+              </>
             )}
             <div className="info-item">
               <label>Est. Total</label>
@@ -364,9 +457,7 @@ function TournamentTradeModal({ action, symbol, availableCash, availableQty, onC
             onClick={handleSubmit}
             disabled={submitting}
           >
-            {submitting
-              ? "Placing…"
-              : `${action === "BUY" ? "Buy" : "Sell"} ${symbol}`}
+            {submitting ? "Placing…" : `${action === "BUY" ? "Buy" : "Sell"} ${symbol}`}
           </button>
         </div>
       </div>
@@ -1068,7 +1159,12 @@ function TournamentPortfolioTab({ selectedTournamentId, onSelectTournament, onGo
             <button
               className="btn-trade-buy"
               style={{ padding: "8px 18px", fontSize: 13 }}
-              onClick={() => setTradeModal({ action: "BUY", symbol: "TCS" })}
+              onClick={() => {
+                const allowed = tournament?.allowedSymbols?.length
+                  ? tournament.allowedSymbols
+                  : ALL_SUPPORTED_STOCKS.map((s) => s.symbol);
+                setTradeModal({ action: "BUY", symbol: allowed[0] || "RELIANCE" });
+              }}
             >
               <i className="bi bi-plus-circle-fill me-1"></i>New Buy Order
             </button>
@@ -1096,7 +1192,9 @@ function TournamentPortfolioTab({ selectedTournamentId, onSelectTournament, onGo
                 <thead>
                   <tr>
                     <th>Symbol</th>
-                    <th>Qty</th>
+                    <th>Total Shares</th>
+                    <th>Reserved</th>
+                    <th>Available to Trade</th>
                     <th>Avg Price</th>
                     <th>Curr Price</th>
                     <th>Market Value</th>
@@ -1105,36 +1203,67 @@ function TournamentPortfolioTab({ selectedTournamentId, onSelectTournament, onGo
                   </tr>
                 </thead>
                 <tbody>
-                  {virtualHoldings.map((h) => (
-                    <tr key={h.symbol}>
-                      <td>
-                        <strong>{h.symbol}</strong>
-                      </td>
-                      <td>{h.quantity}</td>
-                      <td>₹{fmt(h.averagePrice)}</td>
-                      <td>₹{fmt(h.currentPrice)}</td>
-                      <td>₹{fmt(h.marketValue)}</td>
-                      <td className={h.unrealizedPnL >= 0 ? "td-positive" : "td-negative"}>
-                        {h.unrealizedPnL >= 0 ? "+" : ""}₹{fmt(h.unrealizedPnL)}
-                      </td>
-                      <td>
-                        <button
-                          className="btn-trade-buy"
-                          onClick={() => setTradeModal({ action: "BUY", symbol: h.symbol })}
-                        >
-                          Buy
-                        </button>
-                        <button
-                          className="btn-trade-sell"
-                          onClick={() =>
-                            setTradeModal({ action: "SELL", symbol: h.symbol, availableQty: h.quantity })
-                          }
-                        >
-                          Sell
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {virtualHoldings.map((h) => {
+                    const totalShares = h.quantity || 0;
+                    const reservedShares = h.reservedQuantity || 0;
+                    const availableShares =
+                      h.availableQuantity !== undefined
+                        ? h.availableQuantity
+                        : totalShares - reservedShares;
+                    const canSell = availableShares > 0;
+
+                    return (
+                      <tr key={h.symbol}>
+                        <td>
+                          <strong>{h.symbol}</strong>
+                        </td>
+                        <td>{totalShares}</td>
+                        <td style={{ color: reservedShares > 0 ? "#d97706" : "#64748b" }}>
+                          {reservedShares}
+                        </td>
+                        <td>
+                          <strong style={{ color: canSell ? "#16a34a" : "#94a3b8" }}>
+                            {availableShares}
+                          </strong>
+                        </td>
+                        <td>₹{fmt(h.averagePrice)}</td>
+                        <td>₹{fmt(h.currentPrice)}</td>
+                        <td>₹{fmt(h.marketValue)}</td>
+                        <td className={h.unrealizedPnL >= 0 ? "td-positive" : "td-negative"}>
+                          {h.unrealizedPnL >= 0 ? "+" : ""}₹{fmt(h.unrealizedPnL)}
+                        </td>
+                        <td>
+                          <button
+                            className="btn-trade-buy"
+                            onClick={() => setTradeModal({ action: "BUY", symbol: h.symbol })}
+                          >
+                            Buy
+                          </button>
+                          <button
+                            className="btn-trade-sell"
+                            disabled={!canSell}
+                            title={
+                              !canSell
+                                ? "All shares are committed to pending limit orders"
+                                : "Sell available shares"
+                            }
+                            style={!canSell ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+                            onClick={() =>
+                              setTradeModal({
+                                action: "SELL",
+                                symbol: h.symbol,
+                                totalQty: totalShares,
+                                reservedQty: reservedShares,
+                                availableQty: availableShares,
+                              })
+                            }
+                          >
+                            Sell
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -1234,6 +1363,9 @@ function TournamentPortfolioTab({ selectedTournamentId, onSelectTournament, onGo
           symbol={tradeModal.symbol}
           availableCash={participation?.availableCash}
           availableQty={tradeModal.availableQty}
+          totalQty={tradeModal.totalQty}
+          reservedQty={tradeModal.reservedQty}
+          allowedSymbols={tournament?.allowedSymbols || []}
           onClose={() => setTradeModal(null)}
           onPlace={handleTrade}
         />
@@ -1499,6 +1631,7 @@ function TournamentHistoryTab() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
     getMyTournamentHistory()
@@ -1506,6 +1639,10 @@ function TournamentHistoryTab() {
       .catch((err) => setError(err?.response?.data?.message || "Failed to load history"))
       .finally(() => setLoading(false));
   }, []);
+
+  const toggleExpand = (id) => {
+    setExpandedId((prev) => (prev === id ? null : id));
+  };
 
   if (loading) {
     return (
@@ -1537,43 +1674,90 @@ function TournamentHistoryTab() {
     <div className="history-grid">
       {history.map((h) => {
         const pnlPositive = h.totalPnL >= 0;
+        const isCancelled = h.status === "cancelled";
+        const isExpanded = expandedId === h.participationId;
+
         return (
           <div key={h.participationId} className="history-card">
-            <div>
-              <h4 className="history-card-title">{h.name}</h4>
-              <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-                <span className="tournament-type-badge">{h.tournamentType}</span>
-                <span className={`tournament-status-badge ${statusClass[h.status] || ""}`}>
-                  {h.status}
-                </span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+              <div>
+                <h4 className="history-card-title">{h.name}</h4>
+                <div style={{ display: "flex", gap: 6, marginTop: 4, alignItems: "center" }}>
+                  <span className="tournament-type-badge">{h.tournamentType}</span>
+                  <span className={`tournament-status-badge ${statusClass[h.status] || ""}`}>
+                    {h.status}
+                  </span>
+                  {isCancelled && h.cancelledAt && (
+                    <span style={{ fontSize: 11, color: "#94a3b8" }}>
+                      Cancelled {new Date(h.cancelledAt).toLocaleDateString("en-IN")}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                {isCancelled ? (
+                  <span
+                    style={{
+                      background: "#fee2e2",
+                      color: "#991b1b",
+                      padding: "4px 10px",
+                      borderRadius: 4,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      display: "inline-block",
+                    }}
+                  >
+                    Cancelled by Administrator (No Rank Assigned)
+                  </span>
+                ) : (
+                  <div className="history-final-rank">
+                    {rankMedal(h.finalRank)}
+                    <span> / {h.totalParticipants} traders</span>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div>
-              <div className="history-final-rank">
-                {rankMedal(h.finalRank)}
-                <span> / {h.totalParticipants} traders</span>
+            {isCancelled && (
+              <div
+                style={{
+                  background: "#fef2f2",
+                  border: "1px solid #fee2e2",
+                  borderRadius: 6,
+                  padding: "8px 12px",
+                  fontSize: 12,
+                  color: "#991b1b",
+                  marginTop: 10,
+                }}
+              >
+                <i className="bi bi-shield-exclamation me-1"></i>
+                <strong>Tournament Cancelled:</strong> Executed Market Buy trades remain preserved in your virtual holdings record. All pending orders were cancelled and reserved cash/shares released back to available balance.
               </div>
-            </div>
+            )}
 
-            <div className="history-stats">
+            <div className="history-stats" style={{ marginTop: 14 }}>
               <div className="history-stat">
                 <label>Starting Capital</label>
                 <span>₹{fmt(h.initialBalance)}</span>
               </div>
               <div className="history-stat">
-                <label>Final Value</label>
+                <label>Available Cash</label>
+                <span>₹{fmt(h.availableCash)}</span>
+              </div>
+              <div className="history-stat">
+                <label>Recorded Value</label>
                 <span>₹{fmt(h.portfolioValue)}</span>
               </div>
               <div className="history-stat">
                 <label>Total P&L</label>
-                <span style={{ color: pnlPositive ? "#2e7d32" : "#d93025" }}>
+                <span style={{ color: pnlPositive ? "#2e7d32" : "#d93025", fontWeight: 700 }}>
                   {pnlPositive ? "+" : ""}₹{fmt(h.totalPnL)}
                 </span>
               </div>
               <div className="history-stat">
                 <label>Return</label>
-                <span style={{ color: pnlPositive ? "#2e7d32" : "#d93025" }}>
+                <span style={{ color: pnlPositive ? "#2e7d32" : "#d93025", fontWeight: 700 }}>
                   {fmtPct(h.returnPercent)}
                 </span>
               </div>
@@ -1589,6 +1773,134 @@ function TournamentHistoryTab() {
                 </span>
               </div>
             </div>
+
+            <div style={{ marginTop: 14, paddingTop: 10, borderTop: "1px solid #f1f5f9", display: "flex", justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                className="btn-view-tournament"
+                style={{ padding: "6px 14px", fontSize: 12 }}
+                onClick={() => toggleExpand(h.participationId)}
+              >
+                <i className={`bi bi-${isExpanded ? "chevron-up" : "chevron-down"} me-1`}></i>
+                {isExpanded ? "Hide Audit Details" : "View Holdings & Orders Audit"}
+              </button>
+            </div>
+
+            {isExpanded && (
+              <div style={{ marginTop: 16, background: "#f8fafc", padding: 16, borderRadius: 8, border: "1px solid #e2e8f0" }}>
+                <h5 style={{ fontSize: 13, fontWeight: 700, margin: "0 0 10px 0", color: "#334155" }}>
+                  <i className="bi bi-briefcase me-1"></i> Recorded Virtual Holdings at Conclusion
+                </h5>
+                {h.virtualHoldings && h.virtualHoldings.length > 0 ? (
+                  <div className="tournament-table-wrapper" style={{ marginBottom: 14 }}>
+                    <table className="tournament-table" style={{ fontSize: 12 }}>
+                      <thead>
+                        <tr>
+                          <th>Symbol</th>
+                          <th>Qty</th>
+                          <th>Avg Price</th>
+                          <th>Market Value</th>
+                          <th>Unr. P&L</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {h.virtualHoldings.map((vh) => (
+                          <tr key={vh.symbol}>
+                            <td><strong>{vh.symbol}</strong></td>
+                            <td>{vh.quantity}</td>
+                            <td>₹{fmt(vh.averagePrice)}</td>
+                            <td>₹{fmt(vh.marketValue)}</td>
+                            <td className={vh.unrealizedPnL >= 0 ? "td-positive" : "td-negative"}>
+                              {vh.unrealizedPnL >= 0 ? "+" : ""}₹{fmt(vh.unrealizedPnL)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 14px 0" }}>
+                    No virtual shares held at tournament conclusion.
+                  </p>
+                )}
+
+                <h5 style={{ fontSize: 13, fontWeight: 700, margin: "0 0 10px 0", color: "#334155" }}>
+                  <i className="bi bi-clock-history me-1"></i> Recorded Order Log
+                </h5>
+                {h.orders && h.orders.length > 0 ? (
+                  <div className="tournament-table-wrapper">
+                    <table className="tournament-table" style={{ fontSize: 12 }}>
+                      <thead>
+                        <tr>
+                          <th>Symbol</th>
+                          <th>Action</th>
+                          <th>Type</th>
+                          <th>Qty</th>
+                          <th>Order Price</th>
+                          <th>Executed Price</th>
+                          <th>Status</th>
+                          <th>Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {h.orders.map((ord) => (
+                          <tr key={ord._id}>
+                            <td><strong>{ord.symbol}</strong></td>
+                            <td>
+                              <span
+                                style={{
+                                  background: ord.action === "BUY" ? "#e8f0fe" : "#fce8e6",
+                                  color: ord.action === "BUY" ? "#1a73e8" : "#d93025",
+                                  padding: "2px 6px",
+                                  borderRadius: 4,
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {ord.action}
+                              </span>
+                            </td>
+                            <td>{ord.orderType}</td>
+                            <td>{ord.quantity}</td>
+                            <td>₹{fmt(ord.price)}</td>
+                            <td>{ord.executionPrice ? `₹${fmt(ord.executionPrice)}` : "—"}</td>
+                            <td>
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  padding: "2px 6px",
+                                  borderRadius: 4,
+                                  background:
+                                    ord.status === "EXECUTED"
+                                      ? "#dcfce7"
+                                      : ord.status === "CANCELLED"
+                                      ? "#f1f5f9"
+                                      : "#fef3c7",
+                                  color:
+                                    ord.status === "EXECUTED"
+                                      ? "#15803d"
+                                      : ord.status === "CANCELLED"
+                                      ? "#64748b"
+                                      : "#b45309",
+                                }}
+                              >
+                                {ord.status}
+                              </span>
+                            </td>
+                            <td>{new Date(ord.createdAt).toLocaleString("en-IN")}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>
+                    No orders were placed in this tournament.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         );
       })}

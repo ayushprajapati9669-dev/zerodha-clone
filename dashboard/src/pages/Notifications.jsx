@@ -1,6 +1,8 @@
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useContext } from "react";
 import axios from "axios";
+import { AppContext } from "../context/AppContext";
+import NotificationDetailModal from "../components/NotificationDetailModal.jsx";
 import "../styles/Notifications.css";
 
 const API_URL = "http://localhost:3000/api/notifications";
@@ -14,6 +16,7 @@ const CATEGORIES = [
 ];
 
 function Notifications() {
+  const { setNotifications: setGlobalNotifications } = useContext(AppContext);
   const [notifications, setNotifications] = useState([]);
   const [category, setCategory] = useState("all");
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
@@ -22,6 +25,8 @@ function Notifications() {
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [selectedNotification, setSelectedNotification] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const fetchNotifications = useCallback(
     async (selectedPage = 1, append = false) => {
@@ -143,17 +148,11 @@ function Notifications() {
     }
   };
 
-  const deleteAll = async () => {
-    const confirmed = window.confirm(
-      category === "all"
-        ? "Delete all your notifications?"
-        : `Delete all ${CATEGORIES.find((item) => item.value === category)?.label ||
-        "selected"
-        } notifications?`
-    );
+  const deleteAll = () => {
+    setIsDeleteModalOpen(true);
+  };
 
-    if (!confirmed) return;
-
+  const confirmDeleteAll = async () => {
     try {
       setIsActionLoading(true);
 
@@ -163,9 +162,15 @@ function Notifications() {
       });
 
       setNotifications([]);
+      if (setGlobalNotifications) {
+        setGlobalNotifications((prev) =>
+          category === "all" ? [] : prev.filter((n) => n.type !== category)
+        );
+      }
       setPage(1);
       setHasMore(false);
       setErrorMessage("");
+      setIsDeleteModalOpen(false);
     } catch (error) {
       console.error("Failed to delete notifications:", error);
       setErrorMessage(
@@ -175,6 +180,13 @@ function Notifications() {
     } finally {
       setIsActionLoading(false);
     }
+  };
+
+  const handleItemClick = (notification) => {
+    if (!notification.isRead) {
+      markAsRead(notification._id);
+    }
+    setSelectedNotification({ ...notification, isRead: true });
   };
 
   const getTime = (createdAt) => {
@@ -326,13 +338,13 @@ function Notifications() {
 
               <div
                 className="notification-content"
-                onClick={() => markAsRead(notification._id)}
+                onClick={() => handleItemClick(notification)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
-                    markAsRead(notification._id);
+                    handleItemClick(notification);
                   }
                 }}
               >
@@ -370,6 +382,80 @@ function Notifications() {
         >
           Load more
         </button>
+      )}
+
+      {selectedNotification && (
+        <NotificationDetailModal
+          notification={selectedNotification}
+          onClose={() => setSelectedNotification(null)}
+        />
+      )}
+
+      {isDeleteModalOpen && (
+        <div className="notif-modal-overlay" onClick={() => setIsDeleteModalOpen(false)}>
+          <div className="notif-modal-card" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <div className="notif-modal-header">
+              <div className="notif-modal-header-title">
+                <span className="notif-type-tag notif-type-system">Confirm Action</span>
+                <h4>Delete All Notifications</h4>
+              </div>
+              <button
+                type="button"
+                className="notif-modal-close-btn"
+                onClick={() => setIsDeleteModalOpen(false)}
+              >
+                &times;
+              </button>
+            </div>
+            <div className="notif-modal-body">
+              <p style={{ margin: 0, fontSize: 14, color: "#475569", lineHeight: 1.5 }}>
+                Are you sure you want to delete all{" "}
+                <strong>
+                  {category === "all"
+                    ? "notifications"
+                    : `${CATEGORIES.find((c) => c.value === category)?.label || category} notifications`}
+                </strong>
+                ? This action cannot be undone.
+              </p>
+            </div>
+            <div className="notif-modal-footer" style={{ gap: 10 }}>
+              <button
+                type="button"
+                style={{
+                  background: "#f1f5f9",
+                  color: "#475569",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 6,
+                  padding: "8px 16px",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+                onClick={() => setIsDeleteModalOpen(false)}
+                disabled={isActionLoading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                style={{
+                  background: "#dc2626",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: 6,
+                  padding: "8px 18px",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+                onClick={confirmDeleteAll}
+                disabled={isActionLoading}
+              >
+                {isActionLoading ? "Deleting…" : "Confirm Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

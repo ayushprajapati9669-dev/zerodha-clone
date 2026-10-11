@@ -2,6 +2,11 @@
 import mongoose from "mongoose";
 import Notification from "../models/NotificationModel.js";
 import NotificationPreference from "../models/NotificationPreferenceModel.js";
+import {
+      emitNotificationUpdate,
+      emitNotificationDeleted,
+      emitNotificationsReadAll,
+} from "../utils/notificationSocket.js";
 
 const ALLOWED_TYPES = [
       "order",
@@ -132,6 +137,7 @@ export const getUnreadNotificationCount = async (req, res, next) => {
 export const markNotificationAsRead = async (req, res, next) => {
       try {
             const { id } = req.params;
+            const userId = getUserId(req);
 
             if (!mongoose.isValidObjectId(id)) {
                   return res.status(400).json({
@@ -143,7 +149,7 @@ export const markNotificationAsRead = async (req, res, next) => {
             const notification = await Notification.findOneAndUpdate(
                   {
                         _id: id,
-                        userId: getUserId(req),
+                        userId,
                   },
                   {
                         $set: { isRead: true },
@@ -160,6 +166,8 @@ export const markNotificationAsRead = async (req, res, next) => {
                         message: "Notification not found",
                   });
             }
+
+            emitNotificationUpdate(userId, notification);
 
             return res.status(200).json({
                   success: true,
@@ -187,6 +195,8 @@ export const markAllNotificationsAsRead = async (req, res, next) => {
                   }
             );
 
+            emitNotificationsReadAll(userId);
+
             return res.status(200).json({
                   success: true,
                   message: "Notifications marked as read",
@@ -208,6 +218,7 @@ export const markAllNotificationsAsRead = async (req, res, next) => {
 export const deleteNotification = async (req, res, next) => {
       try {
             const { id } = req.params;
+            const userId = getUserId(req);
 
             if (!mongoose.isValidObjectId(id)) {
                   return res.status(400).json({
@@ -218,7 +229,7 @@ export const deleteNotification = async (req, res, next) => {
 
             const notification = await Notification.findOneAndDelete({
                   _id: id,
-                  userId: getUserId(req),
+                  userId,
             });
 
             if (!notification) {
@@ -227,6 +238,8 @@ export const deleteNotification = async (req, res, next) => {
                         message: "Notification not found",
                   });
             }
+
+            emitNotificationDeleted(userId, id);
 
             return res.status(200).json({
                   success: true,
@@ -247,6 +260,8 @@ export const deleteAllNotifications = async (req, res, next) => {
             const filter = buildNotificationFilter(userId, type);
 
             const result = await Notification.deleteMany(filter);
+
+            emitNotificationsReadAll(userId);
 
             return res.status(200).json({
                   success: true,
