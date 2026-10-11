@@ -125,9 +125,9 @@ function NotificationDropdown() {
         previous.map((notification) =>
           notification._id === notificationId
             ? {
-                ...notification,
-                isRead: true,
-              }
+              ...notification,
+              isRead: true,
+            }
             : notification,
         ),
       );
@@ -138,19 +138,7 @@ function NotificationDropdown() {
 
   const handleNotificationClick = (notification) => {
     markNotificationAsRead(notification._id);
-    if (
-      notification.type === "tournament" ||
-      notification.event?.startsWith("tournament_") ||
-      notification.event === "final_rank_available"
-    ) {
-      navigate("/tournaments");
-    } else if (
-      notification.type === "order" ||
-      notification.event?.startsWith("order_")
-    ) {
-      navigate("/orders");
-    }
-    setIsNotificationOpen(false);
+
   };
 
   // ======================================
@@ -320,11 +308,17 @@ function NotificationDropdown() {
             {notifications.length > 0 ? (
               notifications.slice(0, 5).map((notification) => (
                 <div
-                  className={`notification-item ${
-                    !notification.isRead ? "notification-unread" : ""
-                  } ${getPriorityClass(notification.priority)}`}
+                  className={`notification-item ${!notification.isRead ? "notification-unread" : ""
+                    } ${getPriorityClass(notification.priority)}`}
                   key={notification._id}
-                  onClick={() => handleNotificationClick(notification)}
+                  onClick={() => {
+                    if (!notification.isRead) {
+                      handleNotificationClick(notification)
+                    } else {
+                      navigate("/notifications")
+                      setIsNotificationOpen(false)
+                    }
+                  }}
                 >
                   <div className="notification-icon">
                     <i className={getNotificationIcon(notification)}></i>

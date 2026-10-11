@@ -68,7 +68,7 @@ function TournamentJoinModal({ tournament, onConfirm, onClose, loading, initialE
         .then((res) => {
           if (res.data?.user) setProfile(res.data.user);
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [currentUser]);
 
@@ -488,8 +488,8 @@ function CancelOrderConfirmationModal({
             <div>
               {order.action === "BUY"
                 ? `Cancelling will release ₹${fmt(
-                    order.reservedAmount || order.quantity * order.price
-                  )} of reserved virtual cash back to your available balance.`
+                  order.reservedAmount || order.quantity * order.price
+                )} of reserved virtual cash back to your available balance.`
                 : `Cancelling will release ${order.quantity} reserved shares of ${order.symbol} back to your available holdings.`}
             </div>
           </div>
@@ -829,7 +829,7 @@ function TournamentPortfolioTab({ selectedTournamentId, onSelectTournament, onGo
           onSelectTournament(joined[0]._id);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const [tournament, setTournament] = useState(null);
@@ -1068,7 +1068,7 @@ function TournamentPortfolioTab({ selectedTournamentId, onSelectTournament, onGo
             <button
               className="btn-trade-buy"
               style={{ padding: "8px 18px", fontSize: 13 }}
-              onClick={() => setTradeModal({ action: "BUY", symbol: "RELIANCE" })}
+              onClick={() => setTradeModal({ action: "BUY", symbol: "TCS" })}
             >
               <i className="bi bi-plus-circle-fill me-1"></i>New Buy Order
             </button>
@@ -1282,7 +1282,7 @@ function TournamentLeaderboardTab() {
         setActiveTournaments(joined);
         if (joined.length > 0) setSelectedId(joined[0]._id);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const fetchLeaderboard = useCallback(
