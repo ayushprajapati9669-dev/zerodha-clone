@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import puppeteer from "puppeteer";
+import puppeteer from "../node_modules/puppeteer-core/lib/puppeteer/puppeteer-core.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -16,6 +16,7 @@ const diagrams = [
   { file: "tournament.mmd", id: "tournament", out: "tournament-flow.png", title: "Tournament join-to-close lifecycle" },
   { file: "socket-flow.mmd", id: "socket", out: "socketio-flow.png", title: "Socket.IO notification and leaderboard flow" },
   { file: "request-lifecycle.mmd", id: "request", out: "request-lifecycle.png", title: "High-level HTTP request lifecycle" },
+  { file: "ai-assistant.mmd", id: "ai", out: "ai-assistant-flow.png", title: "AI Assistant Portfolio Context & Prompt Flow" },
 ];
 
 const mermaidBlocks = diagrams
@@ -73,6 +74,7 @@ const tmp = path.join(root, "scripts", "_diagrams.html");
 fs.writeFileSync(tmp, html, "utf8");
 
 const browser = await puppeteer.launch({
+  executablePath: "/root/.cache/puppeteer/chrome-headless-shell/linux-155.0.8059.39/chrome-headless-shell-linux64/chrome-headless-shell",
   headless: true,
   args: ["--no-sandbox", "--disable-setuid-sandbox"],
 });
@@ -90,4 +92,4 @@ for (const d of diagrams) {
 }
 
 await browser.close();
-console.log("Diagrams rendered.");
+console.log("All diagrams rendered successfully.");

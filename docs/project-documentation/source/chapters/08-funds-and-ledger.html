@@ -1,0 +1,81 @@
+<h1 class="ch" id="ch8">Chapter 8 — Funds Management & Ledger Architecture</h1>
+
+<h2>8.1 The Three-Tier Balance Model</h2>
+<p>
+  Standard e-commerce architectures store a single monolithic wallet balance (e.g. <code>wallet = 500</code>). In financial trading systems, a single balance is inadequate because active holdings, margin exposure, and unfilled limit orders require separate capital allocations. Zerodha Clone implements an institutional <strong>three-tier balance ledger</strong>:
+</p>
+<pre>
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Total Account Equity                            │
+│  (Total Account Value = Available Cash + Used Margin + Portfolio Value)│
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+          ┌─────────────────────────┼─────────────────────────┐
+          ▼                         ▼                         ▼
+  availableBalance             usedBalance             reservedBalance
+  ┌───────────────┐         ┌───────────────┐         ┌───────────────┐
+  │ Free cash     │         │ Capital tied  │         │ Cash locked   │
+  │ available for │         │ up in active  │         │ for pending   │
+  │ new orders    │         │ stock holding │         │ buy limit     │
+  │ or withdrawal │         │ cost basis    │         │ orders        │
+  └───────────────┘         └───────────────┘         └───────────────┘
+</pre>
+
+<h2>8.2 Fund Balance Invariants & Math Equations</h2>
+<p>
+  The system enforces strict invariants on every transaction:
+</p>
+<ol>
+  <li><strong>Non-Negativity Constraint:</strong> <code>availableBalance &gt;= 0</code> and <code>reservedBalance &gt;= 0</code> at all times. Database schema enforces <code>min: 0</code>.</li>
+  <li><strong>Limit Order Placement Invariant:</strong>
+    <p><code>availableBalance_new = availableBalance_old - (qty * limitPrice)</code></p>
+    <p><code>reservedBalance_new = reservedBalance_old + (qty * limitPrice)</code></p>
+  </li>
+  <li><strong>Limit Order Execution Invariant:</strong>
+    <p><code>reservedBalance_new = reservedBalance_old - reservedAmount</code></p>
+    <p><code>usedBalance_new = usedBalance_old + (qty * LTP)</code></p>
+    <p><code>availableBalance_new = availableBalance_old + (reservedAmount - (qty * LTP))</code></p>
+  </li>
+  <li><strong>Sell Holding Fulfillment Invariant:</strong>
+    <p><code>usedBalance_new = usedBalance_old - (qty * averagePurchasePrice)</code></p>
+    <p><code>availableBalance_new = availableBalance_old + (qty * executionPrice)</code></p>
+    <p><em>(Net Realized Profit/Loss immediately reflects in the increase/decrease of available cash!)</em></p>
+  </li>
+</ol>
+
+<h2>8.3 Deposits, Withdrawals & Transaction Ledger</h2>
+<p>
+  All capital deposits and withdrawals are managed via <code>backend/controller/fundController.js</code>:
+</p>
+<ul>
+  <li><strong>Adding Funds (<code>POST /api/funds/add</code>):</strong>
+    <p>Traders deposit virtual capital (e.g. ₹50,000 via simulated UPI or Netbanking). The transaction atomically increments <code>availableBalance</code> and creates a record in <code>FundTransactionModel</code> with <code>type: 'deposit'</code>, <code>status: 'completed'</code>.</p>
+  </li>
+  <li><strong>Withdrawing Funds (<code>POST /api/funds/withdraw</code>):</strong>
+    <p>Traders withdraw capital back to their bank account. The system validates that <code>amount &lt;= availableBalance</code>. Funds deployed in active stocks (<code>usedBalance</code>) or reserved in open limit orders (<code>reservedBalance</code>) cannot be withdrawn until sold or canceled.</p>
+  </li>
+</ul>
+
+<h2>8.4 Transaction Helper: Atomic MongoDB Sessions</h2>
+<p>
+  To guarantee complete ACID compliance without partial state corruption, database operations that span multiple collections (e.g. debiting funds and creating holdings) utilize <code>backend/helpers/transactionHelper.js</code>:
+</p>
+<pre>
+export const runTransaction = async (callback) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const result = await callback(session);
+    await session.commitTransaction();
+    return result;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+};
+</pre>
+<p>
+  If any step inside <code>callback</code> throws an error (e.g., duplicate key, network blip, or constraint violation), the entire sequence aborts, rolling back any partial modifications to funds, orders, or holdings.
+</p>

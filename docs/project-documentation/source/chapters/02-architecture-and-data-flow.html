@@ -1,0 +1,71 @@
+<h1 class="ch" id="ch2">Chapter 2 — Complete System Architecture</h1>
+
+<h2>2.1 Overall System Architecture</h2>
+<p>
+  The system utilizes a modern, unified full-stack architecture that cleanly separates client presentation from backend domain logic while enabling seamless single-origin execution without cross-origin resource sharing (CORS) friction.
+</p>
+
+<figure>
+  <img src="../../architecture-diagram.png" alt="Overall System Architecture" />
+  <figcaption>Figure 2.1: End-to-end component architecture, showing clients, Express layer, MongoDB, and external integrations.</figcaption>
+</figure>
+
+<h3>Architectural Components Walkthrough:</h3>
+<ol>
+  <li><strong>Browser Client Layer:</strong> The presentation tier is built with React 19 and Vite. In the original repository, two distinct Vite apps existed: <code>frontend/</code> (marketing, landing pages, education) and <code>dashboard/</code> (Kite trading terminal). In AI Studio and production deployment, these are unified under a single origin on port 3000, eliminating browser cross-port redirects.</li>
+  <li><strong>Unified Express Gateway & Vite Middleware:</strong> The Node.js 22 runtime server boots an Express 5 instance on port 3000. In development mode, Vite's internal development server is mounted as an Express middleware (<code>vite.middlewares</code>), handling HMR and JSX on-the-fly. In production, pre-compiled static assets in <code>dist/</code> are served directly with an SPA catch-all route.</li>
+  <li><strong>Middleware Pipeline:</strong> Incoming HTTP requests pass through security and parsing middlewares:
+    <ul>
+      <li><code>cors({ origin: true, credentials: true })</code>: Permits secure credentialed requests.</li>
+      <li><code>cookieParser()</code>: Extracts the <code>token</code> cookie containing the signed JSON Web Token.</li>
+      <li><code>isLoggedInMiddleware.js</code>: Decodes JWT, validates session active status, and checks <code>tokenVersion</code> to support global logout.</li>
+      <li><code>orderValidation.js</code> / <code>validateUser.js</code>: Joi schema validation catching invalid inputs before controllers execute.</li>
+    </ul>
+  </li>
+  <li><strong>Domain Services & State Machines:</strong> Business logic is isolated from HTTP handlers into dedicated services (<code>createOrderServices.js</code>, <code>tournamentService.js</code>, <code>aiService.js</code>, <code>trueDataService.js</code>).</li>
+  <li><strong>Persistence Layer:</strong> MongoDB stores structured documents across 15 schemas. When executing orders or balance modifications, Mongoose leverages native multi-document transactions with atomic session rollbacks.</li>
+  <li><strong>Real-Time Event Multiplexer (Socket.IO):</strong> Attached to the native HTTP server instance, Socket.IO routes events into isolated rooms (<code>user:{userId}</code> and <code>tournament:{id}</code>).</li>
+</ol>
+
+<h2>2.2 HTTP Request Lifecycle</h2>
+
+<figure>
+  <img src="../../request-lifecycle.png" alt="High-level HTTP Request Lifecycle" />
+  <figcaption>Figure 2.2: Detailed HTTP request lifecycle from browser interaction to database commit and socket dispatch.</figcaption>
+</figure>
+
+<p>
+  When a user initiates an action in the UI (for example, clicking "Buy 10 Reliance CNC at ₹2,525"):
+</p>
+<ol>
+  <li><strong>HTTP Transmission:</strong> The Axios client transmits a <code>POST /api/orders</code> request with <code>{ withCredentials: true }</code>, automatically attaching the browser's HTTP-only cookie.</li>
+  <li><strong>Middleware Verification:</strong> Express matches the route. <code>isLoggedIn</code> extracts the cookie, runs <code>jwt.verify(token, JWT_SECRET)</code>, queries the user model to verify <code>tokenVersion</code>, and attaches <code>req.user = { userId, role, status }</code>.</li>
+  <li><strong>Payload Validation:</strong> The Joi validation middleware parses <code>req.body</code> against <code>orderValidationSchema.js</code>. If validation fails (e.g., negative quantity or missing symbol), a 400 Bad Request is returned immediately without touching the database.</li>
+  <li><strong>Controller Execution:</strong> <code>orderController.js</code> invokes <code>createOrderServices.js</code>, passing the sanitized payload and authenticated <code>userId</code>.</li>
+  <li><strong>Transactional Execution:</strong> A MongoDB transaction session begins:
+    <ul>
+      <li>Calculates required capital: <code>qty * price</code>.</li>
+      <li>Checks <code>availableBalance >= requiredAmount</code>.</li>
+      <li>Updates user ledger: <code>availableBalance -= requiredAmount</code>, <code>usedBalance += requiredAmount</code>.</li>
+      <li>Creates/updates Holding or Position record.</li>
+      <li>Inserts Order record with status <code>completed</code>.</li>
+    </ul>
+  </li>
+  <li><strong>Event Dispatch & Response:</strong> Upon successful commit, a notification is written, Socket.IO emits <code>new-notification</code> to <code>user:{userId}</code>, and HTTP 201 Created is returned to the client. The frontend AppContext receives the response and triggers state re-fetching.</li>
+</ol>
+
+<h2>2.3 Real-Time WebSocket & Socket.IO Flow</h2>
+
+<figure>
+  <img src="../../socketio-flow.png" alt="Socket.IO Real-Time Flow" />
+  <figcaption>Figure 2.3: Socket.IO connection establishment, room joining, and server-to-client push events.</figcaption>
+</figure>
+
+<p>
+  The real-time infrastructure provides sub-second push updates for:
+</p>
+<ul>
+  <li><strong>Order Execution Notifications:</strong> When limit orders trigger in the background via live market ticks, user alerts fire without polling.</li>
+  <li><strong>Price Alerts:</strong> Triggered when a stock reaches a user-defined price ceiling or floor.</li>
+  <li><strong>Tournament Leaderboards:</strong> Real-time rank and ROI calculations broadcast to all active competitors inside <code>tournament:{id}</code>.</li>
+</ul>

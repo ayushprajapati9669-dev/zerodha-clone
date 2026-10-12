@@ -1,0 +1,162 @@
+<h1 class="ch" id="ch7">Chapter 7 — Trading Engine & Order Execution</h1>
+
+<h2>7.1 Trading Engine Architecture Overview</h2>
+<p>
+  The core of the platform is an institutional paper-trading engine that faithfully replicates the financial rules, balance management, and lifecycle state transitions of real-world stock exchanges. It enforces atomic transaction safety, prevents overdrafts, implements cash and inventory reservations, and matches limit orders in real time against live market ticks.
+</p>
+
+<figure>
+  <img src="../../order-execution-flow.png" alt="Order Execution Flow" />
+  <figcaption>Figure 7.1: Comprehensive Market Order and Limit Order execution flow across BUY and SELL directions.</figcaption>
+</figure>
+
+<h2>7.2 Market Order Execution (Immediate Fill)</h2>
+<p>
+  When a trader submits a <strong>Market Order</strong>:
+</p>
+<ol>
+  <li><strong>Price Resolution:</strong> The engine resolves the latest market price (LTP) from the in-memory cache populated by TrueData feeds.</li>
+  <li><strong>Pre-Trade Validation:</strong>
+    <ul>
+      <li><strong>BUY Market:</strong> The total required capital is calculated: <code>tradeAmount = qty * LTP</code>. The system queries <code>Funds</code> inside an atomic MongoDB session. If <code>availableBalance &lt; tradeAmount</code>, the transaction aborts with an <code>Insufficient Funds</code> error.</li>
+      <li><strong>SELL Market (CNC):</strong> The system queries <code>Holding</code> for the user and symbol. If <code>holding.quantity &lt; qty</code>, the transaction aborts with an <code>Insufficient Quantity</code> error. Short selling is prohibited in CNC delivery.</li>
+    </ul>
+  </li>
+  <li><strong>Atomic Ledger & Inventory Mutation:</strong> Inside a MongoDB transaction session:
+    <ul>
+      <li><strong>BUY CNC:</strong>
+        <pre>
+Funds.updateOne({ userId }, {
+  $inc: { availableBalance: -tradeAmount, usedBalance: tradeAmount }
+});
+Holding.findOneAndUpdate({ userId, symbol }, {
+  $inc: { quantity: qty },
+  $set: { averagePrice: newWeightedAverage, currentPrice: LTP }
+}, { upsert: true });
+        </pre>
+      </li>
+      <li><strong>SELL CNC:</strong>
+        <pre>
+Funds.updateOne({ userId }, {
+  $inc: { availableBalance: +tradeAmount, usedBalance: -originalCostBasis }
+});
+Holding.updateOne({ userId, symbol }, {
+  $inc: { quantity: -qty }
+});
+        </pre>
+        If the remaining holding quantity reaches 0, the holding document is removed.
+      </li>
+    </ul>
+  </li>
+  <li><strong>Order Insertion:</strong> An order document is created with <code>status: 'completed'</code>, <code>orderType: 'MARKET'</code>, and <code>reservationReleased: true</code>.</li>
+</ol>
+
+<h2>7.3 Limit Order Lifecycle & Reservation Engine</h2>
+<p>
+  A <strong>Limit Order</strong> allows a trader to specify an exact maximum price they are willing to pay (Limit Buy) or minimum price they are willing to accept (Limit Sell). Because execution may occur minutes or hours later, the engine locks capital or inventory to guarantee settlement when the market condition triggers.
+</p>
+
+<figure>
+  <img src="../../limit-order-lifecycle.png" alt="Limit Order Lifecycle" />
+  <figcaption>Figure 7.2: Limit order locking, background tick matching, execution adjustment, and user cancellation.</figcaption>
+</figure>
+
+<h3>Step-by-Step Limit Order Lifecycle:</h3>
+<ol>
+  <li><strong>Placement & Reservation (<code>createOrderServices.js</code>):</strong>
+    <ul>
+      <li><strong>Limit BUY:</strong> The maximum required cash is calculated: <code>reservedAmount = qty * limitPrice</code>. This amount is moved immediately from <code>availableBalance</code> to <code>reservedBalance</code>:
+        <pre>
+Funds.updateOne({ userId }, {
+  $inc: { availableBalance: -reservedAmount, reservedBalance: +reservedAmount }
+});
+        </pre>
+        The order is recorded with <code>status: 'pending'</code>, <code>reservedAmount</code>, and <code>reservationReleased: false</code>.
+      </li>
+      <li><strong>Limit SELL:</strong> The share quantity is reserved from the holding:
+        <pre>
+Holding.updateOne({ userId, symbol }, {
+  $inc: { quantity: -qty, reservedQuantity: +qty }
+});
+        </pre>
+      </li>
+    </ul>
+  </li>
+  <li><strong>Background Tick Evaluation (<code>checkPendingLimitOrders.js</code>):</strong>
+    Whenever TrueData streams a price update (e.g., <code>RELIANCE LTP = ₹2,480</code>):
+    <ul>
+      <li>The worker queries for active pending orders for that symbol: <code>Order.find({ symbol, status: 'pending' })</code>.</li>
+      <li><strong>Condition Check:</strong>
+        <ul>
+          <li><strong>BUY Limit:</strong> Triggers if <code>currentLTP &lt;= order.price</code>.</li>
+          <li><strong>SELL Limit:</strong> Triggers if <code>currentLTP &gt;= order.price</code>.</li>
+        </ul>
+      </li>
+      <li><strong>Two-Phase Execution Lock:</strong> To prevent race conditions from concurrent ticks, the worker uses an atomic lock:
+        <pre>
+const lockedOrder = await Order.findOneAndUpdate(
+  { _id: order._id, status: 'pending' },
+  { $set: { status: 'processing' } },
+  { new: true }
+);
+        </pre>
+        If another thread already acquired the lock, <code>lockedOrder</code> is null and execution gracefully skips.
+      </li>
+    </ul>
+  </li>
+  <li><strong>Execution Settlement & Cash Refund:</strong>
+    Inside a transaction session:
+    <ul>
+      <li>The actual cost at the market execution price is computed: <code>actualCost = qty * currentLTP</code>.</li>
+      <li>Because <code>currentLTP &lt;= limitPrice</code>, the actual cost is typically less than or equal to the reserved cash!</li>
+      <li>The leftover savings are returned directly to the user's available balance:
+        <pre>
+const refundAmount = order.reservedAmount - actualCost;
+Funds.updateOne({ userId }, {
+  $inc: {
+    reservedBalance: -order.reservedAmount,
+    usedBalance: +actualCost,
+    availableBalance: +refundAmount // Leftover savings returned!
+  }
+});
+        </pre>
+      </li>
+      <li>Holding is credited with shares: <code>quantity += qty</code>.</li>
+      <li>Order is updated to <code>status: 'completed'</code>, <code>reservationReleased: true</code>.</li>
+    </ul>
+  </li>
+  <li><strong>User Cancellation (<code>cancelLimitOrderService.js</code>):</strong>
+    If the trader cancels a pending limit order before it triggers:
+    <ul>
+      <li>Verifies order is in <code>status: 'pending'</code> and <code>reservationReleased: false</code>.</li>
+      <li>Atomically unlocks the reserved cash or reserved shares back to available status.</li>
+      <li>Marks order <code>status: 'cancelled'</code>, <code>reservationReleased: true</code>.</li>
+    </ul>
+  </li>
+</ol>
+
+<h2>7.4 Mathematical Worked Example: Limit Buy Execution</h2>
+<div class="note">
+  <strong>Scenario:</strong>
+  <ul>
+    <li>User has ₹1,00,000 available balance.</li>
+    <li>Places a Limit Buy for 10 shares of Reliance at Limit Price ₹2,500.</li>
+    <li>Market dips to ₹2,480, triggering execution.</li>
+  </ul>
+  <strong>Step 1: Placement</strong>
+  <ul>
+    <li><code>reservedAmount = 10 * ₹2,500 = ₹25,000</code></li>
+    <li><code>availableBalance = ₹1,00,000 - ₹25,000 = ₹75,000</code></li>
+    <li><code>reservedBalance = ₹25,000</code></li>
+    <li><code>usedBalance = ₹0</code></li>
+  </ul>
+  <strong>Step 2: Execution at ₹2,480</strong>
+  <ul>
+    <li><code>actualCost = 10 * ₹2,480 = ₹24,800</code></li>
+    <li><code>refundAmount = ₹25,000 - ₹24,800 = ₹200</code></li>
+    <li><code>reservedBalance = ₹25,000 - ₹25,000 = ₹0</code></li>
+    <li><code>usedBalance = ₹0 + ₹24,800 = ₹24,800</code></li>
+    <li><code>availableBalance = ₹75,000 + ₹200 = ₹75,200</code></li>
+    <li><code>Total Account Equity = ₹75,200 (cash) + ₹24,800 (stock value) = ₹1,00,000</code></li>
+  </ul>
+</div>

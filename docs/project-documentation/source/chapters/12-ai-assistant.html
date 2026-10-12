@@ -1,0 +1,80 @@
+<h1 class="ch" id="ch12">Chapter 12 — AI Assistant & Portfolio Context Injection</h1>
+
+<h2>12.1 Conversational Financial Intelligence Overview</h2>
+<p>
+  Zerodha Clone features an integrated conversational AI financial assistant built with Google Gemini (using the modern <code>@google/genai</code> SDK). Unlike generic chatbot implementations that offer isolated answers, this assistant operates with <strong>real-time portfolio context injection</strong>: it inspects the authenticated user's active holdings, intraday positions, recent order history, and available cash before answering, allowing it to provide personalized portfolio health assessments, risk evaluations, and trade explanations.
+</p>
+
+<figure>
+  <img src="../../ai-assistant-flow.png" alt="AI Assistant Flow" />
+  <figcaption>Figure 12.1: Sequence diagram of user query, parallel portfolio context aggregation, Gemini API invocation, and chat persistence.</figcaption>
+</figure>
+
+<h2>12.2 Context Aggregation Pipeline (aiController.js)</h2>
+<p>
+  When a user submits a prompt via <code>POST /api/ai/chat</code>, the controller executes a high-speed parallel query to gather the trader's complete financial state:
+</p>
+<pre>
+const [holdings, positions, orders, funds, watchlist] = await Promise.all([
+  Holding.find({ userId }).lean(),
+  Position.find({ userId }).lean(),
+  Order.find({ userId }).sort({ createdAt: -1 }).limit(20).lean(),
+  Fund.findOne({ userId }).lean(),
+  WatchlistList.findOne({ userId, isDefault: true }).lean(),
+]);
+</pre>
+<p>
+  The controller synthesizes these documents into a concise, token-efficient structured context string:
+</p>
+<pre>
+--- USER PORTFOLIO CONTEXT ---
+Available Capital: ₹75,200 | Used Margin: ₹24,800 | Reserved: ₹0
+Holdings:
+- RELIANCE: 10 shares @ avg ₹2,450 (Current LTP: ₹2,525, P&L: +₹750 / +3.06%)
+- TCS: 5 shares @ avg ₹3,280 (Current LTP: ₹3,350, P&L: +₹350 / +2.13%)
+Active Positions: None
+Recent Orders:
+- BUY 10 RELIANCE @ 2450 (status: completed)
+Tracked Watchlist: RELIANCE, TCS, INFY, HDFCBANK, ICICIBANK, SBIN, ITC
+------------------------------
+</pre>
+
+<h2>12.3 System Prompt & Financial Safety Guardrails</h2>
+<p>
+  The service enforces strict regulatory and ethical boundaries defined in <code>backend/services/aiService.js</code>:
+</p>
+<pre>
+const SYSTEM_INSTRUCTION = `
+You are an AI assistant inside a stock trading and portfolio management application.
+Your role is to help users understand:
+- Their portfolio, holdings, positions, orders, funds, profit and loss
+- Stock market concepts and trading terminology
+
+Rules:
+1. Give clear and simple explanations.
+2. Use the user's portfolio data when it is provided in the prompt.
+3. Never invent portfolio data, prices, orders, funds, or transactions.
+4. If required information is not provided, clearly say that the information is unavailable.
+5. Never execute, place, modify, or cancel a trading order.
+6. Never claim that an order has been executed unless the backend explicitly provides that information.
+7. Do not ask for passwords, OTPs, API keys, or other sensitive credentials.
+8. For financial topics, provide educational information and avoid presenting predictions as guaranteed outcomes.
+9. Keep responses concise and useful.
+`;
+</pre>
+
+<h2>12.4 Chat History Persistence & Session Management</h2>
+<p>
+  All conversations are stored in MongoDB via <code>ChatModel.js</code>:
+</p>
+<ul>
+  <li>Each conversation document maintains an array of message objects: <code>{ role: 'user' | 'assistant', content: String, timestamp: Date }</code>.</li>
+  <li>If the user passes an existing <code>chatId</code>, new messages are appended to that document, maintaining multi-turn context.</li>
+  <li>If no <code>chatId</code> is supplied, a new chat document is created with a generated title (e.g., derived from the user's initial question).</li>
+  <li>Users can review past conversation threads (<code>GET /api/ai/chats</code>) or delete obsolete history (<code>DELETE /api/ai/chats/:chatId</code>).</li>
+</ul>
+
+<h2>12.5 Resilient Error Handling & API Key Fallback</h2>
+<p>
+  If <code>GEMINI_API_KEY</code> is absent in development or if external rate limits occur, <code>aiService.js</code> captures the condition gracefully without returning 500 errors to the client, providing clear educational guidance on how to enable the generative AI key.
+</p>

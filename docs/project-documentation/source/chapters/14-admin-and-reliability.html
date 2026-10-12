@@ -1,0 +1,103 @@
+<h1 class="ch" id="ch14">Chapter 14 — Admin Operations, Concurrency & Reliability</h1>
+
+<h2>14.1 Role-Based Access Control (RBAC) & Admin Middleware</h2>
+<p>
+  Administrative capabilities are strictly guarded using role-based access control. The <code>UserModel</code> defines a <code>role</code> enum (<code>'trader' | 'admin'</code>). Sensitive endpoints, such as tournament creation, manual square-offs, and platform settings, are protected by <code>adminMiddleware.js</code>:
+</p>
+<pre>
+export const adminOnly = (req, res, next) => {
+  if (!req.user || req.user.role !== "admin") {
+    return res.status(403).json({
+      success: false,
+      message: "Forbidden: Administrative privileges required."
+    });
+  }
+  next();
+};
+</pre>
+<p>
+  The system includes administrative utility scripts (<code>backend/scripts/setAdminRole.js</code>) allowing system operators to safely grant administrative permissions by email address.
+</p>
+
+<h2>14.2 Tournament Administration Interface (TournamentAdmin.jsx)</h2>
+<p>
+  Administrators access a dedicated management portal (<code>/admin/tournaments</code>) providing:
+</p>
+<ul>
+  <li><strong>Tournament Creation Form:</strong> Configuring title, description, entry fee, initial virtual balance (e.g. ₹5,00,000), registration window, competition start date/time, and end date/time.</li>
+  <li><strong>Competition Lifecycle Controls:</strong> Ability to view enrolled participants, inspect aggregate virtual portfolios, and manually trigger emergency freezes or lifecycle status transitions.</li>
+  <li><strong>Audit Trails (<code>adminAudit.js</code>):</strong> Every administrative mutation logs the executing administrator's ID, action timestamp, IP address, and changed parameters for compliance and debugging.</li>
+</ul>
+
+<h2>14.3 Concurrency Control & Race Condition Mitigation</h2>
+<p>
+  High-frequency financial applications face severe concurrency vulnerabilities if state mutations are not carefully sequenced. Zerodha Clone implements multiple defense-in-depth mechanisms:
+</p>
+
+<h3>1. Anti-Double-Spend with Two-Phase Limit Order Locking</h3>
+<div class="note">
+  <strong>Vulnerability:</strong> If two TrueData market ticks arrive within 2 milliseconds of each other while an order is pending, two concurrent worker threads might both trigger execution for the same order, purchasing double the intended shares and causing balance corruption.
+</div>
+<p>
+  <strong>Mitigation:</strong> <code>checkPendingLimitOrders.js</code> uses an atomic atomic state transition from <code>'pending'</code> to <code>'processing'</code>:
+</p>
+<pre>
+const lockedOrder = await Order.findOneAndUpdate(
+  { _id: order._id, status: 'pending' },
+  { $set: { status: 'processing' } },
+  { new: true }
+);
+if (!lockedOrder) return; // Second thread skipped immediately!
+</pre>
+
+<h3>2. Exactly-Once Reservation Release Guard</h3>
+<p>
+  Every order includes a boolean flag: <code>reservationReleased: Boolean</code> (default: <code>false</code>). When cash or stock is returned or converted to used margin:
+</p>
+<pre>
+const order = await Order.findOneAndUpdate(
+  { _id: orderId, reservationReleased: false },
+  { $set: { reservationReleased: true, status: 'cancelled' } },
+  { session }
+);
+if (!order) throw new Error("Reservation already released or order settled.");
+</pre>
+<p>
+  This guarantees that user refunds can never be processed twice, even if multiple cancellation clicks occur in rapid succession.
+</p>
+
+<h3>3. Multi-Document ACID Transactions</h3>
+<p>
+  All operations updating both ledger balances and asset inventories run inside native MongoDB replica-set transactions. If an order insertion fails after balance debiting, the entire transaction rolls back cleanly, ensuring zero financial discrepancy.
+</p>
+
+<h2>14.4 Error Handling Architecture</h2>
+<ul>
+  <li><strong>Centralized Error Class (<code>AppError.js</code>):</strong> Differentiates operational errors (known client errors like invalid inputs or insufficient margin) from fatal programmer bugs.</li>
+  <li><strong>Fail-Fast DB Resilience:</strong> Mongoose is configured with <code>bufferCommands: false</code>. If the database connection drops, operations fail fast with meaningful error responses rather than hanging for 30-second timeouts.</li>
+  <li><strong>Graceful Degradation:</strong> If external APIs (Twilio SMS or TrueData feeds) encounter downtime, fallbacks allow core application navigation and mock testing to proceed without crashes.</li>
+</ul>
+
+<h2>14.5 Known Limitations & Future Architecture Roadmap</h2>
+<table>
+  <thead>
+    <tr><th>Current Limitation</th><th>Technical Cause</th><th>Recommended Production Solution</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Single-Instance Socket.IO</strong></td>
+      <td>Socket rooms are currently in-memory on the Node server.</td>
+      <td>Implement <code>@socket.io/redis-adapter</code> for horizontal cluster scaling.</td>
+    </tr>
+    <tr>
+      <td><strong>In-Memory Polling Worker</strong></td>
+      <td>Tournament and limit order checks run via <code>setInterval</code>.</td>
+      <td>Migrate to distributed message queues (BullMQ / Redis) for background jobs.</td>
+    </tr>
+    <tr>
+      <td><strong>Relational Ledger Querying</strong></td>
+      <td>Double-entry accounting relies on document array transactions.</td>
+      <td>Adopt PostgreSQL (AI Studio Cloud SQL) for strict transactional ledgering.</td>
+    </tr>
+  </tbody>
+</table>

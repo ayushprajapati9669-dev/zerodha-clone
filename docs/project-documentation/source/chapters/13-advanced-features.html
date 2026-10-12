@@ -1,0 +1,73 @@
+<h1 class="ch" id="ch13">Chapter 13 — Advanced Ecosystem Features</h1>
+
+<h2>13.1 Multi-Watchlist System (watchlistsController.js)</h2>
+<p>
+  Similar to Zerodha Kite's multi-watchlist tab navigation (Watchlist 1 through 7), the platform allows traders to organize equities into distinct custom lists:
+</p>
+<ul>
+  <li>Up to <strong>7 watchlists per user</strong>, each holding up to <strong>50 stock symbols</strong>.</li>
+  <li>Custom watchlist naming (e.g. "Banking", "IT Sector", "High Beta").</li>
+  <li>Symbol re-ordering via drag-and-drop or sequential array storage.</li>
+  <li>Fast hovering quick-action buttons for instantaneous Buy/Sell, market depth, and chart expansion.</li>
+</ul>
+
+<h2>13.2 Price Target Alerts (priceAlertController.js)</h2>
+<p>
+  Traders can set automated alerts for any stock based on condition triggers:
+</p>
+<ul>
+  <li><strong>Conditions:</strong> <code>GREATER_THAN_OR_EQUAL</code> (Price >= Target) or <code>LESS_THAN_OR_EQUAL</code> (Price <= Target).</li>
+  <li><strong>Evaluation Engine (<code>evaluateAlerts</code>):</strong> Whenever TrueData emits a live price tick, <code>evaluateAlerts(symbol, ltp)</code> inspects active alerts for that symbol.</li>
+  <li><strong>Notification Trigger:</strong> When a condition triggers, the alert is marked <code>status: 'triggered'</code>, a high-priority in-app notification is recorded, and an event is dispatched over Socket.IO to the user's browser.</li>
+</ul>
+
+<h2>13.3 In-App Notifications & Preference Control</h2>
+<p>
+  The notification subsystem (<code>NotificationModel.js</code>) delivers real-time and persistent alerts categorized by priority (<code>low</code>, <code>normal</code>, <code>high</code>):
+</p>
+<ul>
+  <li><strong>Event Categories:</strong> Order filled, limit order triggered, price alert hit, fund deposit/withdrawal confirmed, tournament status change.</li>
+  <li><strong>Granular User Preferences (<code>NotificationPreferenceModel.js</code>):</strong> Users can toggle individual alert types on or off (e.g., disable deposit alerts while keeping limit order fill alerts enabled).</li>
+  <li><strong>Unread Tracking:</strong> Distinct read/unread timestamps and a bulk "Mark All as Read" endpoint (<code>POST /api/notifications/read-all</code>).</li>
+</ul>
+
+<h2>13.4 Portfolio Analytics & Performance Metrics (portfolioAnalyticsService.js)</h2>
+<p>
+  Provides data-driven feedback on user trading performance over time:
+</p>
+<ul>
+  <li><strong>Asset Allocation:</strong> Sector and asset distribution breakdown (Large Cap, Mid Cap, Cash Reserve) visualized via Recharts pie charts.</li>
+  <li><strong>Profit Factor:</strong> <code>Total Gross Profits / Total Gross Losses</code>.</li>
+  <li><strong>Win-Loss Ratio:</strong> <code>Profitable Closed Trades / Total Closed Trades * 100</code>.</li>
+  <li><strong>Historical Equity Curve:</strong> Daily portfolio equity snapshots captured via <code>PortfolioSnapshotModel.js</code> to chart historical account growth.</li>
+</ul>
+
+<h2>13.5 Risk Guard: Quantitative Risk Management (riskService.js)</h2>
+<p>
+  To prevent catastrophic emotional drawdowns (tilt trading), the platform implements an active <strong>Risk Guard</strong> system:
+</p>
+<ul>
+  <li><strong>Daily Loss Limit:</strong> Maximum loss permitted in a single trading day (e.g. ₹5,000). If hit, order placement triggers a warning or temporary restriction.</li>
+  <li><strong>Maximum Position Size Cap:</strong> Restricts the maximum capital allowed in any single trade (e.g. max 20% of total portfolio).</li>
+  <li><strong>Leverage Caps:</strong> Configurable maximum leverage allowed for intraday MIS positions.</li>
+</ul>
+
+<h2>13.6 Trading Journal (journalService.js)</h2>
+<p>
+  Professional trading requires reflective review of setups, thesis, and emotional discipline:
+</p>
+<ul>
+  <li><strong>Rich Notes & Setup Tags:</strong> Traders record technical rationale (Breakout, Pullback, Mean Reversion, Gap Fill).</li>
+  <li><strong>Emotional Tags:</strong> Traders log emotional states (FOMO, Revenge Trade, Patient, Confident, Hesitant) to identify psychological patterns correlating with losses.</li>
+  <li><strong>Trade Linking:</strong> Journal entries can be directly linked to executed order IDs to pair qualitative analysis with objective execution data.</li>
+</ul>
+
+<h2>13.7 Strategy Backtesting Engine (backtestEngine.js)</h2>
+<p>
+  A quantitative historical simulation engine allowing traders to validate technical rules before risking capital:
+</p>
+<ul>
+  <li><strong>SMA Crossover Strategy (<code>smaCrossover.js</code>):</strong> Simulates Fast Simple Moving Average (e.g. 9-period SMA) crossing Slow Simple Moving Average (e.g. 21-period SMA).</li>
+  <li><strong>Signal Generation:</strong> Fast SMA crosses above Slow SMA -> BUY Signal. Fast SMA crosses below Slow SMA -> SELL Signal.</li>
+  <li><strong>Simulation Performance Report:</strong> Generates Net Return %, Maximum Drawdown %, Win Rate %, Total Trades Executed, and Sharpe Ratio stored in <code>BacktestHistoryModel.js</code>.</li>
+</ul>

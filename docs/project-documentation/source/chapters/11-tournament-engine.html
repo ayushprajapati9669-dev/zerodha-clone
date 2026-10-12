@@ -1,0 +1,79 @@
+<h1 class="ch" id="ch11">Chapter 11 — Tournament & Paper Trading Engine</h1>
+
+<h2>11.1 Competitive Paper Trading Architecture</h2>
+<p>
+  The Tournament engine provides an isolated, competitive trading environment where multiple traders participate in timed trading contests using virtual capital. This enables risk-free paper trading while introducing realistic market conditions, competition pressure, and objective performance metrics.
+</p>
+
+<figure>
+  <img src="../../tournament-flow.png" alt="Tournament Lifecycle Flow" />
+  <figcaption>Figure 11.1: Complete tournament lifecycle from creation, joining, virtual trading, to completion and prize settlement.</figcaption>
+</figure>
+
+<h2>11.2 Virtual Portfolio Isolation Model</h2>
+<p>
+  A critical design requirement is that <strong>tournament trading must never contaminate a user's real paper-trading capital</strong>:
+</p>
+<pre>
+Real Trading Account (FundsModel)
+  └── availableBalance: ₹100,000 (Completely unaffected by tournament losses)
+
+Tournament Participation Record (TournamentParticipationModel)
+  ├── tournamentId: "tournament_oct_2026"
+  ├── userId: "68c123456789abcdef123455"
+  ├── initialBalance: ₹500,000 (Independent virtual tournament capital)
+  ├── virtualCash: ₹425,000
+  ├── virtualHoldings: [{ symbol: "RELIANCE", qty: 25, avgPrice: 2500 }]
+  ├── totalPortfolioValue: ₹512,500
+  ├── roi: +2.50%
+  └── currentRank: 1
+</pre>
+
+<h2>11.3 Tournament Lifecycle State Machine</h2>
+<p>
+  Tournaments transition through three strict states managed by an automated background worker (<code>setInterval(syncActiveTournamentsLifecycle, 30000)</code> in <code>backend/index.js</code>):
+</p>
+<table>
+  <thead>
+    <tr><th>Status</th><th>Preconditions</th><th>Permitted Actions</th><th>State Transitions</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>upcoming</strong></td>
+      <td><code>currentTime &lt; startDate</code></td>
+      <td>Traders can view details and register/join. Virtual capital allocated.</td>
+      <td>Transitions to <code>active</code> when <code>currentTime &gt;= startDate</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>active</strong></td>
+      <td><code>startDate &lt;= currentTime &lt; endDate</code></td>
+      <td>Participants can submit virtual buy/sell orders. Real-time ticks update portfolio value.</td>
+      <td>Transitions to <code>completed</code> when <code>currentTime &gt;= endDate</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>completed</strong></td>
+      <td><code>currentTime &gt;= endDate</code></td>
+      <td>Trading disabled. Final leaderboard calculated and winners locked.</td>
+      <td>Terminal state. Results preserved for historical review.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>11.4 Real-Time Leaderboard & ROI Calculation</h2>
+<p>
+  Leaderboard rankings are based on <strong>Return on Investment (ROI)</strong> rather than absolute rupee value, ensuring fairness across varying tournament structures:
+</p>
+<pre>
+Current Equity = Virtual Cash + Sum of all (Virtual Qty * Current LTP)
+Net Return     = Current Equity - Initial Virtual Balance
+ROI (%)        = ( Net Return / Initial Virtual Balance ) * 100
+</pre>
+<p>
+  As live market ticks stream into the backend, the tournament service recalculates participants' portfolio values. Updated ranks are broadcast immediately over WebSockets to all clients in the tournament room:
+</p>
+<pre>
+io.to(`tournament:${tournamentId}`).emit('leaderboard-update', {
+  tournamentId,
+  leaderboard: updatedRankings
+});
+</pre>

@@ -1,0 +1,103 @@
+<h1 class="ch" id="ch9">Chapter 9 — Holdings, Positions & P&L Calculations</h1>
+
+<h2>9.1 CNC Delivery Holdings vs. MIS Intraday Positions</h2>
+<p>
+  Following Indian market structure, the platform distinguishes between two trading products:
+</p>
+<table>
+  <thead>
+    <tr>
+      <th>Dimension</th>
+      <th>Cash 'N Carry (CNC) — Holdings</th>
+      <th>Margin Intraday Square-off (MIS) — Positions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Investment Horizon</strong></td>
+      <td>Multi-day to multi-year long-term investment.</td>
+      <td>Single trading session (closed before 3:15 PM IST).</td>
+    </tr>
+    <tr>
+      <td><strong>Leverage Allowed</strong></td>
+      <td>1x (No leverage: 100% upfront cash required).</td>
+      <td>5x intraday leverage supported.</td>
+    </tr>
+    <tr>
+      <td><strong>Short Selling</strong></td>
+      <td>Not permitted (must own shares before selling).</td>
+      <td>Permitted (sell high, buy back lower before close).</td>
+    </tr>
+    <tr>
+      <td><strong>Storage Collection</strong></td>
+      <td><code>holdings</code> collection (HoldingsModel).</td>
+      <td><code>positions</code> collection (PositionsModel).</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>9.2 Volume-Weighted Average Purchase Price Formula</h2>
+<p>
+  When a trader purchases additional shares of an already owned stock at a different market price, the new cost basis is calculated using the <strong>Volume-Weighted Average Price</strong> formula:
+</p>
+<pre>
+New Average Price = ( (Existing Qty * Existing Avg Price) + (New Qty * Purchase Price) ) / ( Existing Qty + New Qty )
+</pre>
+
+<h3>Worked Example:</h3>
+<div class="note">
+  <ul>
+    <li>Trader currently owns <strong>10 shares of TCS</strong> with an average cost of <strong>₹3,200</strong> (Invested = ₹32,000).</li>
+    <li>Trader buys <strong>5 additional shares of TCS</strong> at the current market price of <strong>₹3,500</strong> (New Outlay = ₹17,500).</li>
+  </ul>
+  <p><code>New Total Quantity = 10 + 5 = 15 shares</code></p>
+  <p><code>New Total Invested = ₹32,000 + ₹17,500 = ₹49,500</code></p>
+  <p><code>New Average Price = ₹49,500 / 15 = ₹3,300 per share</code></p>
+</div>
+
+<h2>9.3 Real-Time P&L Equations</h2>
+<p>
+  The frontend Kite dashboard dynamically calculates real-time profit and loss metrics across every holding and for the aggregate portfolio:
+</p>
+
+<h3>1. Individual Holding Total P&L</h3>
+<pre>
+Holding Invested Value = Quantity * Average Price
+Holding Current Value  = Quantity * Current Market Price (LTP)
+Total Profit / Loss    = Holding Current Value - Holding Invested Value
+Percentage Return (%)  = ( Total Profit / Loss / Holding Invested Value ) * 100
+</pre>
+
+<h3>2. Individual Holding Day P&L</h3>
+<p>
+  Measures the profit or loss generated exclusively within the current trading session:
+</p>
+<pre>
+Day Profit / Loss   = Quantity * ( Current Market Price - Previous Day Close Price )
+Day Return (%)      = ( ( Current Market Price - Previous Close ) / Previous Close ) * 100
+</pre>
+
+<h3>3. Portfolio Aggregate Metrics (PortfolioSummary.jsx)</h3>
+<ul>
+  <li><code>Total Portfolio Invested = Sum of all (Quantity * Average Price)</code></li>
+  <li><code>Total Portfolio Current  = Sum of all (Quantity * LTP)</code></li>
+  <li><code>Net Unrealized P&L       = Total Portfolio Current - Total Portfolio Invested</code></li>
+  <li><code>Net Day P&L              = Sum of all (Quantity * (LTP - Previous Close))</code></li>
+</ul>
+
+<h2>9.4 Sell Inventory Reservation (Anti-Double-Spend)</h2>
+<p>
+  To prevent traders from placing multiple sell orders exceeding their actual owned shares:
+</p>
+<ol>
+  <li>When a trader places a Limit Sell for 4 shares out of 10 owned shares:
+    <pre>
+Holding.updateOne({ userId, symbol }, {
+  $inc: { quantity: -4, reservedQuantity: +4 }
+});
+    </pre>
+  </li>
+  <li>The available quantity immediately drops to 6 shares. If the user attempts to place another sell order for 7 shares, the system validates against <code>quantity</code> (6) and rejects the request.</li>
+  <li>When the limit order executes, <code>reservedQuantity</code> is decremented by 4.</li>
+  <li>If the user cancels the order, <code>quantity</code> is incremented by 4 and <code>reservedQuantity</code> is decremented by 4.</li>
+</ol>

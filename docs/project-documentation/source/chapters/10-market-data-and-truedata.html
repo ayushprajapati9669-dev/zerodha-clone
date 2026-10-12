@@ -1,0 +1,81 @@
+<h1 class="ch" id="ch10">Chapter 10 — Market Data & TrueData Integration</h1>
+
+<h2>10.1 Market Data Ingestion Overview</h2>
+<p>
+  Real-time market price feeds are ingested via <strong>TrueData</strong>, an authorized data vendor for the National Stock Exchange of India (NSE) and Bombay Stock Exchange (BSE). The platform consumes real-time tick streaming over persistent WebSocket connections and historical candle records via HTTP REST endpoints.
+</p>
+
+<h2>10.2 TrueData WebSocket Client (trueDataService.js)</h2>
+<p>
+  The native WebSocket client manages authentication, subscription, and parsing of binary/JSON touchline ticks:
+</p>
+<pre>
+const url = `wss://push.truedata.in:${port}?user=${username}&password=${password}`;
+wsConnection = new WebSocket(url);
+
+wsConnection.on('message', (data) => {
+  const jsonObj = JSON.parse(data);
+  if (jsonObj.success && jsonObj.message === 'TrueData Real Time Data Service') {
+    // Authenticated! Subscribe to 14 core NSE blue-chips:
+    wsConnection.send(JSON.stringify({
+      method: 'addsymbol',
+      symbols: ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'ITC', ...]
+    }));
+  } else if (jsonObj.symbollist) {
+    // Process touchline tick records
+    jsonObj.symbollist.forEach(processStockTick);
+  }
+});
+</pre>
+
+<h3>Symbol Normalization:</h3>
+<p>
+  To prevent mismatch bugs between exchanges and user inputs, all symbols pass through <code>normalizeSymbol(symbol)</code>:
+</p>
+<pre>
+const normalizeSymbol = (symbol) =>
+  String(symbol || "")
+    .trim()
+    .toUpperCase()
+    .replace(/^NSE:/i, "")
+    .replace(/^BSE:/i, "");
+</pre>
+
+<h2>10.3 Touchline Tick Parser & In-Memory Cache</h2>
+<p>
+  Each incoming tick is transformed into a standardized price object and indexed into a fast in-memory <code>Map</code>:
+</p>
+<table>
+  <thead>
+    <tr><th>TrueData Field Index</th><th>Normalized Attribute</th><th>Sample Value</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>item[0]</code></td><td><code>symbol</code></td><td><code>"RELIANCE"</code></td><td>Ticker identifier.</td></tr>
+    <tr><td><code>item[3]</code></td><td><code>currentPrice</code> (LTP)</td><td><code>2525.50</code></td><td>Last Traded Price.</td></tr>
+    <tr><td><code>item[10]</code></td><td><code>previousClose</code></td><td><code>2490.00</code></td><td>Official previous day closing price.</td></tr>
+    <tr><td><code>Computed</code></td><td><code>priceChange</code></td><td><code>+35.50</code></td><td><code>LTP - previousClose</code>.</td></tr>
+    <tr><td><code>Computed</code></td><td><code>priceChangePercent</code></td><td><code>+1.43%</code></td><td><code>(priceChange / previousClose) * 100</code>.</td></tr>
+    <tr><td><code>item[7]</code></td><td><code>open</code></td><td><code>2495.00</code></td><td>Session open price.</td></tr>
+    <tr><td><code>item[8]</code></td><td><code>high</code></td><td><code>2535.00</code></td><td>Session high watermark.</td></tr>
+    <tr><td><code>item[9]</code></td><td><code>low</code></td><td><code>2480.00</code></td><td>Session low watermark.</td></tr>
+    <tr><td><code>item[6]</code></td><td><code>volume</code></td><td><code>1,420,000</code></td><td>Total traded share volume for session.</td></tr>
+  </tbody>
+</table>
+
+<h2>10.4 Offline & Development Resilient Fallback Cache</h2>
+<p>
+  In development environments, sandboxes, or during off-market hours (weekends and evenings), external WebSocket push feeds may be unavailable. If unhandled, empty price maps cause trading calculations, order evaluation, and watchlist rendering to crash.
+</p>
+<p>
+  Zerodha Clone solves this by initializing <code>latestTrueDataPrices</code> with a high-fidelity static baseline cache covering all 14 supported symbols. When live TrueData feeds connect, the live ticks overwrite the baseline cache in real time. If live connectivity is severed, the system continues operating smoothly.
+</p>
+
+<h2>10.5 Historical Price Data Service (trueDataHistoricalService.js)</h2>
+<p>
+  Historical OHLCV candle records are fetched for rendering interactive price charts in <code>StockChartPopup.jsx</code>:
+</p>
+<ul>
+  <li>Endpoint: <code>GET /api/market/prices/:symbol/historical?range=1M</code></li>
+  <li>Supported Ranges: <code>1M</code> (1 Month, 15-min candles), <code>1Y</code> (1 Year, daily candles), <code>5Y</code> (5 Years, weekly candles), <code>MAX</code>.</li>
+  <li>Token Caching: Historical REST authentication tokens are acquired from <code>https://auth.truedata.in/token</code> and cached in memory with an expiration timestamp to prevent unnecessary re-authentication overhead.</li>
+</ul>

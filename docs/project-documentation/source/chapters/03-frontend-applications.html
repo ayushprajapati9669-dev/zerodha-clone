@@ -1,0 +1,120 @@
+<h1 class="ch" id="ch3">Chapter 3 — Frontend Applications & Component Architecture</h1>
+
+<h2>3.1 Overview of Frontend Structure</h2>
+<p>
+  The presentation tier is designed as a modular, responsive Single Page Application (SPA) built with React 19, React Router DOM 7, and Vite 8. It delivers two distinct user experiences:
+</p>
+<ol>
+  <li><strong>Public Marketing Portal (Landing Application):</strong> The institutional marketing website featuring the Zerodha brand homepage, transparent brokerage pricing calculators, ecosystem product showcases (Console, Coin, Kite Connect, Varsity), about pages, and mobile OTP signup/login interfaces.</li>
+  <li><strong>Trading Terminal (Kite Dashboard):</strong> The secure, authenticated trading dashboard providing real-time market watchlists, buy/sell order execution modals, holdings breakdown, intraday positions, ledger balance management, portfolio performance analytics, risk guard monitoring, trading journals, strategy backtesting, paper-trading competitions, and an integrated AI assistant.</li>
+</ol>
+
+<h2>3.2 Core Component Hierarchy</h2>
+<pre>
+App (AppProvider + BrowserRouter)
+├── LandingLayout (Navbar + PageContent + Footer)
+│   ├── HomePage (Hero, Stats, Pricing, Education, OpenAccount)
+│   ├── AboutPage (Hero, Team, Philosophy)
+│   ├── ProductPage (Kite, Console, Coin, Varsity, Universe)
+│   ├── PricingPage (Brokerage charges, STT/CTT breakdown, Account charges)
+│   ├── SupportPage (Ticket creation, Knowledge base)
+│   ├── Login (Mobile OTP login + Demo account exploration)
+│   └── SignUp (4-Step onboarding: Mobile OTP -> Registration -> Verification)
+│
+└── ProtectedRoute (Authentication guard & session verification)
+    └── DashboardLayout
+        ├── Sidebar (Collapsible navigation, active route highlight, theme toggle)
+        ├── TopNavigation (Market summary indices, search bar, user avatar, notifications dropdown)
+        ├── MarketWatchlist (Persistent left-panel ticker, multi-watchlists, bid/ask hover actions)
+        │   ├── WatchListActions (Buy/Sell trigger buttons, depth chart view, pin action)
+        │   ├── StockChartPopup (Interactive historical price canvas / candlestick charts)
+        │   └── StockDetailsPopup (Fundamental metrics, 52-week high/low, P/E ratio, volumes)
+        │
+        ├── TradePopup (Floating Order Window: Buy/Sell, Market/Limit, CNC/MIS, margin calculator)
+        ├── FundToast & OrderToast (Floating execution status notifications)
+        │
+        └── Main Page Content:
+            ├── Dashboard (Portfolio summary cards, allocation doughnut, quick action triggers)
+            ├── Holdings (CNC equity inventory, invested value, current value, total P&L, day P&L)
+            ├── Positions (MIS intraday trades, buy/sell quantity, net profit, square-off trigger)
+            ├── Orders (Order book: Pending Limit orders, Executed orders, Cancelled orders)
+            ├── Funds (Available cash, Used margin, Reserved balance, Deposit & Withdraw modals)
+            ├── PortfolioAnalytics (Drawdown charts, profit factor, win-loss ratio, sector breakdown)
+            ├── RiskManagement (Risk Guard: Daily loss limit, maximum position size, leverage caps)
+            ├── TradingJournal (Trade review logs, emotional tags, strategy reflections, setup notes)
+            ├── StrategyBacktest (SMA Crossover simulation, profit factor, max drawdown metrics)
+            ├── PaperTrading (Virtual tournament competitions, leaderboard ranks, virtual orders)
+            ├── TournamentAdmin (Admin tournament creation, schedule rules, winner settlements)
+            ├── AIAssistant (Conversational financial AI assistant with portfolio context injection)
+            ├── Notifications (In-app alerts, price triggers, read/unread states, user preferences)
+            └── Settings (Profile info, password updates, session revocation, theme selection)
+</pre>
+
+<h2>3.3 Global State Management: AppContext.jsx</h2>
+<p>
+  Application state is centralized within <code>AppContext.jsx</code> using React's Context API. This eliminates prop drilling across deeply nested components while maintaining reactivity across the trading terminal.
+</p>
+
+<h3>Key State Categories and Reactive Signals:</h3>
+<table>
+  <thead>
+    <tr>
+      <th>State Domain</th>
+      <th>State Variables</th>
+      <th>Purpose & Reactive Behavior</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Authentication & User</strong></td>
+      <td><code>currentUser</code>, <code>userLoading</code></td>
+      <td>Stores user profile (name, email, mobile, clientId, role). Polled upon mount via <code>GET /api/auth/me</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>Order Execution</strong></td>
+      <td><code>isTradePopupOpen</code>, <code>selectedStock</code>, <code>stockType</code>, <code>orderVersion</code></td>
+      <td>Controls the trading window modal. Incrementing <code>orderVersion</code> triggers auto-refresh of order book and ledger.</td>
+    </tr>
+    <tr>
+      <td><strong>Holdings & Positions</strong></td>
+      <td><code>holdings</code>, <code>isHoldingsLoading</code>, <code>holdingVersion</code>, <code>positionVersion</code></td>
+      <td>Caches delivery holdings and intraday positions. Updated on order fulfillment or socket execution events.</td>
+    </tr>
+    <tr>
+      <td><strong>Cash & Ledger</strong></td>
+      <td><code>availableBalance</code>, <code>usedBalance</code>, <code>reservedBalance</code>, <code>fundVersion</code></td>
+      <td>Maintains the three-tier balance ledger. Automatically updated when orders are placed, triggered, or canceled.</td>
+    </tr>
+    <tr>
+      <td><strong>Market Prices</strong></td>
+      <td><code>marketPrices</code>, <code>isMarketPricesLoading</code></td>
+      <td>Stores latest tick data map (LTP, change, open, high, low, previous close) refreshed periodically and via WebSockets.</td>
+    </tr>
+    <tr>
+      <td><strong>Notifications</strong></td>
+      <td><code>notifications</code>, <code>notificationPagination</code></td>
+      <td>In-app notifications feed with real-time socket prepending and unread counter badges.</td>
+    </tr>
+    <tr>
+      <td><strong>Visual Theme</strong></td>
+      <td><code>theme</code> ('light' | 'dark' | 'system')</td>
+      <td>Binds to <code>&lt;html data-theme="..."&gt;</code> and synchronizes with <code>localStorage</code>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>3.4 TradePopup: The Trading Window</h2>
+<p>
+  <code>TradePopup.jsx</code> implements the core order placement interface replicating Zerodha's Kite Order Window:
+</p>
+<ul>
+  <li><strong>Color-Coded Modals:</strong> Blue header for <strong>BUY</strong> orders, Orange header for <strong>SELL</strong> orders.</li>
+  <li><strong>Product Selection:</strong> Toggle between <strong>CNC</strong> (Cash 'N Carry delivery — 100% margin required) and <strong>MIS</strong> (Margin Intraday Square-off — leverage supported, auto square-off at 3:15 PM).</li>
+  <li><strong>Order Types:</strong>
+    <ul>
+      <li><strong>Market Order:</strong> Executed immediately at current market LTP. Requires <code>availableBalance >= qty * LTP</code>.</li>
+      <li><strong>Limit Order:</strong> User specifies a trigger limit price. Cash (for Buy) or stock shares (for Sell) are immediately placed into <em>reserved</em> status.</li>
+    </ul>
+  </li>
+  <li><strong>Dynamic Margin Calculator:</strong> As the user adjusts the quantity and price inputs, the component dynamically calculates required funds: <code>Required Margin = Quantity * Price</code>, comparing it in real time against <code>availableBalance</code> and showing a warning badge if funds are insufficient.</li>
+</ul>

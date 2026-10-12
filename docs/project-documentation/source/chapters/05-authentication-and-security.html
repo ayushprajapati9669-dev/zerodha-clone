@@ -1,0 +1,117 @@
+<h1 class="ch" id="ch5">Chapter 5 — Authentication, OTP & Security Architecture</h1>
+
+<h2>5.1 Authentication Architecture Overview</h2>
+<p>
+  Authentication is architected as a hybrid password and phone-based OTP system designed to mirror the multi-factor security expectations of modern Indian financial brokerages. The system uses signed <strong>JSON Web Tokens (JWT)</strong> transmitted via secure, <strong>HTTP-only cookies</strong>, paired with an active database-backed <code>tokenVersion</code> check that supports instant global session invalidation.
+</p>
+
+<figure>
+  <img src="../../authentication-flow.png" alt="Signup and Login Flow" />
+  <figcaption>Figure 5.1: Authentication and OTP verification sequence diagram.</figcaption>
+</figure>
+
+<h2>5.2 Mobile OTP Verification Challenge Flow</h2>
+<p>
+  To prevent phone number spoofing and unauthorized account creation, mobile onboarding uses a multi-step challenge verification flow:
+</p>
+<ol>
+  <li><strong>Challenge Creation (<code>POST /api/auth/otp/send</code>):</strong>
+    <ul>
+      <li>User submits a 10-digit mobile number.</li>
+      <li>System validates number using regex <code>/^\d{10}$/</code>.</li>
+      <li>Rate-limiting check: Queries <code>OtpChallengeModel</code> to ensure no more than 3 challenges were requested in the last 5 minutes. If exceeded, returns HTTP 429.</li>
+      <li>Existing unconsumed challenges for this number are invalidated (<code>isConsumed: true</code>).</li>
+      <li>Dispatches verification SMS via Twilio Verify. If Twilio credentials are not configured, the system logs a mock challenge code (<code>123456</code>) to ensure uninterrupted development and testing.</li>
+    </ul>
+  </li>
+  <li><strong>Challenge Verification (<code>POST /api/auth/register/verify-mobile</code>):</strong>
+    <ul>
+      <li>User submits the 6-digit OTP code received on SMS.</li>
+      <li>Twilio Verify checks code validity (or verifies against test mock code <code>123456</code>).</li>
+      <li>Upon approval, the challenge is marked <code>isConsumed: true</code>.</li>
+      <li>A short-lived signed JWT <strong>verification token</strong> is generated: <code>jwt.sign({ mobile, verified: true, challengeId }, JWT_SECRET, { expiresIn: '15m' })</code>.</li>
+      <li>This token must be included in the subsequent registration payload to prove phone ownership.</li>
+    </ul>
+  </li>
+</ol>
+
+<h2>5.3 User Registration & Client ID Generation</h2>
+<p>
+  Once verified, the user submits registration details (<code>POST /api/auth/register</code>):
+</p>
+<ul>
+  <li>Validates name, unique email, verified mobile, password (minimum 6 characters), and <code>verificationToken</code>.</li>
+  <li>Decodes the verification token, confirms that <code>decoded.mobile === req.body.mobile</code> and <code>decoded.verified === true</code>.</li>
+  <li>Validates that the challenge record has not already been used for registration (<code>challenge.usedForRegistration === false</code>), then marks it used.</li>
+  <li>Generates a unique Zerodha 6-character Client ID (e.g., <code>ZR9669</code>) using random alphanumeric character generation and collision detection.</li>
+  <li>Hashes the password with <code>bcryptjs</code> using 10 salt rounds.</li>
+  <li>Initializes a default <code>Funds</code> document for the new user with ₹1,00,000 initial virtual capital.</li>
+  <li>Initializes a default <code>WatchlistList</code> titled "Watchlist 1" populated with blue-chip Indian equities (Reliance, TCS, Infosys, HDFC Bank, ICICI Bank, SBI, ITC, Bharti Airtel).</li>
+  <li>Signs the session JWT and sets the HTTP-only cookie, automatically logging the user into their account.</li>
+</ul>
+
+<h2>5.4 Token Versioning & Global Session Revocation</h2>
+<p>
+  A frequent security flaw in stateless JWT architectures is the inability to revoke tokens before their expiration window elapses. Zerodha Clone solves this using <strong>Token Versioning</strong>:
+</p>
+<pre>
+// JWT Payload structure:
+{
+  "userId": "68c123456789abcdef123455",
+  "role": "trader",
+  "tokenVersion": 3,
+  "iat": 1791780813,
+  "exp": 1792385613
+}
+</pre>
+<p>
+  When a user invokes <code>POST /api/auth/logout-other-sessions</code> or changes their password:
+</p>
+<ol>
+  <li>The backend executes <code>User.findByIdAndUpdate(userId, { $inc: { tokenVersion: 1 } })</code>.</li>
+  <li>The current active user is re-issued a fresh cookie with the incremented version.</li>
+  <li>Every subsequent request from any other device or browser containing the older <code>tokenVersion</code> fails the check in <code>isLoggedInMiddleware.js</code>:
+    <pre>
+if (user.tokenVersion !== decoded.tokenVersion) {
+  return res.status(401).json({
+    success: false,
+    message: "Session expired. Please login again."
+  });
+}
+    </pre>
+  </li>
+  <li>All previous sessions are immediately invalidated across all devices without requiring a centralized token blacklist.</li>
+</ol>
+
+<h2>5.5 Cookie Security Specifications</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Cookie Attribute</th>
+      <th>Configuration</th>
+      <th>Security Protection Provided</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>httpOnly</code></td>
+      <td><code>true</code></td>
+      <td>Prevents client-side JavaScript from accessing <code>document.cookie</code>, completely mitigating Cross-Site Scripting (XSS) token theft.</td>
+    </tr>
+    <tr>
+      <td><code>sameSite</code></td>
+      <td><code>'lax'</code></td>
+      <td>Protects against Cross-Site Request Forgery (CSRF) by preventing third-party origins from sending the authentication cookie during cross-site requests.</td>
+    </tr>
+    <tr>
+      <td><code>maxAge</code></td>
+      <td><code>24 * 60 * 60 * 1000</code> (1 day)</td>
+      <td>Enforces session lifecycle boundaries, ensuring stale sessions expire naturally.</td>
+    </tr>
+    <tr>
+      <td><code>secure</code></td>
+      <td>Conditional (false in dev, true in HTTPS prod)</td>
+      <td>Ensures authentication cookies are transmitted exclusively over encrypted TLS connections in production.</td>
+    </tr>
+  </tbody>
+</table>

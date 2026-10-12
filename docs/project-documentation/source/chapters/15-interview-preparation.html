@@ -1,0 +1,521 @@
+<h1 class="ch" id="ch15">Chapter 15 — Technical Interview Preparation Masterclass</h1>
+
+<p>
+  This chapter provides <strong>100 project-grounded interview questions with clear, comprehensive answers</strong>. Each question tests architectural judgment, deep implementation knowledge, concurrency reasoning, and systems design derived directly from this Zerodha Clone codebase.
+</p>
+
+<h2>Part I: Architecture & System Design (Questions 1–15)</h2>
+
+<div class="qa">
+  <div class="q">1. What is the high-level architecture of this Zerodha Clone project?</div>
+  <div class="a">It is a full-stack, event-driven trading platform consisting of a React 19 Single Page Application (SPA) frontend, an Express 5 (Node.js 22) REST API gateway, Socket.IO real-time event streaming, and a MongoDB persistence tier. It integrates with TrueData for live/historical NSE market feeds, Twilio Verify for mobile OTP, and Google Gemini for portfolio-aware financial AI.</div>
+</div>
+
+<div class="qa">
+  <div class="q">2. Why did you choose a Controller-Service-Repository pattern rather than writing queries directly inside controllers?</div>
+  <div class="a">Controllers should only handle HTTP transport concerns (parsing status codes, reading cookies, returning JSON). Placing business rules (such as limit order execution, balance calculations, and multi-document transactions) in dedicated services enables unit testing, code reuse across HTTP routes and background workers, and prevents tight coupling to the web framework.</div>
+</div>
+
+<div class="qa">
+  <div class="q">3. How does the application handle both live and development/offline environments?</div>
+  <div class="a">It uses a defensive fallback architecture: if MongoDB, TrueData, or Twilio are unconfigured or temporarily offline, the server boots in resilient mode with mock baseline prices, default ledger balances, and local OTP codes (123456), ensuring zero crashes during local inspection or testing.</div>
+</div>
+
+<div class="qa">
+  <div class="q">4. How do you prevent Cross-Origin Resource Sharing (CORS) issues in production?</div>
+  <div class="a">The Express backend mounts Vite middlewares in development and serves pre-built static client files in production on the exact same port (3000). Because both the API and client share the same domain and port origin, cross-origin security blocks are eliminated entirely.</div>
+</div>
+
+<div class="qa">
+  <div class="q">5. Why is a monolithic wallet balance inadequate for a trading application?</div>
+  <div class="a">A single balance cannot represent capital locked in pending limit orders or funds tied up in active equity cost bases. We implement a three-tier model: availableBalance (liquid free cash), usedBalance (deployed in active holdings), and reservedBalance (locked for pending limit orders).</div>
+</div>
+
+<div class="qa">
+  <div class="q">6. How does the system handle real-time market data distribution?</div>
+  <div class="a">TrueData pushes touchline ticks over WebSockets into the backend. The backend updates an in-memory price map, evaluates limit order trigger conditions, and dispatches real-time events over Socket.IO to connected browser clients.</div>
+</div>
+
+<div class="qa">
+  <div class="q">7. How are user notifications routed to specific individuals without broadcasting to everyone?</div>
+  <div class="a">When a client connects to Socket.IO, it emits `join-user-room` with its authenticated user ID. The server places that socket connection into room `user:{userId}`. Notifications are emitted strictly via `io.to('user:' + userId).emit('new-notification', data)`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">8. How do you isolate tournament paper trading from real paper-trading portfolios?</div>
+  <div class="a">Tournament records are maintained in completely separate collections (`TournamentParticipationModel` and `TournamentOrderModel`). A user's main `Funds` balance is never affected by tournament entry positions or losses.</div>
+</div>
+
+<div class="qa">
+  <div class="q">9. What happens if the backend server crashes while a limit order is executing?</div>
+  <div class="a">Because all order mutations and balance debit/credits run inside atomic MongoDB sessions (`session.startTransaction()`), an unexpected server crash automatically triggers transaction rollback by MongoDB, leaving no orphan balances.</div>
+</div>
+
+<div class="qa">
+  <div class="q">10. How would you scale the Socket.IO tier across multiple server instances?</div>
+  <div class="a">By introducing the `@socket.io/redis-adapter`. This connects multiple Node.js instances to a shared Redis Pub/Sub backplane so that room broadcasts emitted from Server A reach sockets connected to Server B.</div>
+</div>
+
+<div class="qa">
+  <div class="q">11. Why is HTTP polling avoided for order status updates?</div>
+  <div class="a">Polling introduces severe server load, redundant database queries, and latency. Socket.IO event push guarantees instant, sub-50ms UI updates upon order fill with minimal network overhead.</div>
+</div>
+
+<div class="qa">
+  <div class="q">12. How does the system enforce separation between CNC delivery and MIS intraday products?</div>
+  <div class="a">CNC requires 100% upfront cash, prohibits short-selling, and saves directly into `holdings`. MIS allows leverage, supports short-selling, and records into `positions` with automated square-off requirements.</div>
+</div>
+
+<div class="qa">
+  <div class="q">13. What is the role of `server.js` versus `backend/index.js`?</div>
+  <div class="a">`backend/index.js` encapsulates the Express route configurations, database initialization, and socket setup. `server.js` serves as the root application entry point that mounts frontend Vite middlewares alongside the backend.</div>
+</div>
+
+<div class="qa">
+  <div class="q">14. What design considerations were made for mobile and responsive layouts?</div>
+  <div class="a">The dashboard features a collapsible sidebar that transitions to an icon dock below 991px, grid layouts that reflow from 4 cards to 1 card on mobile, and responsive touchline action buttons.</div>
+</div>
+
+<div class="qa">
+  <div class="q">15. How are database migrations and initial seed data handled?</div>
+  <div class="a">`backend/data/init.js` and `backend/data/data.js` contain programmatic seed utilities for holdings, positions, funds, and orders, enabling instantaneous environment hydration.</div>
+</div>
+
+<h2>Part II: React & Frontend Architecture (Questions 16–30)</h2>
+
+<div class="qa">
+  <div class="q">16. Why was React 19 selected for the frontend?</div>
+  <div class="a">React 19 offers improved asynchronous state handling, enhanced batching, improved hydration performance, and seamless compatibility with modern Vite compilation pipelines.</div>
+</div>
+
+<div class="qa">
+  <div class="q">17. Explain how `AppContext.jsx` acts as the single source of truth.</div>
+  <div class="a">It consolidates user data, holdings, open positions, ledger balances, market prices, and notifications into a single React context provider, exposing state and updater functions to all child components without prop drilling.</div>
+</div>
+
+<div class="qa">
+  <div class="q">18. What are `orderVersion`, `holdingVersion`, and `fundVersion` state counters in AppContext?</div>
+  <div class="a">They are reactive dependency counters. When an order completes or funds are added, incrementing `orderVersion` triggers `useEffect` hooks across disparate components (Orders page, Holdings page, Header balance badge) to re-fetch fresh state in parallel.</div>
+</div>
+
+<div class="qa">
+  <div class="q">19. How does `ProtectedRoute.jsx` enforce client-side navigation security?</div>
+  <div class="a">It queries `GET /api/auth/me` with `{ withCredentials: true }` upon mounting. If the session is invalid, it redirects the browser to `/login`. If authenticated, it renders `children` (the dashboard layout).</div>
+</div>
+
+<div class="qa">
+  <div class="q">20. How does `TradePopup.jsx` compute dynamic margin requirements?</div>
+  <div class="a">It binds a listener to quantity and price inputs: `Required Margin = Quantity * (OrderType === 'MARKET' ? LTP : LimitPrice)`. It compares this against `availableBalance` in real time, disabling the submit button if funds are insufficient.</div>
+</div>
+
+<div class="qa">
+  <div class="q">21. How is dark mode implemented across the frontend?</div>
+  <div class="a">The user's theme selection is stored in `localStorage` and applied to the root `&lt;html&gt;` tag as `data-theme="dark"`. CSS custom variables defined in `App.css` automatically adapt card backgrounds, borders, and text colors.</div>
+</div>
+
+<div class="qa">
+  <div class="q">22. How are charts rendered in the portfolio analytics dashboard?</div>
+  <div class="a">Using Recharts components (`ResponsiveContainer`, `PieChart`, `AreaChart`, `BarChart`) bound to computed asset allocation and P&L timeline arrays.</div>
+</div>
+
+<div class="qa">
+  <div class="q">23. How does the frontend prevent UI lag when receiving high-frequency price updates?</div>
+  <div class="a">Market tick updates modify state inside a keyed object/Map (`marketPrices[symbol]`), ensuring React only re-renders components specifically subscribing to the changed symbol rather than the entire page.</div>
+</div>
+
+<div class="qa">
+  <div class="q">24. What is the purpose of `FundToast` and `OrderToast`?</div>
+  <div class="a">They provide non-blocking floating status feedback confirming order placement, limit order triggers, and wallet balance updates without obscuring user interactions.</div>
+</div>
+
+<div class="qa">
+  <div class="q">25. How does `MarketWatchlist.jsx` support multi-watchlist switching?</div>
+  <div class="a">It renders numeric tab pills (1 to 7). Clicking a pill sets `activeWatchlistId`, which filters displayed stocks and queries the backend for custom symbol orderings.</div>
+</div>
+
+<div class="qa">
+  <div class="q">26. How are modals managed across the dashboard?</div>
+  <div class="a">Modal open/close states (TradePopup, StockChartPopup, PriceAlertModal, StockDetailsPopup) are managed in AppContext, allowing any button across watchlists or positions to launch a modal.</div>
+</div>
+
+<div class="qa">
+  <div class="q">27. How does the client handle network disconnection with Socket.IO?</div>
+  <div class="a">Socket.IO Client is initialized with `reconnection: true`, exponential backoff (`reconnectionDelay: 1000`, `reconnectionDelayMax: 5000`), and automatically re-joins user rooms upon reconnecting.</div>
+</div>
+
+<div class="qa">
+  <div class="q">28. Why use `axios` over native `fetch` in this project?</div>
+  <div class="a">Axios provides automated JSON body serialization/parsing, unified interceptors for credentials, and consistent error response normalization via `error.response.data`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">29. How does `AIAssistant.jsx` stream and format generative responses?</div>
+  <div class="a">It uses `react-markdown` to parse Gemini's markdown output, rendering syntax-highlighted code blocks, financial bullet points, and clean typography.</div>
+</div>
+
+<div class="qa">
+  <div class="q">30. What strategy is used to prevent memory leaks in React `useEffect` hooks?</div>
+  <div class="a">All timers (such as OTP countdown clocks) and Socket.IO event listeners return explicit cleanup functions (e.g. `socket.off('new-notification')` and `clearInterval(timer)`).</div>
+</div>
+
+<h2>Part III: Node.js, Express & Middleware (Questions 31–45)</h2>
+
+<div class="qa">
+  <div class="q">31. What are the key architectural improvements in Express 5 used in this backend?</div>
+  <div class="a">Express 5 natively handles rejected promises and asynchronous errors in route handlers without requiring manual `try/catch` and `next(err)` boilerplates, simplifying async controller code.</div>
+</div>
+
+<div class="qa">
+  <div class="q">32. How does `isLoggedInMiddleware.js` extract and authenticate the user?</div>
+  <div class="a">It extracts `req.cookies.token`, verifies the signature using `jwt.verify(token, JWT_SECRET)`, queries `User.findById(decoded.userId)`, confirms `tokenVersion` matches, and attaches `req.user`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">33. Why is Joi used for payload validation instead of manual if-else statements?</div>
+  <div class="a">Joi provides declarative, schema-based validation (`orderValidationSchema.js` and `userValidationSchema.js`), validating types, minimums, maximums, and allowed string enums before controllers execute.</div>
+</div>
+
+<div class="qa">
+  <div class="q">34. How does `adminMiddleware.js` protect administrative routes?</div>
+  <div class="a">It executes immediately following `isLoggedIn` and asserts `req.user.role === 'admin'`. If false, it terminates the request with HTTP 403 Forbidden.</div>
+</div>
+
+<div class="qa">
+  <div class="q">35. What is the role of `cookie-parser` in this architecture?</div>
+  <div class="a">It parses the HTTP `Cookie` header string into a structured JavaScript object on `req.cookies`, allowing clean retrieval of the signed authentication cookie.</div>
+</div>
+
+<div class="qa">
+  <div class="q">36. How does the server handle uncaught exceptions and database disconnects?</div>
+  <div class="a">The global error middleware inspects `err.name === 'MongooseError'`. It logs the incident and returns a graceful 503 or empty array fallback rather than crashing the process.</div>
+</div>
+
+<div class="qa">
+  <div class="q">37. How does the Node process schedule background tournament synchronization?</div>
+  <div class="a">In `backend/index.js`, an interval worker runs every 30 seconds (`setInterval(syncActiveTournamentsLifecycle, 30000)`), executing automated tournament state transitions.</div>
+</div>
+
+<div class="qa">
+  <div class="q">38. Explain how Client IDs are generated in `generateClientId.js`.</div>
+  <div class="a">It generates a 2-character prefix ('ZR') followed by 4 random alphanumeric characters, checking the database in a loop to ensure uniqueness before assigning it to a new trader.</div>
+</div>
+
+<div class="qa">
+  <div class="q">39. Why are passwords excluded from default User queries?</div>
+  <div class="a">The `password` schema definition specifies `select: false`. This prevents hashed passwords from leaking in API responses or user profile queries unless explicitly requested via `.select('+password')`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">40. How is CORS configured to allow cookies across origins in local testing?</div>
+  <div class="a">`cors({ origin: true, credentials: true })` reflects the request origin and sets `Access-Control-Allow-Credentials: true`, permitting browser cookie transmissions.</div>
+</div>
+
+<div class="qa">
+  <div class="q">41. What is the difference between `process.exitCode = 1` and `process.exit(1)`?</div>
+  <div class="a">Setting `process.exitCode = 1` allows the Node.js event loop to complete pending I/O operations and close active database sessions gracefully before exiting, avoiding abrupt socket terminations.</div>
+</div>
+
+<div class="qa">
+  <div class="q">42. How does the backend prevent brute-force OTP attempts?</div>
+  <div class="a">`OtpChallengeModel` enforces a limit of 3 challenge requests per 5-minute window per phone number, returning HTTP 429 Rate Limit Exceeded if violated.</div>
+</div>
+
+<div class="qa">
+  <div class="q">43. What is the function of `adminAudit.js`?</div>
+  <div class="a">It records administrative mutations (such as tournament status modifications) to a persistent audit log, logging admin ID, timestamp, IP, and payload for compliance.</div>
+</div>
+
+<div class="qa">
+  <div class="q">44. How does the application leverage ES Modules (`import/export`) natively?</div>
+  <div class="a">By setting `"type": "module"` in `package.json`, allowing modern Node.js top-level await and clean ES6 module imports without Babel transpilation.</div>
+</div>
+
+<div class="qa">
+  <div class="q">45. How does the server handle graceful shutdown?</div>
+  <div class="a">By listening to `SIGTERM` and `SIGINT`, stopping new HTTP requests, finishing in-flight transactions, closing database connections, and exiting cleanly.</div>
+</div>
+
+<h2>Part IV: MongoDB, Mongoose & Transactions (Questions 46–60)</h2>
+
+<div class="qa">
+  <div class="q">46. Why is MongoDB suitable for this trading application?</div>
+  <div class="a">Its dynamic document model easily represents complex financial objects (such as orders with execution histories and tournament portfolios with nested holdings) while supporting native multi-document ACID transactions.</div>
+</div>
+
+<div class="qa">
+  <div class="q">47. How are multi-document transactions initiated in Mongoose?</div>
+  <div class="a">Via `const session = await mongoose.startSession(); session.startTransaction();`. All queries pass `{ session }`, and operations commit via `await session.commitTransaction()`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">48. Why is `bufferCommands: false` configured on Mongoose?</div>
+  <div class="a">By default, Mongoose buffers queries indefinitely if the database disconnects. Setting `bufferCommands: false` causes operations to fail fast immediately, allowing fallback code to respond promptly.</div>
+</div>
+
+<div class="qa">
+  <div class="q">49. What indexes are placed on the `Orders` collection?</div>
+  <div class="a">Indexes on `userId`, `symbol`, and a compound index on `{ symbol: 1, status: 1 }` to enable fast background matching of pending limit orders on live price ticks.</div>
+</div>
+
+<div class="qa">
+  <div class="q">50. How does the `Holdings` model handle partial sell operations?</div>
+  <div class="a">It executes `$inc: { quantity: -sellQty }`. If `quantity` drops to 0, the holding document is removed via `Holding.deleteOne({ _id })`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">51. What is the significance of `.lean()` in Mongoose queries?</div>
+  <div class="a">It instructs Mongoose to return plain, lightweight JavaScript objects rather than heavy Mongoose Document instances with change tracking, reducing memory consumption by up to 70%.</div>
+</div>
+
+<div class="qa">
+  <div class="q">52. How does `UserModel` guarantee uniqueness on mobile and email?</div>
+  <div class="a">By declaring `unique: true` on both fields, backed by MongoDB unique B-tree indexes that prevent concurrent duplicate registrations.</div>
+</div>
+
+<div class="qa">
+  <div class="q">53. How is the double-entry accounting ledger maintained in `FundTransactionModel`?</div>
+  <div class="a">Every balance change (deposit, withdrawal, order fulfillment) writes an immutable transaction document recording `userId`, `amount`, `type`, `status`, and `createdAt`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">54. What prevents `availableBalance` from going below zero in concurrent requests?</div>
+  <div class="a">Atomic query filters: `Funds.findOneAndUpdate({ userId, availableBalance: { $gte: tradeAmount } }, { $inc: { availableBalance: -tradeAmount } })`. If funds are insufficient, no document matches.</div>
+</div>
+
+<div class="qa">
+  <div class="q">55. What is the purpose of `PortfolioSnapshotModel.js`?</div>
+  <div class="a">It stores end-of-day portfolio valuation snapshots (invested, current, cash, total equity) for generating historical performance curves and drawdown charts in the analytics dashboard.</div>
+</div>
+
+<div class="qa">
+  <div class="q">56. How does the `ChatModel` structure message history?</div>
+  <div class="a">It stores messages as an embedded subdocument array `[{ role: 'user' | 'assistant', content: String, timestamp: Date }]` indexed by `userId` and `chatId`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">57. Explain the schema design of `WatchlistListModel`.</div>
+  <div class="a">Each document represents a named watchlist containing `userId`, `name`, `isDefault: Boolean`, and an array of symbol subdocuments `[{ symbol: String, companyName: String }]`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">58. How does `OtpChallengeModel` auto-expire stale challenges?</div>
+  <div class="a">By utilizing a MongoDB TTL (Time-To-Live) index on `expiresAt` that automatically purges expired challenge documents from the database.</div>
+</div>
+
+<div class="qa">
+  <div class="q">59. What happens if a MongoDB transaction fails halfway through?</div>
+  <div class="a">The catch block invokes `await session.abortTransaction()`, rolling back all staged writes and restoring the database to its pre-transaction state.</div>
+</div>
+
+<div class="qa">
+  <div class="q">60. How are relations modeled between Users, Funds, Holdings, and Orders?</div>
+  <div class="a">Via referenced ObjectId linking (`userId`). Funds has a 1-to-1 relationship with User, while Orders, Holdings, and Positions have 1-to-Many relationships with User.</div>
+</div>
+
+<h2>Part V: Trading Mechanics, Order Execution & Math (Questions 61–75)</h2>
+
+<div class="qa">
+  <div class="q">61. What is the difference between a Market Order and a Limit Order?</div>
+  <div class="a">A Market Order executes immediately at the current market LTP. A Limit Order executes only when market price reaches or improves upon a specified limit trigger price.</div>
+</div>
+
+<div class="qa">
+  <div class="q">62. Walk through the cash reservation lifecycle of a Limit Buy order.</div>
+  <div class="a">1) Placement: `availableBalance -= qty * limitPrice`, `reservedBalance += qty * limitPrice`. 2) Trigger: Executed at LTP. `reservedBalance -= reservedAmount`, `usedBalance += qty * LTP`. 3) Savings Refund: Leftover `(limitPrice - LTP) * qty` returns to `availableBalance`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">63. How is stock reserved on a Limit Sell order?</div>
+  <div class="a">The shares are transferred from unencumbered `quantity` to `reservedQuantity` inside `Holding`. This prevents the trader from selling those same shares in a separate market order while the limit order is active.</div>
+</div>
+
+<div class="qa">
+  <div class="q">64. What is the mathematical formula for Volume-Weighted Average Purchase Price?</div>
+  <div class="a">`((Existing_Qty * Existing_Avg_Price) + (New_Qty * New_Price)) / (Existing_Qty + New_Qty)`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">65. If a user owns 20 shares of Reliance at ₹2,400 and buys 10 more at ₹2,700, what is the new average price?</div>
+  <div class="a">Total Invested = (20 * 2400) + (10 * 2700) = 48,000 + 27,000 = ₹75,000. Total Shares = 30. New Average Price = 75,000 / 30 = ₹2,500 per share.</div>
+</div>
+
+<div class="qa">
+  <div class="q">66. How does the system prevent double execution of a limit order when multiple ticks arrive?</div>
+  <div class="a">Using two-phase atomic locking: the background worker queries for `status: 'pending'` and immediately transitions it to `'processing'`. A concurrent tick finding no order with status `'pending'` simply skips execution.</div>
+</div>
+
+<div class="qa">
+  <div class="q">67. What is `reservationReleased` and why is it essential?</div>
+  <div class="a">It is a boolean latch on the Order model. It ensures that unlocking reserved cash or shares occurs strictly once, preventing double refunds on duplicate cancellation clicks.</div>
+</div>
+
+<div class="qa">
+  <div class="q">68. How is Day P&L calculated for an individual stock?</div>
+  <div class="a">`Day P&L = Quantity * (Current Market Price - Previous Day Close Price)`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">69. How is Total Unrealized P&L calculated for a holding?</div>
+  <div class="a">`Total P&L = Quantity * (Current Market Price - Average Purchase Price)`. Percentage return is `(Total P&L / (Quantity * Average Purchase Price)) * 100`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">70. What happens when a user cancels a pending Limit Buy order?</div>
+  <div class="a">`cancelLimitOrderService.js` confirms status is `pending`, marks `reservationReleased: true`, decrements `reservedBalance` by `reservedAmount`, and increments `availableBalance` by `reservedAmount`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">71. Can a user withdraw funds that are currently in `reservedBalance`?</div>
+  <div class="a">No. The withdrawal endpoint strictly checks `withdrawalAmount &lt;= availableBalance`. Reserved funds are legally encumbered by pending market commitments.</div>
+</div>
+
+<div class="qa">
+  <div class="q">72. How is intraday leverage modeled for MIS orders?</div>
+  <div class="a">For MIS trades, required margin is computed as `(qty * price) / leverageFactor` (e.g. 5x leverage requires only 20% upfront cash), allowing intraday day-trading simulation.</div>
+</div>
+
+<div class="qa">
+  <div class="q">73. What is short selling in MIS and how does the engine handle it?</div>
+  <div class="a">A trader sells shares they do not own, creating a Position with `type: 'sell'`. They profit if price drops and must buy back (square-off) the shares before market close.</div>
+</div>
+
+<div class="qa">
+  <div class="q">74. How does the engine handle orders placed when market prices fluctuate wildly (slippage)?</div>
+  <div class="a">Market orders execute at the latest cached LTP. In a live production exchange, orders would route to an exchange matching engine with price tolerance bands.</div>
+</div>
+
+<div class="qa">
+  <div class="q">75. What validation rules are applied to order placement payloads?</div>
+  <div class="a">`orderValidation.js` enforces: `symbol` must be valid string, `qty` must be positive integer >= 1, `price` must be positive number >= 0.05, `mode` must be 'BUY' or 'SELL', `orderType` must be 'MARKET' or 'LIMIT'.</div>
+</div>
+
+<h2>Part VI: Authentication, Tokens & Security (Questions 76–85)</h2>
+
+<div class="qa">
+  <div class="q">76. Why store JWTs in HTTP-only cookies instead of `localStorage`?</div>
+  <div class="a">`localStorage` is accessible to any JavaScript running on the page, making it vulnerable to token theft via Cross-Site Scripting (XSS). HTTP-only cookies cannot be read by JavaScript.</div>
+</div>
+
+<div class="qa">
+  <div class="q">77. How does the `sameSite: 'lax'` attribute protect against CSRF attacks?</div>
+  <div class="a">It prevents the browser from sending authentication cookies on cross-site subrequests (such as malicious third-party POST forms or embedded images), mitigating Cross-Site Request Forgery.</div>
+</div>
+
+<div class="qa">
+  <div class="q">78. How does `tokenVersion` enable logging out all devices?</div>
+  <div class="a">When the user selects "Logout All Sessions", the server increments `user.tokenVersion` in MongoDB. Existing tokens on other devices carry the old version number and fail validation on their next request.</div>
+</div>
+
+<div class="qa">
+  <div class="q">79. Why is `bcryptjs` used with a work factor of 10?</div>
+  <div class="a">Bcrypt is a slow hashing algorithm designed to resist brute-force hardware attacks. Work factor 10 requires ~100ms per hash, striking an optimal balance between security and server throughput.</div>
+</div>
+
+<div class="qa">
+  <div class="q">80. Explain the role of the `verificationToken` in mobile registration.</div>
+  <div class="a">It is a short-lived signed JWT issued upon successful SMS OTP verification. Including it in the final registration payload proves cryptographically that the mobile number was verified before creating the user account.</div>
+</div>
+
+<div class="qa">
+  <div class="q">81. How does the application prevent account enumeration during login?</div>
+  <div class="a">When OTP dispatch or password verification fails, the API returns a generic error message ("Invalid mobile number or credentials") rather than disclosing whether the account exists.</div>
+</div>
+
+<div class="qa">
+  <div class="q">82. What claims are encoded in the primary authentication JWT?</div>
+  <div class="a">`{ userId: user._id, role: user.role, tokenVersion: user.tokenVersion }` signed with `JWT_SECRET` and a 24-hour expiration (`expiresIn: '1d'`).</div>
+</div>
+
+<div class="qa">
+  <div class="q">83. How are sensitive configuration secrets protected in source control?</div>
+  <div class="a">All secrets (`JWT_SECRET`, `MONGO_URI`, `GEMINI_API_KEY`, `TWILIO_AUTH_TOKEN`) are loaded from `.env` via `dotenv` and explicitly excluded from git tracking via `.gitignore`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">84. How does the system guard against NoSQL injection attacks?</div>
+  <div class="a">Mongoose schema type casting and Joi input validation ensure query parameters match expected primitive types, preventing attackers from injecting operator objects (e.g. `{"$gt": ""}`).</div>
+</div>
+
+<div class="qa">
+  <div class="q">85. What is the role of `passport.js` in this architecture?</div>
+  <div class="a">It encapsulates the Passport Local Strategy for email/password authentication, verifying user credentials and serializing user identity.</div>
+</div>
+
+<h2>Part VII: AI Assistant & External Integrations (Questions 86–95)</h2>
+
+<div class="qa">
+  <div class="q">86. Which Google GenAI SDK is utilized in this project?</div>
+  <div class="a">The modern `@google/genai` TypeScript/JavaScript SDK, instantiating `new GoogleGenAI({ apiKey })` and targeting the `gemini-2.5-flash` model.</div>
+</div>
+
+<div class="qa">
+  <div class="q">87. How is real-time portfolio context provided to the Gemini model?</div>
+  <div class="a">Before calling the AI model, `aiController.js` queries user holdings, active positions, recent orders, and balances in parallel, formatting them into an informative system prompt string.</div>
+</div>
+
+<div class="qa">
+  <div class="q">88. What guardrails prevent the AI assistant from executing unauthorized trades?</div>
+  <div class="a">System instructions explicitly command the model: "Never execute, place, modify, or cancel a trading order." The AI assistant backend does not have access to order mutation function bindings.</div>
+</div>
+
+<div class="qa">
+  <div class="q">89. How are AI conversations persisted in MongoDB?</div>
+  <div class="a">Each conversation is stored in `ChatModel.js` with an array of user and assistant messages, enabling users to switch between conversation threads or review past financial analyses.</div>
+</div>
+
+<div class="qa">
+  <div class="q">90. How does the AI service handle missing API keys or external service limits?</div>
+  <div class="a">It catches API errors gracefully in `aiService.js`, returning informative financial guidance on technical indicators rather than throwing unhandled 500 exceptions to the UI.</div>
+</div>
+
+<div class="qa">
+  <div class="q">91. How does the TrueData historical service optimize token usage?</div>
+  <div class="a">It requests an OAuth token from TrueData Auth REST API and caches it in memory with an expiration timestamp (`historicalTokenExpiresAt`), reusing it across subsequent historical candle queries.</div>
+</div>
+
+<div class="qa">
+  <div class="q">92. What ranges are supported for historical stock charts?</div>
+  <div class="a">`1M` (1 month, intraday 15-min candles), `1Y` (1 year daily candles), `5Y` (5 year weekly candles), and `MAX`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">93. How are Indian stock symbols normalized across TrueData and user inputs?</div>
+  <div class="a">`normalizeSymbol` trims whitespace, converts to uppercase, and strips `NSE:` or `BSE:` prefixes, guaranteeing consistent cache keys and query matching.</div>
+</div>
+
+<div class="qa">
+  <div class="q">94. How does the tournament engine rank competitors?</div>
+  <div class="a">By Return on Investment: `ROI = ((Current Portfolio Value - Initial Balance) / Initial Balance) * 100`. Traders are sorted descending by ROI.</div>
+</div>
+
+<div class="qa">
+  <div class="q">95. How does the SMA Crossover backtesting strategy generate signals?</div>
+  <div class="a">It calculates a Fast SMA (9-period) and Slow SMA (21-period) on historical closing prices. A crossover of Fast above Slow generates a BUY; Fast below Slow generates a SELL.</div>
+</div>
+
+<h2>Part VIII: Production Readiness & Debugging (Questions 96–100)</h2>
+
+<div class="qa">
+  <div class="q">96. How do you debug an issue where a limit order failed to execute?</div>
+  <div class="a">1) Verify order status in MongoDB (`pending` vs `processing`). 2) Inspect TrueData price cache for the symbol's LTP. 3) Check if LTP crossed the limit price. 4) Review logs in `checkPendingLimitOrders.js` for lock acquisition or session rollback errors.</div>
+</div>
+
+<div class="qa">
+  <div class="q">97. How would you diagnose an unexpected balance discrepancy?</div>
+  <div class="a">Audit the `FundTransactionModel` collection for the user. Sum all deposits minus withdrawals and compare against `availableBalance + usedBalance + reservedBalance`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">98. How do you prevent memory leaks in Node.js when processing real-time WebSocket ticks?</div>
+  <div class="a">By storing ticks in a fixed-size `Map` keyed by symbol (updating in-place) rather than appending to an unbounded array, keeping memory usage constant regardless of market tick volume.</div>
+</div>
+
+<div class="qa">
+  <div class="q">99. How is the application built and bundled for production deployment?</div>
+  <div class="a">`npm run build` runs `vite build`, bundling React components into optimized, minified CSS and JavaScript chunks inside `dist/`. The Node server serves these static assets directly.</div>
+</div>
+
+<div class="qa">
+  <div class="q">100. If an interviewer asks: 'What is the proudest engineering accomplishment in this project?', how would you answer?</div>
+  <div class="a">'Designing and implementing the institutional three-tier balance ledger and two-phase limit order reservation engine. Solving real-world concurrency issues—such as preventing double-spending on simultaneous market ticks, executing atomic refunds on limit fills, and isolating tournament capital—demonstrated deep full-stack systems engineering beyond standard CRUD applications.'</div>
+</div>

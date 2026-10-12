@@ -1,0 +1,112 @@
+<h1 class="ch" id="ch6">Chapter 6 — Database Architecture & Schema Design</h1>
+
+<h2>6.1 Database Architecture Overview</h2>
+<p>
+  Persistence is managed by <strong>MongoDB</strong> using the <strong>Mongoose</strong> Object Data Modeling (ODM) framework. The schema design models high-frequency trading data, delivery equity holdings, multi-day ledger balances, audit trails, and virtual tournament portfolios.
+</p>
+
+<figure>
+  <img src="../../database-er-diagram.png" alt="Database Entity Relationship Diagram" />
+  <figcaption>Figure 6.1: MongoDB Entity-Relationship diagram highlighting User references and operational collections.</figcaption>
+</figure>
+
+<h2>6.2 Schema Specifications</h2>
+
+<h3>1. User Model (<code>models/UserModel.js</code>)</h3>
+<p>Master account entity storing personal details, authentication credentials, and access control roles.</p>
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Constraints & Defaults</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>name</code></td><td>String</td><td>Required, trim</td><td>User full legal name.</td></tr>
+    <tr><td><code>email</code></td><td>String</td><td>Required, unique, lowercase, trim</td><td>Account email address.</td></tr>
+    <tr><td><code>mobile</code></td><td>String</td><td>Required, unique, trim</td><td>10-digit verified Indian phone number.</td></tr>
+    <tr><td><code>password</code></td><td>String</td><td>Required, select: false</td><td>bcrypt-hashed password (excluded from default queries).</td></tr>
+    <tr><td><code>clientId</code></td><td>String</td><td>Required, unique, uppercase</td><td>6-character broker trading ID (e.g. <code>ZR9669</code>).</td></tr>
+    <tr><td><code>role</code></td><td>String</td><td>enum: ['trader', 'admin'], default: 'trader'</td><td>Access role for authorization.</td></tr>
+    <tr><td><code>status</code></td><td>String</td><td>enum: ['active', 'suspended'], default: 'active'</td><td>Account status.</td></tr>
+    <tr><td><code>tokenVersion</code></td><td>Number</td><td>default: 0</td><td>Session version counter for revocation.</td></tr>
+    <tr><td><code>lastLogin</code></td><td>Date</td><td>default: Date.now</td><td>Timestamp of last authenticated session.</td></tr>
+  </tbody>
+</table>
+
+<h3>2. Funds Model (<code>models/FundsModel.js</code>)</h3>
+<p>Maintains the three-tier balance ledger required for atomic order execution and margin management.</p>
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Constraints & Defaults</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>userId</code></td><td>ObjectId / String</td><td>Required, ref: 'User', unique index</td><td>Associated trader ID.</td></tr>
+    <tr><td><code>availableBalance</code></td><td>Number</td><td>default: 100000, min: 0</td><td>Liquid capital available for new trades or withdrawal.</td></tr>
+    <tr><td><code>usedBalance</code></td><td>Number</td><td>default: 0</td><td>Capital currently deployed in active holdings or open positions.</td></tr>
+    <tr><td><code>reservedBalance</code></td><td>Number</td><td>default: 0, min: 0</td><td>Capital locked for pending buy limit orders.</td></tr>
+  </tbody>
+</table>
+
+<h3>3. Orders Model (<code>models/OrdersModel.js</code>)</h3>
+<p>Comprehensive order execution ledger tracking state transitions from pending to filled or canceled.</p>
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Constraints & Defaults</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>userId</code></td><td>ObjectId / String</td><td>Required, ref: 'User', index</td><td>Trader placing the order.</td></tr>
+    <tr><td><code>symbol</code></td><td>String</td><td>Required, uppercase, trim</td><td>NSE/BSE ticker symbol (e.g. <code>RELIANCE</code>).</td></tr>
+    <tr><td><code>qty</code></td><td>Number</td><td>Required, min: 1</td><td>Number of shares to execute.</td></tr>
+    <tr><td><code>price</code></td><td>Number</td><td>Required, min: 0.05</td><td>Order execution price (or limit trigger price).</td></tr>
+    <tr><td><code>mode</code></td><td>String</td><td>enum: ['BUY', 'SELL']</td><td>Trade direction.</td></tr>
+    <tr><td><code>orderType</code></td><td>String</td><td>enum: ['MARKET', 'LIMIT'], default: 'MARKET'</td><td>Order trigger type.</td></tr>
+    <tr><td><code>product</code></td><td>String</td><td>enum: ['CNC', 'MIS'], default: 'CNC'</td><td>Equity delivery vs. Intraday margin.</td></tr>
+    <tr><td><code>status</code></td><td>String</td><td>enum: ['pending', 'processing', 'completed', 'cancelled']</td><td>Execution lifecycle state.</td></tr>
+    <tr><td><code>reservedAmount</code></td><td>Number</td><td>default: 0</td><td>Cash amount locked while in pending status.</td></tr>
+    <tr><td><code>reservationReleased</code></td><td>Boolean</td><td>default: false</td><td>Flag ensuring reserved funds are released exactly once.</td></tr>
+  </tbody>
+</table>
+
+<h3>4. Holdings Model (<code>models/HoldingsModel.js</code>)</h3>
+<p>Long-term equity inventory acquired through Cash 'N Carry (CNC) delivery purchases.</p>
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Constraints & Defaults</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>userId</code></td><td>ObjectId / String</td><td>Required, index</td><td>Owner of the equity holding.</td></tr>
+    <tr><td><code>symbol</code></td><td>String</td><td>Required, uppercase</td><td>Equity ticker symbol.</td></tr>
+    <tr><td><code>quantity</code></td><td>Number</td><td>Required, min: 0</td><td>Unencumbered share quantity available to sell.</td></tr>
+    <tr><td><code>averagePrice</code></td><td>Number</td><td>Required</td><td>Volume-weighted average purchase price.</td></tr>
+    <tr><td><code>reservedQuantity</code></td><td>Number</td><td>default: 0</td><td>Shares temporarily locked in pending limit sell orders.</td></tr>
+    <tr><td><code>product</code></td><td>String</td><td>default: 'CNC'</td><td>Always CNC for delivery holdings.</td></tr>
+  </tbody>
+</table>
+
+<h3>5. Positions Model (<code>models/PositionsModel.js</code>)</h3>
+<p>Tracks leveraged Margin Intraday Square-off (MIS) trades that must be closed prior to market close.</p>
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Constraints & Defaults</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>userId</code></td><td>ObjectId / String</td><td>Required, index</td><td>Trader holding the intraday position.</td></tr>
+    <tr><td><code>symbol</code></td><td>String</td><td>Required, uppercase</td><td>Ticker symbol.</td></tr>
+    <tr><td><code>quantity</code></td><td>Number</td><td>Required</td><td>Net active position share volume.</td></tr>
+    <tr><td><code>averagePrice</code></td><td>Number</td><td>Required</td><td>Entry price for intraday position.</td></tr>
+    <tr><td><code>type</code></td><td>String</td><td>enum: ['buy', 'sell']</td><td>Position direction (Long vs. Short).</td></tr>
+    <tr><td><code>product</code></td><td>String</td><td>default: 'MIS'</td><td>Intraday product identifier.</td></tr>
+  </tbody>
+</table>
+
+<h3>6. Additional Specialized Models</h3>
+<ul>
+  <li><code>FundTransactionModel</code>: Double-entry deposit and withdrawal ledger entries with unique timestamps.</li>
+  <li><code>TournamentModel</code>: Competition configurations (start time, end time, entry fee, initial virtual balance).</li>
+  <li><code>TournamentParticipationModel</code>: User tournament entries tracking virtual portfolio, rank, and ROI.</li>
+  <li><code>TournamentOrderModel</code>: Order records scoped specifically to tournament competition portfolios.</li>
+  <li><code>ChatModel</code>: Threaded AI conversation messages between trader and Gemini assistant.</li>
+  <li><code>WatchlistListModel</code>: User watchlists containing ordered arrays of tracked symbols.</li>
+  <li><code>PriceAlertModel</code>: Price threshold triggers (above/below condition checks).</li>
+  <li><code>RiskSettingsModel</code>: Risk Guard parameters (maximum daily loss, position limits, leverage constraints).</li>
+  <li><code>JournalModel</code>: Trade reflection notes with psychological tags (FOMO, Greed, Disciplined).</li>
+  <li><code>BacktestHistoryModel</code>: Stored strategy backtest results with calculated financial KPIs.</li>
+</ul>

@@ -264,6 +264,38 @@
   J --> K["JSON response"]
   J --> L["Socket emit after commit"]
 </div></section>
+<section class="wrap"><h2>AI Assistant Portfolio Context & Prompt Flow</h2><div class="diagram" id="ai">sequenceDiagram
+  autonumber
+  actor User as Trader
+  participant UI as AIAssistant.jsx
+  participant Route as aiRoutes.js
+  participant Auth as isLoggedIn
+  participant Ctrl as aiController.js
+  participant DB as MongoDB (Holdings, Orders, Funds, Positions)
+  participant Model as ChatModel
+  participant AI as aiService.js (@google/genai)
+  participant Gem as Gemini 2.5 Flash
+
+  User->>UI: Types question ("Analyze my risk and portfolio")
+  UI->>Route: POST /api/ai/chat { message, chatId }
+  Route->>Auth: Validate JWT cookie / session
+  Auth-->>Route: Authenticated user context
+  Route->>Ctrl: chatWithAI(req, res)
+  par Fetch User Portfolio Context
+    Ctrl->>DB: Holding.find({ userId })
+    Ctrl->>DB: Position.find({ userId })
+    Ctrl->>DB: Order.find({ userId }).limit(20)
+    Ctrl->>DB: Fund.findOne({ userId })
+  end
+  Ctrl->>Ctrl: Synthesize structured portfolio context
+  Ctrl->>AI: generateAIResponse(message, context)
+  AI->>Gem: generateContent(system_instruction + context + prompt)
+  Gem-->>AI: Financial insights & educational analysis
+  AI-->>Ctrl: Clean Markdown response text
+  Ctrl->>Model: Save user query & assistant answer to chat history
+  Ctrl-->>UI: 200 OK { success: true, reply, chatId }
+  UI-->>User: Renders formatted response in chat stream
+</div></section>
 <script type="module">
   import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
   mermaid.initialize({

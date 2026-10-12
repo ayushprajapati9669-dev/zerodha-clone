@@ -17,7 +17,7 @@ function Sidebar() {
       {/* Navigation */}
       <div className="sidebar-menu">
         <NavLink to="/ai-assistant" className="sidebar-link">
-          <i className="fa-solid fa-robot"></i>
+          <i className="bi bi-robot"></i>
           <span>AI Assistant</span>
         </NavLink>
         <NavLink to={"/dashboard"} className="sidebar-link">

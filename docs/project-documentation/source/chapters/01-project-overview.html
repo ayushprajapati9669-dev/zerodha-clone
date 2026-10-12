@@ -1,0 +1,139 @@
+<h1 class="ch" id="ch1">Chapter 1 — Project Overview</h1>
+
+<h2>1.1 Executive Summary</h2>
+<p>
+  <strong>Zerodha Clone</strong> is a production-grade, full-stack stock trading, portfolio management, and simulated investment platform modeled after India's premier discount broker, Zerodha (Kite). The system implements a full-featured financial trading engine supporting equity delivery (<strong>CNC — Cash 'N Carry</strong>) and intraday margin trading (<strong>MIS — Margin Intraday Square-off</strong>), market orders, limit orders with price triggers, cash and stock reservation locking, real-time market data streaming via WebSockets, competitive paper-trading tournaments, portfolio analytics, risk guard management, trading journals, strategy backtesting, and an integrated generative AI financial assistant powered by Google Gemini.
+</p>
+
+<h2>1.2 Core Project Goals</h2>
+<ul>
+  <li><strong>Institutional-Grade Trading Mechanics:</strong> Replicate real stock market order execution mechanics, including available vs. used vs. reserved balances, limit order price condition triggers, and atomic inventory allocations.</li>
+  <li><strong>Resilient Dual-Mode Execution:</strong> Seamless operation with live external APIs (TrueData market feed, Twilio SMS OTP, MongoDB, Google Gemini) while maintaining offline and development fallbacks so the system remains interactive under all runtime environments.</li>
+  <li><strong>Real-Time Data Distribution:</strong> Event-driven WebSocket architecture utilizing Socket.IO for pushing real-time order status updates, price alert triggers, fund notifications, and tournament leaderboard rankings.</li>
+  <li><strong>Gamified Simulated Learning:</strong> Isolated tournament and paper-trading environments enabling risk-free trading competitions with independent virtual capital, real-time leaderboards, and automated prize/winner settlement.</li>
+  <li><strong>Context-Aware Portfolio Intelligence:</strong> Server-side AI assistant that dynamically queries user holdings, active positions, recent orders, and available funds to formulate personalized financial and risk commentary.</li>
+</ul>
+
+<h2>1.3 Complete Technology Stack</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Layer</th>
+      <th>Technologies / Libraries</th>
+      <th>Key Architectural Role</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Frontend Framework</strong></td>
+      <td>React 19, Vite 8, React Router DOM 7</td>
+      <td>Modern Single Page Application (SPA) architecture, client-side routing, modular UI composition.</td>
+    </tr>
+    <tr>
+      <td><strong>UI & Component Systems</strong></td>
+      <td>Bootstrap 5.3, Material UI (@mui/material, @mui/icons-material), Emotion</td>
+      <td>Responsive trading terminal layouts, data tables, modals, drawer navigation, and Zerodha Kite UI aesthetics.</td>
+    </tr>
+    <tr>
+      <td><strong>Data Visualization</strong></td>
+      <td>Recharts, Custom Canvas Charts</td>
+      <td>Portfolio asset allocation pie charts, P&L performance timelines, historical candlestick/area stock charts.</td>
+    </tr>
+    <tr>
+      <td><strong>Real-Time Client</strong></td>
+      <td>Socket.IO Client 4.8</td>
+      <td>Subscribes to user private rooms (<code>user:{userId}</code>) and tournament competition rooms (<code>tournament:{id}</code>).</td>
+    </tr>
+    <tr>
+      <td><strong>Backend Runtime</strong></td>
+      <td>Node.js 22 (ES Modules), Express 5.2</td>
+      <td>High-concurrency asynchronous HTTP API server, request validation, authentication middleware, and business logic.</td>
+    </tr>
+    <tr>
+      <td><strong>Database & ORM</strong></td>
+      <td>MongoDB 7.0+, Mongoose 9.9</td>
+      <td>Document data persistence, schema validations, compound indexing, and multi-document ACID transactions.</td>
+    </tr>
+    <tr>
+      <td><strong>Authentication & Security</strong></td>
+      <td>JWT (jsonwebtoken 9.0), bcryptjs 3.0, Cookie-Parser, Passport.js, Joi</td>
+      <td>Stateless HTTP-only cookie JWT strategy, mobile OTP verification challenges, token version invalidation.</td>
+    </tr>
+    <tr>
+      <td><strong>External Integrations</strong></td>
+      <td>@google/genai 2.27, TrueData SDK / WebSocket, Twilio Verify</td>
+      <td>Generative AI analysis (Gemini 2.5 Flash), live NSE/BSE tick feeds, SMS OTP dispatch.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>1.4 Complete Repository Directory Structure</h2>
+<pre>
+/
+├── backend/                              # Express REST API, Mongoose models, and services
+│   ├── config/
+│   │   └── passport.js                   # Passport local authentication strategy
+│   ├── controller/                       # Request handlers & response formatters
+│   │   ├── aiController.js               # AI Assistant endpoints & context synthesis
+│   │   ├── authController.js             # Registration, login, profile, password management
+│   │   ├── backtestController.js         # Strategy backtesting runner
+│   │   ├── fundController.js             # Fund additions, withdrawals, ledger transactions
+│   │   ├── holdingController.js          # CNC delivery stock holdings
+│   │   ├── journalController.js          # Trading journal CRUD & tagging
+│   │   ├── marketController.js           # Live quotes, historical OHLCV data
+│   │   ├── notificationController.js     # User alerts & read state updates
+│   │   ├── orderController.js            # Market & limit order placement, cancellations
+│   │   ├── otpAuthController.js          # Mobile OTP dispatch and verification
+│   │   ├── positionController.js         # Intraday MIS positions & square-offs
+│   │   ├── priceAlertController.js       # Target price alerts evaluation
+│   │   ├── riskController.js             # Risk Guard limits & drawdown monitoring
+│   │   ├── tournamentController.js       # Paper-trading competitions & leaderboards
+│   │   ├── watchlistController.js        # Legacy watchlist controller
+│   │   └── watchlistsController.js       # Multi-watchlist management & symbol ordering
+│   ├── db/
+│   │   └── connectDB.js                  # Mongoose connection with timeout & offline resilience
+│   ├── data/
+│   │   ├── data.js                       # Seed & offline fallback data (holdings, positions, funds)
+│   │   └── marketStocks.js               # NSE/BSE master ticker directory & instrument keys
+│   ├── middleware/
+│   │   ├── adminMiddleware.js            # Role-based access control (admin authorization)
+│   │   ├── isLoggedInMiddleware.js       # JWT cookie extraction, signature verification, token versioning
+│   │   ├── orderValidation.js            # Joi schema validation for order placement
+│   │   └── validateUser.js               # Joi registration/login payload validation
+│   ├── models/                           # 15 Mongoose Schema Definitions
+│   │   ├── BacktestHistoryModel.js       # Stored backtest runs & KPI metrics
+│   │   ├── ChatModel.js                  # AI assistant conversation threads & messages
+│   │   ├── FundsModel.js                 # Trading balance (available, used, reserved)
+│   │   ├── FundTransactionModel.js       # Deposit & withdrawal ledger history
+│   │   ├── HoldingsModel.js              # CNC equity delivery holdings
+│   │   ├── JournalModel.js               # Trading journal entries with emotional/setup tags
+│   │   ├── NotificationModel.js          # In-app notifications
+│   │   ├── NotificationPreferenceModel.js# Granular user notification settings
+│   │   ├── OrdersModel.js                # Master order records (Market/Limit, CNC/MIS)
+│   │   ├── OtpChallengeModel.js          # Mobile OTP challenges with expiry & rate limiting
+│   │   ├── PortfolioSnapshotModel.js     # Historical equity snapshots for analytics
+│   │   ├── PositionsModel.js             # Intraday MIS open/closed positions
+│   │   ├── PriceAlertModel.js            # User price target alerts
+│   │   ├── RiskSettingsModel.js          # Maximum daily loss, order sizing, and leverage caps
+│   │   ├── TournamentModel.js            # Competition metadata, schedules, initial virtual capital
+│   │   ├── TournamentOrderModel.js       # Virtual orders executed inside tournaments
+│   │   ├── TournamentParticipationModel.js # Participant virtual balances, ROI, and rank
+│   │   ├── UserModel.js                  # User accounts, hashed passwords, client IDs
+│   │   └── WatchlistListModel.js         # Multi-watchlist collections & symbols
+│   ├── routes/                           # Express route definitions
+│   └── services/                         # Business logic & external API wrappers
+│       ├── aiService.js                  # Google GenAI SDK interface & prompts
+│       ├── backtestEngine.js             # Historical simulation execution engine
+│       ├── checkPendingLimitOrders.js    # Limit order trigger evaluator on price ticks
+│       ├── createOrderServices.js        # Atomic order execution & balance debit/credit
+│       ├── limitOrderService/            # Limit execution & cancellation helpers
+│       ├── tournamentService.js          # Tournament order matching & background lifecycle
+│       └── trueDataService.js            # TrueData WebSocket & in-memory price cache
+├── dashboard/                            # React trading platform (Kite interface)
+├── frontend/                             # React public marketing portal (Zerodha home/pricing)
+├── src/                                  # Unified full-stack client application
+├── docs/                                 # Architectural specifications & technical documentation
+├── index.html                            # Master HTML entry point
+├── server.js                             # Full-stack server entry point (Express + Vite middleware)
+└── package.json                          # Unified dependency and script manifest
+</pre>

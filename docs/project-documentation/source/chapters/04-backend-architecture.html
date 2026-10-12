@@ -1,0 +1,144 @@
+<h1 class="ch" id="ch4">Chapter 4 — Backend Architecture & Request Pipeline</h1>
+
+<h2>4.1 Backend Architectural Pattern</h2>
+<p>
+  The backend is engineered using Node.js 22 and Express 5.2 adhering to a layered <strong>Controller-Service-Repository</strong> architectural pattern. The codebase strictly separates HTTP transport concerns (status codes, headers, cookie parsing) from domain trading rules (balance math, limit order triggers, inventory locking) and persistence layers (MongoDB Mongoose models).
+</p>
+
+<h2>4.2 Middleware Pipeline Execution Order</h2>
+<p>
+  Every incoming HTTP request traverses an ordered sequence of middlewares before reaching route controllers:
+</p>
+<pre>
+Incoming Request
+      │
+      ▼
+1. cors({ origin: true, credentials: true })
+   ├── Validates allowed origins
+   └── Allows Authorization headers and cookies
+      │
+      ▼
+2. bodyParser.json()
+   └── Parses JSON request bodies into req.body
+      │
+      ▼
+3. cookieParser()
+   └── Extracts browser cookies into req.cookies (notably req.cookies.token)
+      │
+      ▼
+4. passport.initialize()
+   └── Sets up Passport authentication strategy framework
+      │
+      ▼
+5. Route-Specific Middlewares:
+   ├── validateUser / orderValidation (Joi schema validation on req.body)
+   ├── isLoggedInMiddleware (JWT verification, session status, tokenVersion check)
+   └── adminMiddleware (Verifies req.user.role === 'admin')
+      │
+      ▼
+6. Domain Controller & Service
+   └── Executes business logic, database transactions, socket emissions
+      │
+      ▼
+7. Global Error Handler / Offline Fallback Middleware
+   └── Catches uncaught errors, Mongoose connection drops, and network timeouts
+</pre>
+
+<h2>4.3 Complete Backend Route Directory</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Endpoint Prefix</th>
+      <th>Route File</th>
+      <th>Key Operations Supported</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>/api/auth</code></td>
+      <td><code>backend/routes/auth.js</code></td>
+      <td>Registration, password login, OTP mobile dispatch/verify, demo login, profile updates, session revocation, account deletion.</td>
+    </tr>
+    <tr>
+      <td><code>/api/orders</code></td>
+      <td><code>backend/routes/order.js</code></td>
+      <td>Placing market/limit orders (CNC/MIS), fetching user order book, canceling pending limit orders.</td>
+    </tr>
+    <tr>
+      <td><code>/api/holdings</code></td>
+      <td><code>backend/routes/holding.js</code></td>
+      <td>Fetching equity delivery holdings with live market valuation and P&L.</td>
+    </tr>
+    <tr>
+      <td><code>/api/positions</code></td>
+      <td><code>backend/routes/position.js</code></td>
+      <td>Retrieving open/closed intraday MIS positions and square-off calculations.</td>
+    </tr>
+    <tr>
+      <td><code>/api/funds</code></td>
+      <td><code>backend/routes/fund.js</code></td>
+      <td>Retrieving available/used/reserved balances, depositing capital, withdrawing funds, transaction history ledger.</td>
+    </tr>
+    <tr>
+      <td><code>/api/market</code></td>
+      <td><code>backend/routes/marketRoutes.js</code></td>
+      <td>Retrieving single stock price, all stock quotes, historical OHLCV candles (1M, 1Y, 5Y, MAX).</td>
+    </tr>
+    <tr>
+      <td><code>/api/watchlists</code></td>
+      <td><code>backend/routes/watchlistsRoutes.js</code></td>
+      <td>Creating watchlists, renaming, reordering symbols, deleting watchlists.</td>
+    </tr>
+    <tr>
+      <td><code>/api/price-alerts</code></td>
+      <td><code>backend/routes/priceAlertRoutes.js</code></td>
+      <td>Setting target price alerts, listing active alerts, deleting price triggers.</td>
+    </tr>
+    <tr>
+      <td><code>/api/notifications</code></td>
+      <td><code>backend/routes/notificationRoutes.js</code></td>
+      <td>Fetching user notifications, marking individual/all notifications as read, updating notification preferences.</td>
+    </tr>
+    <tr>
+      <td><code>/api/analytics</code></td>
+      <td><code>backend/routes/analyticsRoutes.js</code></td>
+      <td>Portfolio performance history, win/loss ratios, sector allocations, max drawdown.</td>
+    </tr>
+    <tr>
+      <td><code>/api/risk</code></td>
+      <td><code>backend/routes/riskRoutes.js</code></td>
+      <td>Fetching and updating Risk Guard limits (daily loss caps, max leverage, position size limit).</td>
+    </tr>
+    <tr>
+      <td><code>/api/journal</code></td>
+      <td><code>backend/routes/journalRoutes.js</code></td>
+      <td>Creating trading journal entries, setup tags, psychological reflections, trade linkings.</td>
+    </tr>
+    <tr>
+      <td><code>/api/backtest</code></td>
+      <td><code>backend/routes/backtestRoutes.js</code></td>
+      <td>Running strategy backtests (e.g. SMA Crossover), retrieving simulation KPI metrics.</td>
+    </tr>
+    <tr>
+      <td><code>/api/tournaments</code></td>
+      <td><code>backend/routes/tournamentRoutes.js</code></td>
+      <td>Listing active tournaments, joining with virtual capital, placing virtual tournament orders, leaderboard stats, admin creation.</td>
+    </tr>
+    <tr>
+      <td><code>/api/ai</code></td>
+      <td><code>backend/routes/aiRoutes.js</code></td>
+      <td>Submitting chat prompts, injecting portfolio context, fetching chat history, deleting threads.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>4.4 Controller vs. Service Decoupling</h2>
+<p>
+  Rather than writing SQL/Mongo queries directly inside controller files, complex domain operations are delegated to service modules:
+</p>
+<ul>
+  <li><code>createOrderServices.js</code>: Coordinates validation, price retrieval, capital checks, and MongoDB transaction sessions.</li>
+  <li><code>checkPendingLimitOrders.js</code>: Invoked whenever fresh market ticks arrive; iterates over active pending limit orders to evaluate whether trigger prices are met.</li>
+  <li><code>tournamentService.js</code>: Manages tournament lifecycles (scheduled -> active -> completed), matches virtual limit orders against live market ticks, and recalculates leaderboards.</li>
+  <li><code>aiService.js</code>: Formulates prompt strings, enforces safety instructions, and handles communication with Google GenAI SDK.</li>
+</ul>

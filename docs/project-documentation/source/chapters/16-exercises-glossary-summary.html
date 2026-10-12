@@ -1,0 +1,107 @@
+<h1 class="ch" id="ch16">Chapter 16 — Practical Exercises, Glossary & Revision Cheat Sheet</h1>
+
+<h2>16.1 Hands-On Coding Exercises</h2>
+<p>
+  These exercises reinforce your understanding of core financial engineering and full-stack patterns implemented in this codebase:
+</p>
+
+<h3>Exercise 1: Implement a Stop-Loss Market (SL-M) Order Type</h3>
+<p>
+  <strong>Goal:</strong> Add support for Stop-Loss Market (SL-M) orders that remain pending until a trigger price is hit, at which point they execute immediately as market orders.
+</p>
+<ul>
+  <li><strong>Hint:</strong> Add <code>'SL-M'</code> to <code>orderType</code> enum in <code>OrdersModel.js</code> and add a <code>triggerPrice</code> field.</li>
+  <li><strong>Hint:</strong> In <code>createOrderServices.js</code>, reserve funds or shares based on trigger price. In <code>checkPendingLimitOrders.js</code>, evaluate: For Buy SL-M, trigger when <code>LTP &gt;= triggerPrice</code>; For Sell SL-M, trigger when <code>LTP &lt;= triggerPrice</code>.</li>
+  <li><strong>Learning Outcome:</strong> Master conditional order triggers and multi-state order lifecycles.</li>
+</ul>
+
+<h3>Exercise 2: Implement Real-Time Margin Call Notification</h3>
+<p>
+  <strong>Goal:</strong> If a user's total unrealized intraday loss in MIS positions exceeds 80% of their available margin, dispatch an urgent high-priority notification via Socket.IO.
+</p>
+<ul>
+  <li><strong>Hint:</strong> Create a helper in <code>riskService.js</code> that sums <code>(CurrentPrice - AvgPrice) * Qty</code> across open positions whenever TrueData ticks arrive.</li>
+  <li><strong>Hint:</strong> If <code>unrealizedLoss &gt; 0.8 * availableBalance</code>, emit <code>margin-warning</code> over Socket.IO to room <code>user:{userId}</code>.</li>
+  <li><strong>Learning Outcome:</strong> Understand risk management thresholds and proactive event-driven alerts.</li>
+</ul>
+
+<h3>Exercise 3: Add Trailing Stop Loss to Strategy Backtesting</h3>
+<p>
+  <strong>Goal:</strong> Enhance <code>backtestEngine.js</code> to support dynamic trailing stop-loss percentages (e.g. 2% below highest peak price achieved since position entry).
+</p>
+<ul>
+  <li><strong>Hint:</strong> Maintain a <code>highestHigh</code> variable updated on each candle while in an active position. Calculate <code>stopPrice = highestHigh * (1 - trailPercent)</code>. Exit if candle low crosses below <code>stopPrice</code>.</li>
+  <li><strong>Learning Outcome:</strong> Experience dynamic risk-reward modeling in quantitative trading simulations.</li>
+</ul>
+
+<h2>16.2 Comprehensive Financial & Tech Glossary</h2>
+<table>
+  <thead>
+    <tr><th>Term</th><th>Definition & Project Context</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>CNC (Cash 'N Carry)</strong></td>
+      <td>Equity delivery product type where shares are purchased with 100% upfront capital and held indefinitely in the user's holdings portfolio.</td>
+    </tr>
+    <tr>
+      <td><strong>MIS (Margin Intraday Square-off)</strong></td>
+      <td>Intraday leveraged trading product where positions must be closed before market session close. Supported in the <code>positions</code> collection.</td>
+    </tr>
+    <tr>
+      <td><strong>LTP (Last Traded Price)</strong></td>
+      <td>The latest price at which a stock transaction occurred on the exchange. Broadcast by TrueData WebSocket ticks.</td>
+    </tr>
+    <tr>
+      <td><strong>Limit Order</strong></td>
+      <td>An order to buy or sell a stock at a specified price or better. Requires capital or stock reservation in the ledger while pending.</td>
+    </tr>
+    <tr>
+      <td><strong>Touchline Tick</strong></td>
+      <td>Live top-of-book market feed data containing symbol, LTP, volume, open, high, low, and previous close.</td>
+    </tr>
+    <tr>
+      <td><strong>VWAP / Average Price</strong></td>
+      <td>Volume-Weighted Average Price formula used to compute cost basis across multiple purchases of the same stock.</td>
+    </tr>
+    <tr>
+      <td><strong>Three-Tier Ledger</strong></td>
+      <td>The financial model separating liquid capital (<code>availableBalance</code>), deployed capital (<code>usedBalance</code>), and locked commitments (<code>reservedBalance</code>).</td>
+    </tr>
+    <tr>
+      <td><strong>Token Versioning</strong></td>
+      <td>A database-backed session invalidation pattern enabling immediate revocation of all active JWTs when logging out of other devices.</td>
+    </tr>
+    <tr>
+      <td><strong>Socket.IO Room</strong></td>
+      <td>An isolated channel for targeted message broadcasts (e.g. <code>user:{userId}</code> for personal notifications and <code>tournament:{id}</code> for leaderboards).</td>
+    </tr>
+    <tr>
+      <td><strong>Context Injection</strong></td>
+      <td>The technique of querying a user's holdings, positions, and orders on-the-fly and injecting them into the Gemini AI system prompt for personalized responses.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>16.3 Quick Revision Cheat Sheet</h2>
+<pre>
+┌───────────────────────────────┬────────────────────────────────────────────────────────┐
+│ Area                          │ Quick Summary & Key Files                              │
+├───────────────────────────────┼────────────────────────────────────────────────────────┤
+│ Architecture                  │ React 19 + Express 5 + MongoDB + Socket.IO on port 3000│
+│ Authentication                │ Mobile OTP (Twilio/Mock) -> JWT in HTTP-Only Cookie    │
+│ Order Flow                    │ UI -> orderController -> createOrderServices -> Mongo  │
+│ Limit Orders                  │ Lock cash/shares -> Live tick match -> Settle + Refund │
+│ Ledger Math                   │ Available + Used + Reserved = Total Account Capital    │
+│ Holdings vs Positions         │ CNC Delivery = Holdings, MIS Intraday = Positions      │
+│ Real-Time Ticks               │ TrueData WS -> in-memory Map -> limit triggers + Sockets│
+│ AI Assistant                  │ Parallel DB Context -> Gemini 2.5 Flash -> ChatModel   │
+│ Tournaments                   │ Independent Virtual Portfolio -> Live ROI Leaderboard  │
+│ Security                      │ Joi validation, bcrypt (salt 10), tokenVersion logout │
+└───────────────────────────────┴────────────────────────────────────────────────────────┘
+</pre>
+
+<h2>16.4 Final End-to-End Feature Summary</h2>
+<p>
+  Zerodha Clone represents a fully cohesive, full-stack trading application engineering effort. By faithfully modeling real-world order execution conditions, multi-tier balances, background tick evaluation, isolated tournament competitions, and contextual financial AI intelligence, the platform bridges the gap between basic web tutorials and real institutional-grade fintech software.
+</p>

@@ -1,0 +1,2270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Zerodha Clone — Complete Technical Documentation</title>
+  <style>
+    :root {
+  --navy: #0b2545;
+  --blue: #1d4ed8;
+  --ink: #1e293b;
+  --muted: #475569;
+  --line: #cbd5e1;
+  --bg: #f8fafc;
+  --ok: #166534;
+  --warn: #9a3412;
+  --gap: #9f1239;
+}
+* { box-sizing: border-box; }
+html { font-size: 11pt; }
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Segoe UI", Calibri, Arial, sans-serif;
+  line-height: 1.45;
+}
+.cover {
+  page-break-after: always;
+  min-height: 240mm;
+  background: linear-gradient(165deg, #0b2545 0%, #1e3a5f 55%, #1d4ed8 140%);
+  color: #fff;
+  padding: 28mm 18mm 18mm;
+}
+.cover .kicker { letter-spacing: 0.18em; font-size: 11px; text-transform: uppercase; opacity: 0.85; }
+.cover h1 { font-size: 34px; line-height: 1.15; margin: 18px 0 8px; }
+.cover .sub { font-size: 16px; opacity: 0.92; max-width: 150mm; }
+.cover .meta { margin-top: 28mm; font-size: 12px; opacity: 0.9; }
+.cover .badge {
+  display: inline-block; margin-top: 14px; padding: 6px 12px;
+  border: 1px solid rgba(255,255,255,0.35); border-radius: 999px; font-size: 11px;
+}
+h1.ch { color: var(--navy); font-size: 22px; border-bottom: 3px solid var(--blue); padding-bottom: 6px; page-break-before: always; }
+h2 { color: var(--navy); font-size: 15px; margin-top: 16px; }
+h3 { color: #1e3a5f; font-size: 13px; margin-top: 12px; }
+p { margin: 8px 0; }
+ul, ol { margin: 6px 0 10px 18px; }
+li { margin: 3px 0; }
+.toc { page-break-after: always; padding-top: 8mm; }
+.toc a { color: var(--navy); text-decoration: none; display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dotted var(--line); }
+.toc .sec { font-weight: 700; margin-top: 8px; }
+table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; font-size: 9.5pt; }
+th, td { border: 1px solid var(--line); padding: 5px 7px; vertical-align: top; text-align: left; }
+th { background: var(--navy); color: #fff; font-weight: 600; }
+tr:nth-child(even) td { background: var(--bg); }
+.note, .gap, .partial, .ok {
+  border-left: 4px solid var(--blue);
+  background: #eff6ff;
+  padding: 8px 10px;
+  margin: 10px 0;
+  font-size: 10pt;
+}
+.gap { border-color: var(--gap); background: #fff1f2; }
+.partial { border-color: var(--warn); background: #fff7ed; }
+.ok { border-color: var(--ok); background: #f0fdf4; }
+code, .path { font-family: Consolas, "Cascadia Mono", monospace; font-size: 9pt; background: #eef2ff; padding: 1px 4px; border-radius: 3px; }
+pre {
+  background: #0f172a; color: #e2e8f0; padding: 10px 12px; border-radius: 6px;
+  font-size: 8.5pt; overflow-wrap: anywhere; white-space: pre-wrap;
+  page-break-inside: avoid;
+}
+figure { margin: 12px 0 16px; page-break-inside: avoid; text-align: center; }
+figure img { max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; }
+figcaption { font-size: 9.5pt; color: var(--muted); margin-top: 6px; }
+.qa { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin: 8px 0; page-break-inside: avoid; background: #fff; }
+.qa .q { font-weight: 700; color: var(--navy); }
+.qa .a { margin-top: 4px; }
+.qa .fu { margin-top: 4px; color: var(--muted); font-size: 10pt; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.small { font-size: 9.5pt; color: var(--muted); }
+.header-bar { font-size: 9pt; color: #64748b; }
+@page { size: A4; margin: 16mm 14mm 18mm; }
+@media print {
+  a { color: inherit; }
+  h1.ch { page-break-before: always; }
+  .cover { margin: -16mm -14mm 0; padding: 28mm 18mm 18mm; }
+}
+
+    .chapter-wrapper { page-break-after: always; }
+    .chapter-wrapper:last-child { page-break-after: auto; }
+  </style>
+</head>
+<body>
+  
+<!-- Chapter: 00-cover-toc.html -->
+<div class="chapter-wrapper"><div class="cover">
+  <div class="kicker">Educational full-stack project documentation</div>
+  <h1>Zerodha Clone<br/>Complete Project Guide</h1>
+  <p class="sub">Architecture, trading engine, database design, API reference, Socket.IO, tournaments, and interview preparation based on the current repository — not a generic textbook.</p>
+  <span class="badge">Simulated paper trading · Not affiliated with Zerodha</span>
+  <div class="meta">
+    <div>Generated on: 11 October 2026</div>
+    <div>Source: backend/, dashboard/, frontend/ inspected from implementation</div>
+    <div>Backend tests run for this document: npm test → 160 passed, 0 failed</div>
+  </div>
+</div>
+
+<div class="toc">
+  <h1 style="color:#0b2545;border-bottom:3px solid #1d4ed8;padding-bottom:6px;">Table of contents</h1>
+  <a class="sec" href="#ch1"><span>Chapter 1 — Project overview</span></a>
+  <a class="sec" href="#ch2"><span>Chapter 2 — Complete system architecture</span></a>
+  <a class="sec" href="#ch3"><span>Chapter 3 — Technology stack explained</span></a>
+  <a class="sec" href="#ch4"><span>Chapter 4 — Feature-by-feature documentation</span></a>
+  <a class="sec" href="#ch5"><span>Chapter 5 — Authentication and security</span></a>
+  <a class="sec" href="#ch6"><span>Chapter 6 — Database design</span></a>
+  <a class="sec" href="#ch7"><span>Chapter 7 — Trading engine</span></a>
+  <a class="sec" href="#ch8"><span>Chapter 8 — Tournament engine</span></a>
+  <a class="sec" href="#ch9"><span>Chapter 9 — API reference</span></a>
+  <a class="sec" href="#ch10"><span>Chapter 10 — Socket.IO and external integrations</span></a>
+  <a class="sec" href="#ch11"><span>Chapter 11 — Error handling and reliability</span></a>
+  <a class="sec" href="#ch12"><span>Chapter 12 — Testing and code quality</span></a>
+  <a class="sec" href="#ch13"><span>Chapter 13 — Setup and running</span></a>
+  <a class="sec" href="#ch14"><span>Chapter 14 — Limitations and future improvements</span></a>
+  <a class="sec" href="#ch15"><span>Chapter 15 — Technical interview preparation</span></a>
+  <a class="sec" href="#ch16"><span>Chapter 16 — Revision cheat sheet</span></a>
+  <p class="small">Click a chapter title to jump (supported PDF viewers). Page numbers appear in the footer.</p>
+</div>
+</div>
+
+<!-- Chapter: 01-project-overview.html -->
+<div class="chapter-wrapper"><h1 class="ch" id="ch1">Chapter 1 — Project Overview</h1>
+
+<h2>1.1 Executive Summary</h2>
+<p>
+  <strong>Zerodha Clone</strong> is a production-grade, full-stack stock trading, portfolio management, and simulated investment platform modeled after India's premier discount broker, Zerodha (Kite). The system implements a full-featured financial trading engine supporting equity delivery (<strong>CNC — Cash 'N Carry</strong>) and intraday margin trading (<strong>MIS — Margin Intraday Square-off</strong>), market orders, limit orders with price triggers, cash and stock reservation locking, real-time market data streaming via WebSockets, competitive paper-trading tournaments, portfolio analytics, risk guard management, trading journals, strategy backtesting, and an integrated generative AI financial assistant powered by Google Gemini.
+</p>
+
+<h2>1.2 Core Project Goals</h2>
+<ul>
+  <li><strong>Institutional-Grade Trading Mechanics:</strong> Replicate real stock market order execution mechanics, including available vs. used vs. reserved balances, limit order price condition triggers, and atomic inventory allocations.</li>
+  <li><strong>Resilient Dual-Mode Execution:</strong> Seamless operation with live external APIs (TrueData market feed, Twilio SMS OTP, MongoDB, Google Gemini) while maintaining offline and development fallbacks so the system remains interactive under all runtime environments.</li>
+  <li><strong>Real-Time Data Distribution:</strong> Event-driven WebSocket architecture utilizing Socket.IO for pushing real-time order status updates, price alert triggers, fund notifications, and tournament leaderboard rankings.</li>
+  <li><strong>Gamified Simulated Learning:</strong> Isolated tournament and paper-trading environments enabling risk-free trading competitions with independent virtual capital, real-time leaderboards, and automated prize/winner settlement.</li>
+  <li><strong>Context-Aware Portfolio Intelligence:</strong> Server-side AI assistant that dynamically queries user holdings, active positions, recent orders, and available funds to formulate personalized financial and risk commentary.</li>
+</ul>
+
+<h2>1.3 Complete Technology Stack</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Layer</th>
+      <th>Technologies / Libraries</th>
+      <th>Key Architectural Role</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Frontend Framework</strong></td>
+      <td>React 19, Vite 8, React Router DOM 7</td>
+      <td>Modern Single Page Application (SPA) architecture, client-side routing, modular UI composition.</td>
+    </tr>
+    <tr>
+      <td><strong>UI & Component Systems</strong></td>
+      <td>Bootstrap 5.3, Material UI (@mui/material, @mui/icons-material), Emotion</td>
+      <td>Responsive trading terminal layouts, data tables, modals, drawer navigation, and Zerodha Kite UI aesthetics.</td>
+    </tr>
+    <tr>
+      <td><strong>Data Visualization</strong></td>
+      <td>Recharts, Custom Canvas Charts</td>
+      <td>Portfolio asset allocation pie charts, P&L performance timelines, historical candlestick/area stock charts.</td>
+    </tr>
+    <tr>
+      <td><strong>Real-Time Client</strong></td>
+      <td>Socket.IO Client 4.8</td>
+      <td>Subscribes to user private rooms (<code>user:{userId}</code>) and tournament competition rooms (<code>tournament:{id}</code>).</td>
+    </tr>
+    <tr>
+      <td><strong>Backend Runtime</strong></td>
+      <td>Node.js 22 (ES Modules), Express 5.2</td>
+      <td>High-concurrency asynchronous HTTP API server, request validation, authentication middleware, and business logic.</td>
+    </tr>
+    <tr>
+      <td><strong>Database & ORM</strong></td>
+      <td>MongoDB 7.0+, Mongoose 9.9</td>
+      <td>Document data persistence, schema validations, compound indexing, and multi-document ACID transactions.</td>
+    </tr>
+    <tr>
+      <td><strong>Authentication & Security</strong></td>
+      <td>JWT (jsonwebtoken 9.0), bcryptjs 3.0, Cookie-Parser, Passport.js, Joi</td>
+      <td>Stateless HTTP-only cookie JWT strategy, mobile OTP verification challenges, token version invalidation.</td>
+    </tr>
+    <tr>
+      <td><strong>External Integrations</strong></td>
+      <td>@google/genai 2.27, TrueData SDK / WebSocket, Twilio Verify</td>
+      <td>Generative AI analysis (Gemini 2.5 Flash), live NSE/BSE tick feeds, SMS OTP dispatch.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>1.4 Complete Repository Directory Structure</h2>
+<pre>
+/
+├── backend/                              # Express REST API, Mongoose models, and services
+│   ├── config/
+│   │   └── passport.js                   # Passport local authentication strategy
+│   ├── controller/                       # Request handlers & response formatters
+│   │   ├── aiController.js               # AI Assistant endpoints & context synthesis
+│   │   ├── authController.js             # Registration, login, profile, password management
+│   │   ├── backtestController.js         # Strategy backtesting runner
+│   │   ├── fundController.js             # Fund additions, withdrawals, ledger transactions
+│   │   ├── holdingController.js          # CNC delivery stock holdings
+│   │   ├── journalController.js          # Trading journal CRUD & tagging
+│   │   ├── marketController.js           # Live quotes, historical OHLCV data
+│   │   ├── notificationController.js     # User alerts & read state updates
+│   │   ├── orderController.js            # Market & limit order placement, cancellations
+│   │   ├── otpAuthController.js          # Mobile OTP dispatch and verification
+│   │   ├── positionController.js         # Intraday MIS positions & square-offs
+│   │   ├── priceAlertController.js       # Target price alerts evaluation
+│   │   ├── riskController.js             # Risk Guard limits & drawdown monitoring
+│   │   ├── tournamentController.js       # Paper-trading competitions & leaderboards
+│   │   ├── watchlistController.js        # Legacy watchlist controller
+│   │   └── watchlistsController.js       # Multi-watchlist management & symbol ordering
+│   ├── db/
+│   │   └── connectDB.js                  # Mongoose connection with timeout & offline resilience
+│   ├── data/
+│   │   ├── data.js                       # Seed & offline fallback data (holdings, positions, funds)
+│   │   └── marketStocks.js               # NSE/BSE master ticker directory & instrument keys
+│   ├── middleware/
+│   │   ├── adminMiddleware.js            # Role-based access control (admin authorization)
+│   │   ├── isLoggedInMiddleware.js       # JWT cookie extraction, signature verification, token versioning
+│   │   ├── orderValidation.js            # Joi schema validation for order placement
+│   │   └── validateUser.js               # Joi registration/login payload validation
+│   ├── models/                           # 15 Mongoose Schema Definitions
+│   │   ├── BacktestHistoryModel.js       # Stored backtest runs & KPI metrics
+│   │   ├── ChatModel.js                  # AI assistant conversation threads & messages
+│   │   ├── FundsModel.js                 # Trading balance (available, used, reserved)
+│   │   ├── FundTransactionModel.js       # Deposit & withdrawal ledger history
+│   │   ├── HoldingsModel.js              # CNC equity delivery holdings
+│   │   ├── JournalModel.js               # Trading journal entries with emotional/setup tags
+│   │   ├── NotificationModel.js          # In-app notifications
+│   │   ├── NotificationPreferenceModel.js# Granular user notification settings
+│   │   ├── OrdersModel.js                # Master order records (Market/Limit, CNC/MIS)
+│   │   ├── OtpChallengeModel.js          # Mobile OTP challenges with expiry & rate limiting
+│   │   ├── PortfolioSnapshotModel.js     # Historical equity snapshots for analytics
+│   │   ├── PositionsModel.js             # Intraday MIS open/closed positions
+│   │   ├── PriceAlertModel.js            # User price target alerts
+│   │   ├── RiskSettingsModel.js          # Maximum daily loss, order sizing, and leverage caps
+│   │   ├── TournamentModel.js            # Competition metadata, schedules, initial virtual capital
+│   │   ├── TournamentOrderModel.js       # Virtual orders executed inside tournaments
+│   │   ├── TournamentParticipationModel.js # Participant virtual balances, ROI, and rank
+│   │   ├── UserModel.js                  # User accounts, hashed passwords, client IDs
+│   │   └── WatchlistListModel.js         # Multi-watchlist collections & symbols
+│   ├── routes/                           # Express route definitions
+│   └── services/                         # Business logic & external API wrappers
+│       ├── aiService.js                  # Google GenAI SDK interface & prompts
+│       ├── backtestEngine.js             # Historical simulation execution engine
+│       ├── checkPendingLimitOrders.js    # Limit order trigger evaluator on price ticks
+│       ├── createOrderServices.js        # Atomic order execution & balance debit/credit
+│       ├── limitOrderService/            # Limit execution & cancellation helpers
+│       ├── tournamentService.js          # Tournament order matching & background lifecycle
+│       └── trueDataService.js            # TrueData WebSocket & in-memory price cache
+├── dashboard/                            # React trading platform (Kite interface)
+├── frontend/                             # React public marketing portal (Zerodha home/pricing)
+├── src/                                  # Unified full-stack client application
+├── docs/                                 # Architectural specifications & technical documentation
+├── index.html                            # Master HTML entry point
+├── server.js                             # Full-stack server entry point (Express + Vite middleware)
+└── package.json                          # Unified dependency and script manifest
+</pre>
+</div>
+
+<!-- Chapter: 02-architecture-and-data-flow.html -->
+<div class="chapter-wrapper"><h1 class="ch" id="ch2">Chapter 2 — Complete System Architecture</h1>
+
+<h2>2.1 Overall System Architecture</h2>
+<p>
+  The system utilizes a modern, unified full-stack architecture that cleanly separates client presentation from backend domain logic while enabling seamless single-origin execution without cross-origin resource sharing (CORS) friction.
+</p>
+
+<figure>
+  <img src="file:///app/applet/docs/project-documentation/architecture-diagram.png" alt="Overall System Architecture" />
+  <figcaption>Figure 2.1: End-to-end component architecture, showing clients, Express layer, MongoDB, and external integrations.</figcaption>
+</figure>
+
+<h3>Architectural Components Walkthrough:</h3>
+<ol>
+  <li><strong>Browser Client Layer:</strong> The presentation tier is built with React 19 and Vite. In the original repository, two distinct Vite apps existed: <code>frontend/</code> (marketing, landing pages, education) and <code>dashboard/</code> (Kite trading terminal). In AI Studio and production deployment, these are unified under a single origin on port 3000, eliminating browser cross-port redirects.</li>
+  <li><strong>Unified Express Gateway & Vite Middleware:</strong> The Node.js 22 runtime server boots an Express 5 instance on port 3000. In development mode, Vite's internal development server is mounted as an Express middleware (<code>vite.middlewares</code>), handling HMR and JSX on-the-fly. In production, pre-compiled static assets in <code>dist/</code> are served directly with an SPA catch-all route.</li>
+  <li><strong>Middleware Pipeline:</strong> Incoming HTTP requests pass through security and parsing middlewares:
+    <ul>
+      <li><code>cors({ origin: true, credentials: true })</code>: Permits secure credentialed requests.</li>
+      <li><code>cookieParser()</code>: Extracts the <code>token</code> cookie containing the signed JSON Web Token.</li>
+      <li><code>isLoggedInMiddleware.js</code>: Decodes JWT, validates session active status, and checks <code>tokenVersion</code> to support global logout.</li>
+      <li><code>orderValidation.js</code> / <code>validateUser.js</code>: Joi schema validation catching invalid inputs before controllers execute.</li>
+    </ul>
+  </li>
+  <li><strong>Domain Services & State Machines:</strong> Business logic is isolated from HTTP handlers into dedicated services (<code>createOrderServices.js</code>, <code>tournamentService.js</code>, <code>aiService.js</code>, <code>trueDataService.js</code>).</li>
+  <li><strong>Persistence Layer:</strong> MongoDB stores structured documents across 15 schemas. When executing orders or balance modifications, Mongoose leverages native multi-document transactions with atomic session rollbacks.</li>
+  <li><strong>Real-Time Event Multiplexer (Socket.IO):</strong> Attached to the native HTTP server instance, Socket.IO routes events into isolated rooms (<code>user:{userId}</code> and <code>tournament:{id}</code>).</li>
+</ol>
+
+<h2>2.2 HTTP Request Lifecycle</h2>
+
+<figure>
+  <img src="file:///app/applet/docs/project-documentation/request-lifecycle.png" alt="High-level HTTP Request Lifecycle" />
+  <figcaption>Figure 2.2: Detailed HTTP request lifecycle from browser interaction to database commit and socket dispatch.</figcaption>
+</figure>
+
+<p>
+  When a user initiates an action in the UI (for example, clicking "Buy 10 Reliance CNC at ₹2,525"):
+</p>
+<ol>
+  <li><strong>HTTP Transmission:</strong> The Axios client transmits a <code>POST /api/orders</code> request with <code>{ withCredentials: true }</code>, automatically attaching the browser's HTTP-only cookie.</li>
+  <li><strong>Middleware Verification:</strong> Express matches the route. <code>isLoggedIn</code> extracts the cookie, runs <code>jwt.verify(token, JWT_SECRET)</code>, queries the user model to verify <code>tokenVersion</code>, and attaches <code>req.user = { userId, role, status }</code>.</li>
+  <li><strong>Payload Validation:</strong> The Joi validation middleware parses <code>req.body</code> against <code>orderValidationSchema.js</code>. If validation fails (e.g., negative quantity or missing symbol), a 400 Bad Request is returned immediately without touching the database.</li>
+  <li><strong>Controller Execution:</strong> <code>orderController.js</code> invokes <code>createOrderServices.js</code>, passing the sanitized payload and authenticated <code>userId</code>.</li>
+  <li><strong>Transactional Execution:</strong> A MongoDB transaction session begins:
+    <ul>
+      <li>Calculates required capital: <code>qty * price</code>.</li>
+      <li>Checks <code>availableBalance >= requiredAmount</code>.</li>
+      <li>Updates user ledger: <code>availableBalance -= requiredAmount</code>, <code>usedBalance += requiredAmount</code>.</li>
+      <li>Creates/updates Holding or Position record.</li>
+      <li>Inserts Order record with status <code>completed</code>.</li>
+    </ul>
+  </li>
+  <li><strong>Event Dispatch & Response:</strong> Upon successful commit, a notification is written, Socket.IO emits <code>new-notification</code> to <code>user:{userId}</code>, and HTTP 201 Created is returned to the client. The frontend AppContext receives the response and triggers state re-fetching.</li>
+</ol>
+
+<h2>2.3 Real-Time WebSocket & Socket.IO Flow</h2>
+
+<figure>
+  <img src="file:///app/applet/docs/project-documentation/socketio-flow.png" alt="Socket.IO Real-Time Flow" />
+  <figcaption>Figure 2.3: Socket.IO connection establishment, room joining, and server-to-client push events.</figcaption>
+</figure>
+
+<p>
+  The real-time infrastructure provides sub-second push updates for:
+</p>
+<ul>
+  <li><strong>Order Execution Notifications:</strong> When limit orders trigger in the background via live market ticks, user alerts fire without polling.</li>
+  <li><strong>Price Alerts:</strong> Triggered when a stock reaches a user-defined price ceiling or floor.</li>
+  <li><strong>Tournament Leaderboards:</strong> Real-time rank and ROI calculations broadcast to all active competitors inside <code>tournament:{id}</code>.</li>
+</ul>
+</div>
+
+<!-- Chapter: 03-frontend-applications.html -->
+<div class="chapter-wrapper"><h1 class="ch" id="ch3">Chapter 3 — Frontend Applications & Component Architecture</h1>
+
+<h2>3.1 Overview of Frontend Structure</h2>
+<p>
+  The presentation tier is designed as a modular, responsive Single Page Application (SPA) built with React 19, React Router DOM 7, and Vite 8. It delivers two distinct user experiences:
+</p>
+<ol>
+  <li><strong>Public Marketing Portal (Landing Application):</strong> The institutional marketing website featuring the Zerodha brand homepage, transparent brokerage pricing calculators, ecosystem product showcases (Console, Coin, Kite Connect, Varsity), about pages, and mobile OTP signup/login interfaces.</li>
+  <li><strong>Trading Terminal (Kite Dashboard):</strong> The secure, authenticated trading dashboard providing real-time market watchlists, buy/sell order execution modals, holdings breakdown, intraday positions, ledger balance management, portfolio performance analytics, risk guard monitoring, trading journals, strategy backtesting, paper-trading competitions, and an integrated AI assistant.</li>
+</ol>
+
+<h2>3.2 Core Component Hierarchy</h2>
+<pre>
+App (AppProvider + BrowserRouter)
+├── LandingLayout (Navbar + PageContent + Footer)
+│   ├── HomePage (Hero, Stats, Pricing, Education, OpenAccount)
+│   ├── AboutPage (Hero, Team, Philosophy)
+│   ├── ProductPage (Kite, Console, Coin, Varsity, Universe)
+│   ├── PricingPage (Brokerage charges, STT/CTT breakdown, Account charges)
+│   ├── SupportPage (Ticket creation, Knowledge base)
+│   ├── Login (Mobile OTP login + Demo account exploration)
+│   └── SignUp (4-Step onboarding: Mobile OTP -> Registration -> Verification)
+│
+└── ProtectedRoute (Authentication guard & session verification)
+    └── DashboardLayout
+        ├── Sidebar (Collapsible navigation, active route highlight, theme toggle)
+        ├── TopNavigation (Market summary indices, search bar, user avatar, notifications dropdown)
+        ├── MarketWatchlist (Persistent left-panel ticker, multi-watchlists, bid/ask hover actions)
+        │   ├── WatchListActions (Buy/Sell trigger buttons, depth chart view, pin action)
+        │   ├── StockChartPopup (Interactive historical price canvas / candlestick charts)
+        │   └── StockDetailsPopup (Fundamental metrics, 52-week high/low, P/E ratio, volumes)
+        │
+        ├── TradePopup (Floating Order Window: Buy/Sell, Market/Limit, CNC/MIS, margin calculator)
+        ├── FundToast & OrderToast (Floating execution status notifications)
+        │
+        └── Main Page Content:
+            ├── Dashboard (Portfolio summary cards, allocation doughnut, quick action triggers)
+            ├── Holdings (CNC equity inventory, invested value, current value, total P&L, day P&L)
+            ├── Positions (MIS intraday trades, buy/sell quantity, net profit, square-off trigger)
+            ├── Orders (Order book: Pending Limit orders, Executed orders, Cancelled orders)
+            ├── Funds (Available cash, Used margin, Reserved balance, Deposit & Withdraw modals)
+            ├── PortfolioAnalytics (Drawdown charts, profit factor, win-loss ratio, sector breakdown)
+            ├── RiskManagement (Risk Guard: Daily loss limit, maximum position size, leverage caps)
+            ├── TradingJournal (Trade review logs, emotional tags, strategy reflections, setup notes)
+            ├── StrategyBacktest (SMA Crossover simulation, profit factor, max drawdown metrics)
+            ├── PaperTrading (Virtual tournament competitions, leaderboard ranks, virtual orders)
+            ├── TournamentAdmin (Admin tournament creation, schedule rules, winner settlements)
+            ├── AIAssistant (Conversational financial AI assistant with portfolio context injection)
+            ├── Notifications (In-app alerts, price triggers, read/unread states, user preferences)
+            └── Settings (Profile info, password updates, session revocation, theme selection)
+</pre>
+
+<h2>3.3 Global State Management: AppContext.jsx</h2>
+<p>
+  Application state is centralized within <code>AppContext.jsx</code> using React's Context API. This eliminates prop drilling across deeply nested components while maintaining reactivity across the trading terminal.
+</p>
+
+<h3>Key State Categories and Reactive Signals:</h3>
+<table>
+  <thead>
+    <tr>
+      <th>State Domain</th>
+      <th>State Variables</th>
+      <th>Purpose & Reactive Behavior</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Authentication & User</strong></td>
+      <td><code>currentUser</code>, <code>userLoading</code></td>
+      <td>Stores user profile (name, email, mobile, clientId, role). Polled upon mount via <code>GET /api/auth/me</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>Order Execution</strong></td>
+      <td><code>isTradePopupOpen</code>, <code>selectedStock</code>, <code>stockType</code>, <code>orderVersion</code></td>
+      <td>Controls the trading window modal. Incrementing <code>orderVersion</code> triggers auto-refresh of order book and ledger.</td>
+    </tr>
+    <tr>
+      <td><strong>Holdings & Positions</strong></td>
+      <td><code>holdings</code>, <code>isHoldingsLoading</code>, <code>holdingVersion</code>, <code>positionVersion</code></td>
+      <td>Caches delivery holdings and intraday positions. Updated on order fulfillment or socket execution events.</td>
+    </tr>
+    <tr>
+      <td><strong>Cash & Ledger</strong></td>
+      <td><code>availableBalance</code>, <code>usedBalance</code>, <code>reservedBalance</code>, <code>fundVersion</code></td>
+      <td>Maintains the three-tier balance ledger. Automatically updated when orders are placed, triggered, or canceled.</td>
+    </tr>
+    <tr>
+      <td><strong>Market Prices</strong></td>
+      <td><code>marketPrices</code>, <code>isMarketPricesLoading</code></td>
+      <td>Stores latest tick data map (LTP, change, open, high, low, previous close) refreshed periodically and via WebSockets.</td>
+    </tr>
+    <tr>
+      <td><strong>Notifications</strong></td>
+      <td><code>notifications</code>, <code>notificationPagination</code></td>
+      <td>In-app notifications feed with real-time socket prepending and unread counter badges.</td>
+    </tr>
+    <tr>
+      <td><strong>Visual Theme</strong></td>
+      <td><code>theme</code> ('light' | 'dark' | 'system')</td>
+      <td>Binds to <code>&lt;html data-theme="..."&gt;</code> and synchronizes with <code>localStorage</code>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>3.4 TradePopup: The Trading Window</h2>
+<p>
+  <code>TradePopup.jsx</code> implements the core order placement interface replicating Zerodha's Kite Order Window:
+</p>
+<ul>
+  <li><strong>Color-Coded Modals:</strong> Blue header for <strong>BUY</strong> orders, Orange header for <strong>SELL</strong> orders.</li>
+  <li><strong>Product Selection:</strong> Toggle between <strong>CNC</strong> (Cash 'N Carry delivery — 100% margin required) and <strong>MIS</strong> (Margin Intraday Square-off — leverage supported, auto square-off at 3:15 PM).</li>
+  <li><strong>Order Types:</strong>
+    <ul>
+      <li><strong>Market Order:</strong> Executed immediately at current market LTP. Requires <code>availableBalance >= qty * LTP</code>.</li>
+      <li><strong>Limit Order:</strong> User specifies a trigger limit price. Cash (for Buy) or stock shares (for Sell) are immediately placed into <em>reserved</em> status.</li>
+    </ul>
+  </li>
+  <li><strong>Dynamic Margin Calculator:</strong> As the user adjusts the quantity and price inputs, the component dynamically calculates required funds: <code>Required Margin = Quantity * Price</code>, comparing it in real time against <code>availableBalance</code> and showing a warning badge if funds are insufficient.</li>
+</ul>
+</div>
+
+<!-- Chapter: 04-backend-architecture.html -->
+<div class="chapter-wrapper"><h1 class="ch" id="ch4">Chapter 4 — Backend Architecture & Request Pipeline</h1>
+
+<h2>4.1 Backend Architectural Pattern</h2>
+<p>
+  The backend is engineered using Node.js 22 and Express 5.2 adhering to a layered <strong>Controller-Service-Repository</strong> architectural pattern. The codebase strictly separates HTTP transport concerns (status codes, headers, cookie parsing) from domain trading rules (balance math, limit order triggers, inventory locking) and persistence layers (MongoDB Mongoose models).
+</p>
+
+<h2>4.2 Middleware Pipeline Execution Order</h2>
+<p>
+  Every incoming HTTP request traverses an ordered sequence of middlewares before reaching route controllers:
+</p>
+<pre>
+Incoming Request
+      │
+      ▼
+1. cors({ origin: true, credentials: true })
+   ├── Validates allowed origins
+   └── Allows Authorization headers and cookies
+      │
+      ▼
+2. bodyParser.json()
+   └── Parses JSON request bodies into req.body
+      │
+      ▼
+3. cookieParser()
+   └── Extracts browser cookies into req.cookies (notably req.cookies.token)
+      │
+      ▼
+4. passport.initialize()
+   └── Sets up Passport authentication strategy framework
+      │
+      ▼
+5. Route-Specific Middlewares:
+   ├── validateUser / orderValidation (Joi schema validation on req.body)
+   ├── isLoggedInMiddleware (JWT verification, session status, tokenVersion check)
+   └── adminMiddleware (Verifies req.user.role === 'admin')
+      │
+      ▼
+6. Domain Controller & Service
+   └── Executes business logic, database transactions, socket emissions
+      │
+      ▼
+7. Global Error Handler / Offline Fallback Middleware
+   └── Catches uncaught errors, Mongoose connection drops, and network timeouts
+</pre>
+
+<h2>4.3 Complete Backend Route Directory</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Endpoint Prefix</th>
+      <th>Route File</th>
+      <th>Key Operations Supported</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>/api/auth</code></td>
+      <td><code>backend/routes/auth.js</code></td>
+      <td>Registration, password login, OTP mobile dispatch/verify, demo login, profile updates, session revocation, account deletion.</td>
+    </tr>
+    <tr>
+      <td><code>/api/orders</code></td>
+      <td><code>backend/routes/order.js</code></td>
+      <td>Placing market/limit orders (CNC/MIS), fetching user order book, canceling pending limit orders.</td>
+    </tr>
+    <tr>
+      <td><code>/api/holdings</code></td>
+      <td><code>backend/routes/holding.js</code></td>
+      <td>Fetching equity delivery holdings with live market valuation and P&L.</td>
+    </tr>
+    <tr>
+      <td><code>/api/positions</code></td>
+      <td><code>backend/routes/position.js</code></td>
+      <td>Retrieving open/closed intraday MIS positions and square-off calculations.</td>
+    </tr>
+    <tr>
+      <td><code>/api/funds</code></td>
+      <td><code>backend/routes/fund.js</code></td>
+      <td>Retrieving available/used/reserved balances, depositing capital, withdrawing funds, transaction history ledger.</td>
+    </tr>
+    <tr>
+      <td><code>/api/market</code></td>
+      <td><code>backend/routes/marketRoutes.js</code></td>
+      <td>Retrieving single stock price, all stock quotes, historical OHLCV candles (1M, 1Y, 5Y, MAX).</td>
+    </tr>
+    <tr>
+      <td><code>/api/watchlists</code></td>
+      <td><code>backend/routes/watchlistsRoutes.js</code></td>
+      <td>Creating watchlists, renaming, reordering symbols, deleting watchlists.</td>
+    </tr>
+    <tr>
+      <td><code>/api/price-alerts</code></td>
+      <td><code>backend/routes/priceAlertRoutes.js</code></td>
+      <td>Setting target price alerts, listing active alerts, deleting price triggers.</td>
+    </tr>
+    <tr>
+      <td><code>/api/notifications</code></td>
+      <td><code>backend/routes/notificationRoutes.js</code></td>
+      <td>Fetching user notifications, marking individual/all notifications as read, updating notification preferences.</td>
+    </tr>
+    <tr>
+      <td><code>/api/analytics</code></td>
+      <td><code>backend/routes/analyticsRoutes.js</code></td>
+      <td>Portfolio performance history, win/loss ratios, sector allocations, max drawdown.</td>
+    </tr>
+    <tr>
+      <td><code>/api/risk</code></td>
+      <td><code>backend/routes/riskRoutes.js</code></td>
+      <td>Fetching and updating Risk Guard limits (daily loss caps, max leverage, position size limit).</td>
+    </tr>
+    <tr>
+      <td><code>/api/journal</code></td>
+      <td><code>backend/routes/journalRoutes.js</code></td>
+      <td>Creating trading journal entries, setup tags, psychological reflections, trade linkings.</td>
+    </tr>
+    <tr>
+      <td><code>/api/backtest</code></td>
+      <td><code>backend/routes/backtestRoutes.js</code></td>
+      <td>Running strategy backtests (e.g. SMA Crossover), retrieving simulation KPI metrics.</td>
+    </tr>
+    <tr>
+      <td><code>/api/tournaments</code></td>
+      <td><code>backend/routes/tournamentRoutes.js</code></td>
+      <td>Listing active tournaments, joining with virtual capital, placing virtual tournament orders, leaderboard stats, admin creation.</td>
+    </tr>
+    <tr>
+      <td><code>/api/ai</code></td>
+      <td><code>backend/routes/aiRoutes.js</code></td>
+      <td>Submitting chat prompts, injecting portfolio context, fetching chat history, deleting threads.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>4.4 Controller vs. Service Decoupling</h2>
+<p>
+  Rather than writing SQL/Mongo queries directly inside controller files, complex domain operations are delegated to service modules:
+</p>
+<ul>
+  <li><code>createOrderServices.js</code>: Coordinates validation, price retrieval, capital checks, and MongoDB transaction sessions.</li>
+  <li><code>checkPendingLimitOrders.js</code>: Invoked whenever fresh market ticks arrive; iterates over active pending limit orders to evaluate whether trigger prices are met.</li>
+  <li><code>tournamentService.js</code>: Manages tournament lifecycles (scheduled -> active -> completed), matches virtual limit orders against live market ticks, and recalculates leaderboards.</li>
+  <li><code>aiService.js</code>: Formulates prompt strings, enforces safety instructions, and handles communication with Google GenAI SDK.</li>
+</ul>
+</div>
+
+<!-- Chapter: 05-authentication-and-security.html -->
+<div class="chapter-wrapper"><h1 class="ch" id="ch5">Chapter 5 — Authentication, OTP & Security Architecture</h1>
+
+<h2>5.1 Authentication Architecture Overview</h2>
+<p>
+  Authentication is architected as a hybrid password and phone-based OTP system designed to mirror the multi-factor security expectations of modern Indian financial brokerages. The system uses signed <strong>JSON Web Tokens (JWT)</strong> transmitted via secure, <strong>HTTP-only cookies</strong>, paired with an active database-backed <code>tokenVersion</code> check that supports instant global session invalidation.
+</p>
+
+<figure>
+  <img src="file:///app/applet/docs/project-documentation/authentication-flow.png" alt="Signup and Login Flow" />
+  <figcaption>Figure 5.1: Authentication and OTP verification sequence diagram.</figcaption>
+</figure>
+
+<h2>5.2 Mobile OTP Verification Challenge Flow</h2>
+<p>
+  To prevent phone number spoofing and unauthorized account creation, mobile onboarding uses a multi-step challenge verification flow:
+</p>
+<ol>
+  <li><strong>Challenge Creation (<code>POST /api/auth/otp/send</code>):</strong>
+    <ul>
+      <li>User submits a 10-digit mobile number.</li>
+      <li>System validates number using regex <code>/^\d{10}$/</code>.</li>
+      <li>Rate-limiting check: Queries <code>OtpChallengeModel</code> to ensure no more than 3 challenges were requested in the last 5 minutes. If exceeded, returns HTTP 429.</li>
+      <li>Existing unconsumed challenges for this number are invalidated (<code>isConsumed: true</code>).</li>
+      <li>Dispatches verification SMS via Twilio Verify. If Twilio credentials are not configured, the system logs a mock challenge code (<code>123456</code>) to ensure uninterrupted development and testing.</li>
+    </ul>
+  </li>
+  <li><strong>Challenge Verification (<code>POST /api/auth/register/verify-mobile</code>):</strong>
+    <ul>
+      <li>User submits the 6-digit OTP code received on SMS.</li>
+      <li>Twilio Verify checks code validity (or verifies against test mock code <code>123456</code>).</li>
+      <li>Upon approval, the challenge is marked <code>isConsumed: true</code>.</li>
+      <li>A short-lived signed JWT <strong>verification token</strong> is generated: <code>jwt.sign({ mobile, verified: true, challengeId }, JWT_SECRET, { expiresIn: '15m' })</code>.</li>
+      <li>This token must be included in the subsequent registration payload to prove phone ownership.</li>
+    </ul>
+  </li>
+</ol>
+
+<h2>5.3 User Registration & Client ID Generation</h2>
+<p>
+  Once verified, the user submits registration details (<code>POST /api/auth/register</code>):
+</p>
+<ul>
+  <li>Validates name, unique email, verified mobile, password (minimum 6 characters), and <code>verificationToken</code>.</li>
+  <li>Decodes the verification token, confirms that <code>decoded.mobile === req.body.mobile</code> and <code>decoded.verified === true</code>.</li>
+  <li>Validates that the challenge record has not already been used for registration (<code>challenge.usedForRegistration === false</code>), then marks it used.</li>
+  <li>Generates a unique Zerodha 6-character Client ID (e.g., <code>ZR9669</code>) using random alphanumeric character generation and collision detection.</li>
+  <li>Hashes the password with <code>bcryptjs</code> using 10 salt rounds.</li>
+  <li>Initializes a default <code>Funds</code> document for the new user with ₹1,00,000 initial virtual capital.</li>
+  <li>Initializes a default <code>WatchlistList</code> titled "Watchlist 1" populated with blue-chip Indian equities (Reliance, TCS, Infosys, HDFC Bank, ICICI Bank, SBI, ITC, Bharti Airtel).</li>
+  <li>Signs the session JWT and sets the HTTP-only cookie, automatically logging the user into their account.</li>
+</ul>
+
+<h2>5.4 Token Versioning & Global Session Revocation</h2>
+<p>
+  A frequent security flaw in stateless JWT architectures is the inability to revoke tokens before their expiration window elapses. Zerodha Clone solves this using <strong>Token Versioning</strong>:
+</p>
+<pre>
+// JWT Payload structure:
+{
+  "userId": "68c123456789abcdef123455",
+  "role": "trader",
+  "tokenVersion": 3,
+  "iat": 1791780813,
+  "exp": 1792385613
+}
+</pre>
+<p>
+  When a user invokes <code>POST /api/auth/logout-other-sessions</code> or changes their password:
+</p>
+<ol>
+  <li>The backend executes <code>User.findByIdAndUpdate(userId, { $inc: { tokenVersion: 1 } })</code>.</li>
+  <li>The current active user is re-issued a fresh cookie with the incremented version.</li>
+  <li>Every subsequent request from any other device or browser containing the older <code>tokenVersion</code> fails the check in <code>isLoggedInMiddleware.js</code>:
+    <pre>
+if (user.tokenVersion !== decoded.tokenVersion) {
+  return res.status(401).json({
+    success: false,
+    message: "Session expired. Please login again."
+  });
+}
+    </pre>
+  </li>
+  <li>All previous sessions are immediately invalidated across all devices without requiring a centralized token blacklist.</li>
+</ol>
+
+<h2>5.5 Cookie Security Specifications</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Cookie Attribute</th>
+      <th>Configuration</th>
+      <th>Security Protection Provided</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>httpOnly</code></td>
+      <td><code>true</code></td>
+      <td>Prevents client-side JavaScript from accessing <code>document.cookie</code>, completely mitigating Cross-Site Scripting (XSS) token theft.</td>
+    </tr>
+    <tr>
+      <td><code>sameSite</code></td>
+      <td><code>'lax'</code></td>
+      <td>Protects against Cross-Site Request Forgery (CSRF) by preventing third-party origins from sending the authentication cookie during cross-site requests.</td>
+    </tr>
+    <tr>
+      <td><code>maxAge</code></td>
+      <td><code>24 * 60 * 60 * 1000</code> (1 day)</td>
+      <td>Enforces session lifecycle boundaries, ensuring stale sessions expire naturally.</td>
+    </tr>
+    <tr>
+      <td><code>secure</code></td>
+      <td>Conditional (false in dev, true in HTTPS prod)</td>
+      <td>Ensures authentication cookies are transmitted exclusively over encrypted TLS connections in production.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- Chapter: 06-database-design.html -->
+<div class="chapter-wrapper"><h1 class="ch" id="ch6">Chapter 6 — Database Architecture & Schema Design</h1>
+
+<h2>6.1 Database Architecture Overview</h2>
+<p>
+  Persistence is managed by <strong>MongoDB</strong> using the <strong>Mongoose</strong> Object Data Modeling (ODM) framework. The schema design models high-frequency trading data, delivery equity holdings, multi-day ledger balances, audit trails, and virtual tournament portfolios.
+</p>
+
+<figure>
+  <img src="file:///app/applet/docs/project-documentation/database-er-diagram.png" alt="Database Entity Relationship Diagram" />
+  <figcaption>Figure 6.1: MongoDB Entity-Relationship diagram highlighting User references and operational collections.</figcaption>
+</figure>
+
+<h2>6.2 Schema Specifications</h2>
+
+<h3>1. User Model (<code>models/UserModel.js</code>)</h3>
+<p>Master account entity storing personal details, authentication credentials, and access control roles.</p>
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Constraints & Defaults</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>name</code></td><td>String</td><td>Required, trim</td><td>User full legal name.</td></tr>
+    <tr><td><code>email</code></td><td>String</td><td>Required, unique, lowercase, trim</td><td>Account email address.</td></tr>
+    <tr><td><code>mobile</code></td><td>String</td><td>Required, unique, trim</td><td>10-digit verified Indian phone number.</td></tr>
+    <tr><td><code>password</code></td><td>String</td><td>Required, select: false</td><td>bcrypt-hashed password (excluded from default queries).</td></tr>
+    <tr><td><code>clientId</code></td><td>String</td><td>Required, unique, uppercase</td><td>6-character broker trading ID (e.g. <code>ZR9669</code>).</td></tr>
+    <tr><td><code>role</code></td><td>String</td><td>enum: ['trader', 'admin'], default: 'trader'</td><td>Access role for authorization.</td></tr>
+    <tr><td><code>status</code></td><td>String</td><td>enum: ['active', 'suspended'], default: 'active'</td><td>Account status.</td></tr>
+    <tr><td><code>tokenVersion</code></td><td>Number</td><td>default: 0</td><td>Session version counter for revocation.</td></tr>
+    <tr><td><code>lastLogin</code></td><td>Date</td><td>default: Date.now</td><td>Timestamp of last authenticated session.</td></tr>
+  </tbody>
+</table>
+
+<h3>2. Funds Model (<code>models/FundsModel.js</code>)</h3>
+<p>Maintains the three-tier balance ledger required for atomic order execution and margin management.</p>
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Constraints & Defaults</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>userId</code></td><td>ObjectId / String</td><td>Required, ref: 'User', unique index</td><td>Associated trader ID.</td></tr>
+    <tr><td><code>availableBalance</code></td><td>Number</td><td>default: 100000, min: 0</td><td>Liquid capital available for new trades or withdrawal.</td></tr>
+    <tr><td><code>usedBalance</code></td><td>Number</td><td>default: 0</td><td>Capital currently deployed in active holdings or open positions.</td></tr>
+    <tr><td><code>reservedBalance</code></td><td>Number</td><td>default: 0, min: 0</td><td>Capital locked for pending buy limit orders.</td></tr>
+  </tbody>
+</table>
+
+<h3>3. Orders Model (<code>models/OrdersModel.js</code>)</h3>
+<p>Comprehensive order execution ledger tracking state transitions from pending to filled or canceled.</p>
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Constraints & Defaults</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>userId</code></td><td>ObjectId / String</td><td>Required, ref: 'User', index</td><td>Trader placing the order.</td></tr>
+    <tr><td><code>symbol</code></td><td>String</td><td>Required, uppercase, trim</td><td>NSE/BSE ticker symbol (e.g. <code>RELIANCE</code>).</td></tr>
+    <tr><td><code>qty</code></td><td>Number</td><td>Required, min: 1</td><td>Number of shares to execute.</td></tr>
+    <tr><td><code>price</code></td><td>Number</td><td>Required, min: 0.05</td><td>Order execution price (or limit trigger price).</td></tr>
+    <tr><td><code>mode</code></td><td>String</td><td>enum: ['BUY', 'SELL']</td><td>Trade direction.</td></tr>
+    <tr><td><code>orderType</code></td><td>String</td><td>enum: ['MARKET', 'LIMIT'], default: 'MARKET'</td><td>Order trigger type.</td></tr>
+    <tr><td><code>product</code></td><td>String</td><td>enum: ['CNC', 'MIS'], default: 'CNC'</td><td>Equity delivery vs. Intraday margin.</td></tr>
+    <tr><td><code>status</code></td><td>String</td><td>enum: ['pending', 'processing', 'completed', 'cancelled']</td><td>Execution lifecycle state.</td></tr>
+    <tr><td><code>reservedAmount</code></td><td>Number</td><td>default: 0</td><td>Cash amount locked while in pending status.</td></tr>
+    <tr><td><code>reservationReleased</code></td><td>Boolean</td><td>default: false</td><td>Flag ensuring reserved funds are released exactly once.</td></tr>
+  </tbody>
+</table>
+
+<h3>4. Holdings Model (<code>models/HoldingsModel.js</code>)</h3>
+<p>Long-term equity inventory acquired through Cash 'N Carry (CNC) delivery purchases.</p>
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Constraints & Defaults</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>userId</code></td><td>ObjectId / String</td><td>Required, index</td><td>Owner of the equity holding.</td></tr>
+    <tr><td><code>symbol</code></td><td>String</td><td>Required, uppercase</td><td>Equity ticker symbol.</td></tr>
+    <tr><td><code>quantity</code></td><td>Number</td><td>Required, min: 0</td><td>Unencumbered share quantity available to sell.</td></tr>
+    <tr><td><code>averagePrice</code></td><td>Number</td><td>Required</td><td>Volume-weighted average purchase price.</td></tr>
+    <tr><td><code>reservedQuantity</code></td><td>Number</td><td>default: 0</td><td>Shares temporarily locked in pending limit sell orders.</td></tr>
+    <tr><td><code>product</code></td><td>String</td><td>default: 'CNC'</td><td>Always CNC for delivery holdings.</td></tr>
+  </tbody>
+</table>
+
+<h3>5. Positions Model (<code>models/PositionsModel.js</code>)</h3>
+<p>Tracks leveraged Margin Intraday Square-off (MIS) trades that must be closed prior to market close.</p>
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Constraints & Defaults</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>userId</code></td><td>ObjectId / String</td><td>Required, index</td><td>Trader holding the intraday position.</td></tr>
+    <tr><td><code>symbol</code></td><td>String</td><td>Required, uppercase</td><td>Ticker symbol.</td></tr>
+    <tr><td><code>quantity</code></td><td>Number</td><td>Required</td><td>Net active position share volume.</td></tr>
+    <tr><td><code>averagePrice</code></td><td>Number</td><td>Required</td><td>Entry price for intraday position.</td></tr>
+    <tr><td><code>type</code></td><td>String</td><td>enum: ['buy', 'sell']</td><td>Position direction (Long vs. Short).</td></tr>
+    <tr><td><code>product</code></td><td>String</td><td>default: 'MIS'</td><td>Intraday product identifier.</td></tr>
+  </tbody>
+</table>
+
+<h3>6. Additional Specialized Models</h3>
+<ul>
+  <li><code>FundTransactionModel</code>: Double-entry deposit and withdrawal ledger entries with unique timestamps.</li>
+  <li><code>TournamentModel</code>: Competition configurations (start time, end time, entry fee, initial virtual balance).</li>
+  <li><code>TournamentParticipationModel</code>: User tournament entries tracking virtual portfolio, rank, and ROI.</li>
+  <li><code>TournamentOrderModel</code>: Order records scoped specifically to tournament competition portfolios.</li>
+  <li><code>ChatModel</code>: Threaded AI conversation messages between trader and Gemini assistant.</li>
+  <li><code>WatchlistListModel</code>: User watchlists containing ordered arrays of tracked symbols.</li>
+  <li><code>PriceAlertModel</code>: Price threshold triggers (above/below condition checks).</li>
+  <li><code>RiskSettingsModel</code>: Risk Guard parameters (maximum daily loss, position limits, leverage constraints).</li>
+  <li><code>JournalModel</code>: Trade reflection notes with psychological tags (FOMO, Greed, Disciplined).</li>
+  <li><code>BacktestHistoryModel</code>: Stored strategy backtest results with calculated financial KPIs.</li>
+</ul>
+</div>
+
+<!-- Chapter: 07-trading-engine.html -->
+<div class="chapter-wrapper"><h1 class="ch" id="ch7">Chapter 7 — Trading Engine & Order Execution</h1>
+
+<h2>7.1 Trading Engine Architecture Overview</h2>
+<p>
+  The core of the platform is an institutional paper-trading engine that faithfully replicates the financial rules, balance management, and lifecycle state transitions of real-world stock exchanges. It enforces atomic transaction safety, prevents overdrafts, implements cash and inventory reservations, and matches limit orders in real time against live market ticks.
+</p>
+
+<figure>
+  <img src="file:///app/applet/docs/project-documentation/order-execution-flow.png" alt="Order Execution Flow" />
+  <figcaption>Figure 7.1: Comprehensive Market Order and Limit Order execution flow across BUY and SELL directions.</figcaption>
+</figure>
+
+<h2>7.2 Market Order Execution (Immediate Fill)</h2>
+<p>
+  When a trader submits a <strong>Market Order</strong>:
+</p>
+<ol>
+  <li><strong>Price Resolution:</strong> The engine resolves the latest market price (LTP) from the in-memory cache populated by TrueData feeds.</li>
+  <li><strong>Pre-Trade Validation:</strong>
+    <ul>
+      <li><strong>BUY Market:</strong> The total required capital is calculated: <code>tradeAmount = qty * LTP</code>. The system queries <code>Funds</code> inside an atomic MongoDB session. If <code>availableBalance &lt; tradeAmount</code>, the transaction aborts with an <code>Insufficient Funds</code> error.</li>
+      <li><strong>SELL Market (CNC):</strong> The system queries <code>Holding</code> for the user and symbol. If <code>holding.quantity &lt; qty</code>, the transaction aborts with an <code>Insufficient Quantity</code> error. Short selling is prohibited in CNC delivery.</li>
+    </ul>
+  </li>
+  <li><strong>Atomic Ledger & Inventory Mutation:</strong> Inside a MongoDB transaction session:
+    <ul>
+      <li><strong>BUY CNC:</strong>
+        <pre>
+Funds.updateOne({ userId }, {
+  $inc: { availableBalance: -tradeAmount, usedBalance: tradeAmount }
+});
+Holding.findOneAndUpdate({ userId, symbol }, {
+  $inc: { quantity: qty },
+  $set: { averagePrice: newWeightedAverage, currentPrice: LTP }
+}, { upsert: true });
+        </pre>
+      </li>
+      <li><strong>SELL CNC:</strong>
+        <pre>
+Funds.updateOne({ userId }, {
+  $inc: { availableBalance: +tradeAmount, usedBalance: -originalCostBasis }
+});
+Holding.updateOne({ userId, symbol }, {
+  $inc: { quantity: -qty }
+});
+        </pre>
+        If the remaining holding quantity reaches 0, the holding document is removed.
+      </li>
+    </ul>
+  </li>
+  <li><strong>Order Insertion:</strong> An order document is created with <code>status: 'completed'</code>, <code>orderType: 'MARKET'</code>, and <code>reservationReleased: true</code>.</li>
+</ol>
+
+<h2>7.3 Limit Order Lifecycle & Reservation Engine</h2>
+<p>
+  A <strong>Limit Order</strong> allows a trader to specify an exact maximum price they are willing to pay (Limit Buy) or minimum price they are willing to accept (Limit Sell). Because execution may occur minutes or hours later, the engine locks capital or inventory to guarantee settlement when the market condition triggers.
+</p>
+
+<figure>
+  <img src="file:///app/applet/docs/project-documentation/limit-order-lifecycle.png" alt="Limit Order Lifecycle" />
+  <figcaption>Figure 7.2: Limit order locking, background tick matching, execution adjustment, and user cancellation.</figcaption>
+</figure>
+
+<h3>Step-by-Step Limit Order Lifecycle:</h3>
+<ol>
+  <li><strong>Placement & Reservation (<code>createOrderServices.js</code>):</strong>
+    <ul>
+      <li><strong>Limit BUY:</strong> The maximum required cash is calculated: <code>reservedAmount = qty * limitPrice</code>. This amount is moved immediately from <code>availableBalance</code> to <code>reservedBalance</code>:
+        <pre>
+Funds.updateOne({ userId }, {
+  $inc: { availableBalance: -reservedAmount, reservedBalance: +reservedAmount }
+});
+        </pre>
+        The order is recorded with <code>status: 'pending'</code>, <code>reservedAmount</code>, and <code>reservationReleased: false</code>.
+      </li>
+      <li><strong>Limit SELL:</strong> The share quantity is reserved from the holding:
+        <pre>
+Holding.updateOne({ userId, symbol }, {
+  $inc: { quantity: -qty, reservedQuantity: +qty }
+});
+        </pre>
+      </li>
+    </ul>
+  </li>
+  <li><strong>Background Tick Evaluation (<code>checkPendingLimitOrders.js</code>):</strong>
+    Whenever TrueData streams a price update (e.g., <code>RELIANCE LTP = ₹2,480</code>):
+    <ul>
+      <li>The worker queries for active pending orders for that symbol: <code>Order.find({ symbol, status: 'pending' })</code>.</li>
+      <li><strong>Condition Check:</strong>
+        <ul>
+          <li><strong>BUY Limit:</strong> Triggers if <code>currentLTP &lt;= order.price</code>.</li>
+          <li><strong>SELL Limit:</strong> Triggers if <code>currentLTP &gt;= order.price</code>.</li>
+        </ul>
+      </li>
+      <li><strong>Two-Phase Execution Lock:</strong> To prevent race conditions from concurrent ticks, the worker uses an atomic lock:
+        <pre>
+const lockedOrder = await Order.findOneAndUpdate(
+  { _id: order._id, status: 'pending' },
+  { $set: { status: 'processing' } },
+  { new: true }
+);
+        </pre>
+        If another thread already acquired the lock, <code>lockedOrder</code> is null and execution gracefully skips.
+      </li>
+    </ul>
+  </li>
+  <li><strong>Execution Settlement & Cash Refund:</strong>
+    Inside a transaction session:
+    <ul>
+      <li>The actual cost at the market execution price is computed: <code>actualCost = qty * currentLTP</code>.</li>
+      <li>Because <code>currentLTP &lt;= limitPrice</code>, the actual cost is typically less than or equal to the reserved cash!</li>
+      <li>The leftover savings are returned directly to the user's available balance:
+        <pre>
+const refundAmount = order.reservedAmount - actualCost;
+Funds.updateOne({ userId }, {
+  $inc: {
+    reservedBalance: -order.reservedAmount,
+    usedBalance: +actualCost,
+    availableBalance: +refundAmount // Leftover savings returned!
+  }
+});
+        </pre>
+      </li>
+      <li>Holding is credited with shares: <code>quantity += qty</code>.</li>
+      <li>Order is updated to <code>status: 'completed'</code>, <code>reservationReleased: true</code>.</li>
+    </ul>
+  </li>
+  <li><strong>User Cancellation (<code>cancelLimitOrderService.js</code>):</strong>
+    If the trader cancels a pending limit order before it triggers:
+    <ul>
+      <li>Verifies order is in <code>status: 'pending'</code> and <code>reservationReleased: false</code>.</li>
+      <li>Atomically unlocks the reserved cash or reserved shares back to available status.</li>
+      <li>Marks order <code>status: 'cancelled'</code>, <code>reservationReleased: true</code>.</li>
+    </ul>
+  </li>
+</ol>
+
+<h2>7.4 Mathematical Worked Example: Limit Buy Execution</h2>
+<div class="note">
+  <strong>Scenario:</strong>
+  <ul>
+    <li>User has ₹1,00,000 available balance.</li>
+    <li>Places a Limit Buy for 10 shares of Reliance at Limit Price ₹2,500.</li>
+    <li>Market dips to ₹2,480, triggering execution.</li>
+  </ul>
+  <strong>Step 1: Placement</strong>
+  <ul>
+    <li><code>reservedAmount = 10 * ₹2,500 = ₹25,000</code></li>
+    <li><code>availableBalance = ₹1,00,000 - ₹25,000 = ₹75,000</code></li>
+    <li><code>reservedBalance = ₹25,000</code></li>
+    <li><code>usedBalance = ₹0</code></li>
+  </ul>
+  <strong>Step 2: Execution at ₹2,480</strong>
+  <ul>
+    <li><code>actualCost = 10 * ₹2,480 = ₹24,800</code></li>
+    <li><code>refundAmount = ₹25,000 - ₹24,800 = ₹200</code></li>
+    <li><code>reservedBalance = ₹25,000 - ₹25,000 = ₹0</code></li>
+    <li><code>usedBalance = ₹0 + ₹24,800 = ₹24,800</code></li>
+    <li><code>availableBalance = ₹75,000 + ₹200 = ₹75,200</code></li>
+    <li><code>Total Account Equity = ₹75,200 (cash) + ₹24,800 (stock value) = ₹1,00,000</code></li>
+  </ul>
+</div>
+</div>
+
+<!-- Chapter: 08-funds-and-ledger.html -->
+<div class="chapter-wrapper"><h1 class="ch" id="ch8">Chapter 8 — Funds Management & Ledger Architecture</h1>
+
+<h2>8.1 The Three-Tier Balance Model</h2>
+<p>
+  Standard e-commerce architectures store a single monolithic wallet balance (e.g. <code>wallet = 500</code>). In financial trading systems, a single balance is inadequate because active holdings, margin exposure, and unfilled limit orders require separate capital allocations. Zerodha Clone implements an institutional <strong>three-tier balance ledger</strong>:
+</p>
+<pre>
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Total Account Equity                            │
+│  (Total Account Value = Available Cash + Used Margin + Portfolio Value)│
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+          ┌─────────────────────────┼─────────────────────────┐
+          ▼                         ▼                         ▼
+  availableBalance             usedBalance             reservedBalance
+  ┌───────────────┐         ┌───────────────┐         ┌───────────────┐
+  │ Free cash     │         │ Capital tied  │         │ Cash locked   │
+  │ available for │         │ up in active  │         │ for pending   │
+  │ new orders    │         │ stock holding │         │ buy limit     │
+  │ or withdrawal │         │ cost basis    │         │ orders        │
+  └───────────────┘         └───────────────┘         └───────────────┘
+</pre>
+
+<h2>8.2 Fund Balance Invariants & Math Equations</h2>
+<p>
+  The system enforces strict invariants on every transaction:
+</p>
+<ol>
+  <li><strong>Non-Negativity Constraint:</strong> <code>availableBalance &gt;= 0</code> and <code>reservedBalance &gt;= 0</code> at all times. Database schema enforces <code>min: 0</code>.</li>
+  <li><strong>Limit Order Placement Invariant:</strong>
+    <p><code>availableBalance_new = availableBalance_old - (qty * limitPrice)</code></p>
+    <p><code>reservedBalance_new = reservedBalance_old + (qty * limitPrice)</code></p>
+  </li>
+  <li><strong>Limit Order Execution Invariant:</strong>
+    <p><code>reservedBalance_new = reservedBalance_old - reservedAmount</code></p>
+    <p><code>usedBalance_new = usedBalance_old + (qty * LTP)</code></p>
+    <p><code>availableBalance_new = availableBalance_old + (reservedAmount - (qty * LTP))</code></p>
+  </li>
+  <li><strong>Sell Holding Fulfillment Invariant:</strong>
+    <p><code>usedBalance_new = usedBalance_old - (qty * averagePurchasePrice)</code></p>
+    <p><code>availableBalance_new = availableBalance_old + (qty * executionPrice)</code></p>
+    <p><em>(Net Realized Profit/Loss immediately reflects in the increase/decrease of available cash!)</em></p>
+  </li>
+</ol>
+
+<h2>8.3 Deposits, Withdrawals & Transaction Ledger</h2>
+<p>
+  All capital deposits and withdrawals are managed via <code>backend/controller/fundController.js</code>:
+</p>
+<ul>
+  <li><strong>Adding Funds (<code>POST /api/funds/add</code>):</strong>
+    <p>Traders deposit virtual capital (e.g. ₹50,000 via simulated UPI or Netbanking). The transaction atomically increments <code>availableBalance</code> and creates a record in <code>FundTransactionModel</code> with <code>type: 'deposit'</code>, <code>status: 'completed'</code>.</p>
+  </li>
+  <li><strong>Withdrawing Funds (<code>POST /api/funds/withdraw</code>):</strong>
+    <p>Traders withdraw capital back to their bank account. The system validates that <code>amount &lt;= availableBalance</code>. Funds deployed in active stocks (<code>usedBalance</code>) or reserved in open limit orders (<code>reservedBalance</code>) cannot be withdrawn until sold or canceled.</p>
+  </li>
+</ul>
+
+<h2>8.4 Transaction Helper: Atomic MongoDB Sessions</h2>
+<p>
+  To guarantee complete ACID compliance without partial state corruption, database operations that span multiple collections (e.g. debiting funds and creating holdings) utilize <code>backend/helpers/transactionHelper.js</code>:
+</p>
+<pre>
+export const runTransaction = async (callback) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const result = await callback(session);
+    await session.commitTransaction();
+    return result;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+};
+</pre>
+<p>
+  If any step inside <code>callback</code> throws an error (e.g., duplicate key, network blip, or constraint violation), the entire sequence aborts, rolling back any partial modifications to funds, orders, or holdings.
+</p>
+</div>
+
+<!-- Chapter: 09-holdings-and-positions.html -->
+<div class="chapter-wrapper"><h1 class="ch" id="ch9">Chapter 9 — Holdings, Positions & P&L Calculations</h1>
+
+<h2>9.1 CNC Delivery Holdings vs. MIS Intraday Positions</h2>
+<p>
+  Following Indian market structure, the platform distinguishes between two trading products:
+</p>
+<table>
+  <thead>
+    <tr>
+      <th>Dimension</th>
+      <th>Cash 'N Carry (CNC) — Holdings</th>
+      <th>Margin Intraday Square-off (MIS) — Positions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Investment Horizon</strong></td>
+      <td>Multi-day to multi-year long-term investment.</td>
+      <td>Single trading session (closed before 3:15 PM IST).</td>
+    </tr>
+    <tr>
+      <td><strong>Leverage Allowed</strong></td>
+      <td>1x (No leverage: 100% upfront cash required).</td>
+      <td>5x intraday leverage supported.</td>
+    </tr>
+    <tr>
+      <td><strong>Short Selling</strong></td>
+      <td>Not permitted (must own shares before selling).</td>
+      <td>Permitted (sell high, buy back lower before close).</td>
+    </tr>
+    <tr>
+      <td><strong>Storage Collection</strong></td>
+      <td><code>holdings</code> collection (HoldingsModel).</td>
+      <td><code>positions</code> collection (PositionsModel).</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>9.2 Volume-Weighted Average Purchase Price Formula</h2>
+<p>
+  When a trader purchases additional shares of an already owned stock at a different market price, the new cost basis is calculated using the <strong>Volume-Weighted Average Price</strong> formula:
+</p>
+<pre>
+New Average Price = ( (Existing Qty * Existing Avg Price) + (New Qty * Purchase Price) ) / ( Existing Qty + New Qty )
+</pre>
+
+<h3>Worked Example:</h3>
+<div class="note">
+  <ul>
+    <li>Trader currently owns <strong>10 shares of TCS</strong> with an average cost of <strong>₹3,200</strong> (Invested = ₹32,000).</li>
+    <li>Trader buys <strong>5 additional shares of TCS</strong> at the current market price of <strong>₹3,500</strong> (New Outlay = ₹17,500).</li>
+  </ul>
+  <p><code>New Total Quantity = 10 + 5 = 15 shares</code></p>
+  <p><code>New Total Invested = ₹32,000 + ₹17,500 = ₹49,500</code></p>
+  <p><code>New Average Price = ₹49,500 / 15 = ₹3,300 per share</code></p>
+</div>
+
+<h2>9.3 Real-Time P&L Equations</h2>
+<p>
+  The frontend Kite dashboard dynamically calculates real-time profit and loss metrics across every holding and for the aggregate portfolio:
+</p>
+
+<h3>1. Individual Holding Total P&L</h3>
+<pre>
+Holding Invested Value = Quantity * Average Price
+Holding Current Value  = Quantity * Current Market Price (LTP)
+Total Profit / Loss    = Holding Current Value - Holding Invested Value
+Percentage Return (%)  = ( Total Profit / Loss / Holding Invested Value ) * 100
+</pre>
+
+<h3>2. Individual Holding Day P&L</h3>
+<p>
+  Measures the profit or loss generated exclusively within the current trading session:
+</p>
+<pre>
+Day Profit / Loss   = Quantity * ( Current Market Price - Previous Day Close Price )
+Day Return (%)      = ( ( Current Market Price - Previous Close ) / Previous Close ) * 100
+</pre>
+
+<h3>3. Portfolio Aggregate Metrics (PortfolioSummary.jsx)</h3>
+<ul>
+  <li><code>Total Portfolio Invested = Sum of all (Quantity * Average Price)</code></li>
+  <li><code>Total Portfolio Current  = Sum of all (Quantity * LTP)</code></li>
+  <li><code>Net Unrealized P&L       = Total Portfolio Current - Total Portfolio Invested</code></li>
+  <li><code>Net Day P&L              = Sum of all (Quantity * (LTP - Previous Close))</code></li>
+</ul>
+
+<h2>9.4 Sell Inventory Reservation (Anti-Double-Spend)</h2>
+<p>
+  To prevent traders from placing multiple sell orders exceeding their actual owned shares:
+</p>
+<ol>
+  <li>When a trader places a Limit Sell for 4 shares out of 10 owned shares:
+    <pre>
+Holding.updateOne({ userId, symbol }, {
+  $inc: { quantity: -4, reservedQuantity: +4 }
+});
+    </pre>
+  </li>
+  <li>The available quantity immediately drops to 6 shares. If the user attempts to place another sell order for 7 shares, the system validates against <code>quantity</code> (6) and rejects the request.</li>
+  <li>When the limit order executes, <code>reservedQuantity</code> is decremented by 4.</li>
+  <li>If the user cancels the order, <code>quantity</code> is incremented by 4 and <code>reservedQuantity</code> is decremented by 4.</li>
+</ol>
+</div>
+
+<!-- Chapter: 10-market-data-and-truedata.html -->
+<div class="chapter-wrapper"><h1 class="ch" id="ch10">Chapter 10 — Market Data & TrueData Integration</h1>
+
+<h2>10.1 Market Data Ingestion Overview</h2>
+<p>
+  Real-time market price feeds are ingested via <strong>TrueData</strong>, an authorized data vendor for the National Stock Exchange of India (NSE) and Bombay Stock Exchange (BSE). The platform consumes real-time tick streaming over persistent WebSocket connections and historical candle records via HTTP REST endpoints.
+</p>
+
+<h2>10.2 TrueData WebSocket Client (trueDataService.js)</h2>
+<p>
+  The native WebSocket client manages authentication, subscription, and parsing of binary/JSON touchline ticks:
+</p>
+<pre>
+const url = `wss://push.truedata.in:${port}?user=${username}&password=${password}`;
+wsConnection = new WebSocket(url);
+
+wsConnection.on('message', (data) => {
+  const jsonObj = JSON.parse(data);
+  if (jsonObj.success && jsonObj.message === 'TrueData Real Time Data Service') {
+    // Authenticated! Subscribe to 14 core NSE blue-chips:
+    wsConnection.send(JSON.stringify({
+      method: 'addsymbol',
+      symbols: ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'ITC', ...]
+    }));
+  } else if (jsonObj.symbollist) {
+    // Process touchline tick records
+    jsonObj.symbollist.forEach(processStockTick);
+  }
+});
+</pre>
+
+<h3>Symbol Normalization:</h3>
+<p>
+  To prevent mismatch bugs between exchanges and user inputs, all symbols pass through <code>normalizeSymbol(symbol)</code>:
+</p>
+<pre>
+const normalizeSymbol = (symbol) =>
+  String(symbol || "")
+    .trim()
+    .toUpperCase()
+    .replace(/^NSE:/i, "")
+    .replace(/^BSE:/i, "");
+</pre>
+
+<h2>10.3 Touchline Tick Parser & In-Memory Cache</h2>
+<p>
+  Each incoming tick is transformed into a standardized price object and indexed into a fast in-memory <code>Map</code>:
+</p>
+<table>
+  <thead>
+    <tr><th>TrueData Field Index</th><th>Normalized Attribute</th><th>Sample Value</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>item[0]</code></td><td><code>symbol</code></td><td><code>"RELIANCE"</code></td><td>Ticker identifier.</td></tr>
+    <tr><td><code>item[3]</code></td><td><code>currentPrice</code> (LTP)</td><td><code>2525.50</code></td><td>Last Traded Price.</td></tr>
+    <tr><td><code>item[10]</code></td><td><code>previousClose</code></td><td><code>2490.00</code></td><td>Official previous day closing price.</td></tr>
+    <tr><td><code>Computed</code></td><td><code>priceChange</code></td><td><code>+35.50</code></td><td><code>LTP - previousClose</code>.</td></tr>
+    <tr><td><code>Computed</code></td><td><code>priceChangePercent</code></td><td><code>+1.43%</code></td><td><code>(priceChange / previousClose) * 100</code>.</td></tr>
+    <tr><td><code>item[7]</code></td><td><code>open</code></td><td><code>2495.00</code></td><td>Session open price.</td></tr>
+    <tr><td><code>item[8]</code></td><td><code>high</code></td><td><code>2535.00</code></td><td>Session high watermark.</td></tr>
+    <tr><td><code>item[9]</code></td><td><code>low</code></td><td><code>2480.00</code></td><td>Session low watermark.</td></tr>
+    <tr><td><code>item[6]</code></td><td><code>volume</code></td><td><code>1,420,000</code></td><td>Total traded share volume for session.</td></tr>
+  </tbody>
+</table>
+
+<h2>10.4 Offline & Development Resilient Fallback Cache</h2>
+<p>
+  In development environments, sandboxes, or during off-market hours (weekends and evenings), external WebSocket push feeds may be unavailable. If unhandled, empty price maps cause trading calculations, order evaluation, and watchlist rendering to crash.
+</p>
+<p>
+  Zerodha Clone solves this by initializing <code>latestTrueDataPrices</code> with a high-fidelity static baseline cache covering all 14 supported symbols. When live TrueData feeds connect, the live ticks overwrite the baseline cache in real time. If live connectivity is severed, the system continues operating smoothly.
+</p>
+
+<h2>10.5 Historical Price Data Service (trueDataHistoricalService.js)</h2>
+<p>
+  Historical OHLCV candle records are fetched for rendering interactive price charts in <code>StockChartPopup.jsx</code>:
+</p>
+<ul>
+  <li>Endpoint: <code>GET /api/market/prices/:symbol/historical?range=1M</code></li>
+  <li>Supported Ranges: <code>1M</code> (1 Month, 15-min candles), <code>1Y</code> (1 Year, daily candles), <code>5Y</code> (5 Years, weekly candles), <code>MAX</code>.</li>
+  <li>Token Caching: Historical REST authentication tokens are acquired from <code>https://auth.truedata.in/token</code> and cached in memory with an expiration timestamp to prevent unnecessary re-authentication overhead.</li>
+</ul>
+</div>
+
+<!-- Chapter: 11-tournament-engine.html -->
+<div class="chapter-wrapper"><h1 class="ch" id="ch11">Chapter 11 — Tournament & Paper Trading Engine</h1>
+
+<h2>11.1 Competitive Paper Trading Architecture</h2>
+<p>
+  The Tournament engine provides an isolated, competitive trading environment where multiple traders participate in timed trading contests using virtual capital. This enables risk-free paper trading while introducing realistic market conditions, competition pressure, and objective performance metrics.
+</p>
+
+<figure>
+  <img src="file:///app/applet/docs/project-documentation/tournament-flow.png" alt="Tournament Lifecycle Flow" />
+  <figcaption>Figure 11.1: Complete tournament lifecycle from creation, joining, virtual trading, to completion and prize settlement.</figcaption>
+</figure>
+
+<h2>11.2 Virtual Portfolio Isolation Model</h2>
+<p>
+  A critical design requirement is that <strong>tournament trading must never contaminate a user's real paper-trading capital</strong>:
+</p>
+<pre>
+Real Trading Account (FundsModel)
+  └── availableBalance: ₹100,000 (Completely unaffected by tournament losses)
+
+Tournament Participation Record (TournamentParticipationModel)
+  ├── tournamentId: "tournament_oct_2026"
+  ├── userId: "68c123456789abcdef123455"
+  ├── initialBalance: ₹500,000 (Independent virtual tournament capital)
+  ├── virtualCash: ₹425,000
+  ├── virtualHoldings: [{ symbol: "RELIANCE", qty: 25, avgPrice: 2500 }]
+  ├── totalPortfolioValue: ₹512,500
+  ├── roi: +2.50%
+  └── currentRank: 1
+</pre>
+
+<h2>11.3 Tournament Lifecycle State Machine</h2>
+<p>
+  Tournaments transition through three strict states managed by an automated background worker (<code>setInterval(syncActiveTournamentsLifecycle, 30000)</code> in <code>backend/index.js</code>):
+</p>
+<table>
+  <thead>
+    <tr><th>Status</th><th>Preconditions</th><th>Permitted Actions</th><th>State Transitions</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>upcoming</strong></td>
+      <td><code>currentTime &lt; startDate</code></td>
+      <td>Traders can view details and register/join. Virtual capital allocated.</td>
+      <td>Transitions to <code>active</code> when <code>currentTime &gt;= startDate</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>active</strong></td>
+      <td><code>startDate &lt;= currentTime &lt; endDate</code></td>
+      <td>Participants can submit virtual buy/sell orders. Real-time ticks update portfolio value.</td>
+      <td>Transitions to <code>completed</code> when <code>currentTime &gt;= endDate</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>completed</strong></td>
+      <td><code>currentTime &gt;= endDate</code></td>
+      <td>Trading disabled. Final leaderboard calculated and winners locked.</td>
+      <td>Terminal state. Results preserved for historical review.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>11.4 Real-Time Leaderboard & ROI Calculation</h2>
+<p>
+  Leaderboard rankings are based on <strong>Return on Investment (ROI)</strong> rather than absolute rupee value, ensuring fairness across varying tournament structures:
+</p>
+<pre>
+Current Equity = Virtual Cash + Sum of all (Virtual Qty * Current LTP)
+Net Return     = Current Equity - Initial Virtual Balance
+ROI (%)        = ( Net Return / Initial Virtual Balance ) * 100
+</pre>
+<p>
+  As live market ticks stream into the backend, the tournament service recalculates participants' portfolio values. Updated ranks are broadcast immediately over WebSockets to all clients in the tournament room:
+</p>
+<pre>
+io.to(`tournament:${tournamentId}`).emit('leaderboard-update', {
+  tournamentId,
+  leaderboard: updatedRankings
+});
+</pre>
+</div>
+
+<!-- Chapter: 12-ai-assistant.html -->
+<div class="chapter-wrapper"><h1 class="ch" id="ch12">Chapter 12 — AI Assistant & Portfolio Context Injection</h1>
+
+<h2>12.1 Conversational Financial Intelligence Overview</h2>
+<p>
+  Zerodha Clone features an integrated conversational AI financial assistant built with Google Gemini (using the modern <code>@google/genai</code> SDK). Unlike generic chatbot implementations that offer isolated answers, this assistant operates with <strong>real-time portfolio context injection</strong>: it inspects the authenticated user's active holdings, intraday positions, recent order history, and available cash before answering, allowing it to provide personalized portfolio health assessments, risk evaluations, and trade explanations.
+</p>
+
+<figure>
+  <img src="file:///app/applet/docs/project-documentation/ai-assistant-flow.png" alt="AI Assistant Flow" />
+  <figcaption>Figure 12.1: Sequence diagram of user query, parallel portfolio context aggregation, Gemini API invocation, and chat persistence.</figcaption>
+</figure>
+
+<h2>12.2 Context Aggregation Pipeline (aiController.js)</h2>
+<p>
+  When a user submits a prompt via <code>POST /api/ai/chat</code>, the controller executes a high-speed parallel query to gather the trader's complete financial state:
+</p>
+<pre>
+const [holdings, positions, orders, funds, watchlist] = await Promise.all([
+  Holding.find({ userId }).lean(),
+  Position.find({ userId }).lean(),
+  Order.find({ userId }).sort({ createdAt: -1 }).limit(20).lean(),
+  Fund.findOne({ userId }).lean(),
+  WatchlistList.findOne({ userId, isDefault: true }).lean(),
+]);
+</pre>
+<p>
+  The controller synthesizes these documents into a concise, token-efficient structured context string:
+</p>
+<pre>
+--- USER PORTFOLIO CONTEXT ---
+Available Capital: ₹75,200 | Used Margin: ₹24,800 | Reserved: ₹0
+Holdings:
+- RELIANCE: 10 shares @ avg ₹2,450 (Current LTP: ₹2,525, P&L: +₹750 / +3.06%)
+- TCS: 5 shares @ avg ₹3,280 (Current LTP: ₹3,350, P&L: +₹350 / +2.13%)
+Active Positions: None
+Recent Orders:
+- BUY 10 RELIANCE @ 2450 (status: completed)
+Tracked Watchlist: RELIANCE, TCS, INFY, HDFCBANK, ICICIBANK, SBIN, ITC
+------------------------------
+</pre>
+
+<h2>12.3 System Prompt & Financial Safety Guardrails</h2>
+<p>
+  The service enforces strict regulatory and ethical boundaries defined in <code>backend/services/aiService.js</code>:
+</p>
+<pre>
+const SYSTEM_INSTRUCTION = `
+You are an AI assistant inside a stock trading and portfolio management application.
+Your role is to help users understand:
+- Their portfolio, holdings, positions, orders, funds, profit and loss
+- Stock market concepts and trading terminology
+
+Rules:
+1. Give clear and simple explanations.
+2. Use the user's portfolio data when it is provided in the prompt.
+3. Never invent portfolio data, prices, orders, funds, or transactions.
+4. If required information is not provided, clearly say that the information is unavailable.
+5. Never execute, place, modify, or cancel a trading order.
+6. Never claim that an order has been executed unless the backend explicitly provides that information.
+7. Do not ask for passwords, OTPs, API keys, or other sensitive credentials.
+8. For financial topics, provide educational information and avoid presenting predictions as guaranteed outcomes.
+9. Keep responses concise and useful.
+`;
+</pre>
+
+<h2>12.4 Chat History Persistence & Session Management</h2>
+<p>
+  All conversations are stored in MongoDB via <code>ChatModel.js</code>:
+</p>
+<ul>
+  <li>Each conversation document maintains an array of message objects: <code>{ role: 'user' | 'assistant', content: String, timestamp: Date }</code>.</li>
+  <li>If the user passes an existing <code>chatId</code>, new messages are appended to that document, maintaining multi-turn context.</li>
+  <li>If no <code>chatId</code> is supplied, a new chat document is created with a generated title (e.g., derived from the user's initial question).</li>
+  <li>Users can review past conversation threads (<code>GET /api/ai/chats</code>) or delete obsolete history (<code>DELETE /api/ai/chats/:chatId</code>).</li>
+</ul>
+
+<h2>12.5 Resilient Error Handling & API Key Fallback</h2>
+<p>
+  If <code>GEMINI_API_KEY</code> is absent in development or if external rate limits occur, <code>aiService.js</code> captures the condition gracefully without returning 500 errors to the client, providing clear educational guidance on how to enable the generative AI key.
+</p>
+</div>
+
+<!-- Chapter: 13-advanced-features.html -->
+<div class="chapter-wrapper"><h1 class="ch" id="ch13">Chapter 13 — Advanced Ecosystem Features</h1>
+
+<h2>13.1 Multi-Watchlist System (watchlistsController.js)</h2>
+<p>
+  Similar to Zerodha Kite's multi-watchlist tab navigation (Watchlist 1 through 7), the platform allows traders to organize equities into distinct custom lists:
+</p>
+<ul>
+  <li>Up to <strong>7 watchlists per user</strong>, each holding up to <strong>50 stock symbols</strong>.</li>
+  <li>Custom watchlist naming (e.g. "Banking", "IT Sector", "High Beta").</li>
+  <li>Symbol re-ordering via drag-and-drop or sequential array storage.</li>
+  <li>Fast hovering quick-action buttons for instantaneous Buy/Sell, market depth, and chart expansion.</li>
+</ul>
+
+<h2>13.2 Price Target Alerts (priceAlertController.js)</h2>
+<p>
+  Traders can set automated alerts for any stock based on condition triggers:
+</p>
+<ul>
+  <li><strong>Conditions:</strong> <code>GREATER_THAN_OR_EQUAL</code> (Price >= Target) or <code>LESS_THAN_OR_EQUAL</code> (Price <= Target).</li>
+  <li><strong>Evaluation Engine (<code>evaluateAlerts</code>):</strong> Whenever TrueData emits a live price tick, <code>evaluateAlerts(symbol, ltp)</code> inspects active alerts for that symbol.</li>
+  <li><strong>Notification Trigger:</strong> When a condition triggers, the alert is marked <code>status: 'triggered'</code>, a high-priority in-app notification is recorded, and an event is dispatched over Socket.IO to the user's browser.</li>
+</ul>
+
+<h2>13.3 In-App Notifications & Preference Control</h2>
+<p>
+  The notification subsystem (<code>NotificationModel.js</code>) delivers real-time and persistent alerts categorized by priority (<code>low</code>, <code>normal</code>, <code>high</code>):
+</p>
+<ul>
+  <li><strong>Event Categories:</strong> Order filled, limit order triggered, price alert hit, fund deposit/withdrawal confirmed, tournament status change.</li>
+  <li><strong>Granular User Preferences (<code>NotificationPreferenceModel.js</code>):</strong> Users can toggle individual alert types on or off (e.g., disable deposit alerts while keeping limit order fill alerts enabled).</li>
+  <li><strong>Unread Tracking:</strong> Distinct read/unread timestamps and a bulk "Mark All as Read" endpoint (<code>POST /api/notifications/read-all</code>).</li>
+</ul>
+
+<h2>13.4 Portfolio Analytics & Performance Metrics (portfolioAnalyticsService.js)</h2>
+<p>
+  Provides data-driven feedback on user trading performance over time:
+</p>
+<ul>
+  <li><strong>Asset Allocation:</strong> Sector and asset distribution breakdown (Large Cap, Mid Cap, Cash Reserve) visualized via Recharts pie charts.</li>
+  <li><strong>Profit Factor:</strong> <code>Total Gross Profits / Total Gross Losses</code>.</li>
+  <li><strong>Win-Loss Ratio:</strong> <code>Profitable Closed Trades / Total Closed Trades * 100</code>.</li>
+  <li><strong>Historical Equity Curve:</strong> Daily portfolio equity snapshots captured via <code>PortfolioSnapshotModel.js</code> to chart historical account growth.</li>
+</ul>
+
+<h2>13.5 Risk Guard: Quantitative Risk Management (riskService.js)</h2>
+<p>
+  To prevent catastrophic emotional drawdowns (tilt trading), the platform implements an active <strong>Risk Guard</strong> system:
+</p>
+<ul>
+  <li><strong>Daily Loss Limit:</strong> Maximum loss permitted in a single trading day (e.g. ₹5,000). If hit, order placement triggers a warning or temporary restriction.</li>
+  <li><strong>Maximum Position Size Cap:</strong> Restricts the maximum capital allowed in any single trade (e.g. max 20% of total portfolio).</li>
+  <li><strong>Leverage Caps:</strong> Configurable maximum leverage allowed for intraday MIS positions.</li>
+</ul>
+
+<h2>13.6 Trading Journal (journalService.js)</h2>
+<p>
+  Professional trading requires reflective review of setups, thesis, and emotional discipline:
+</p>
+<ul>
+  <li><strong>Rich Notes & Setup Tags:</strong> Traders record technical rationale (Breakout, Pullback, Mean Reversion, Gap Fill).</li>
+  <li><strong>Emotional Tags:</strong> Traders log emotional states (FOMO, Revenge Trade, Patient, Confident, Hesitant) to identify psychological patterns correlating with losses.</li>
+  <li><strong>Trade Linking:</strong> Journal entries can be directly linked to executed order IDs to pair qualitative analysis with objective execution data.</li>
+</ul>
+
+<h2>13.7 Strategy Backtesting Engine (backtestEngine.js)</h2>
+<p>
+  A quantitative historical simulation engine allowing traders to validate technical rules before risking capital:
+</p>
+<ul>
+  <li><strong>SMA Crossover Strategy (<code>smaCrossover.js</code>):</strong> Simulates Fast Simple Moving Average (e.g. 9-period SMA) crossing Slow Simple Moving Average (e.g. 21-period SMA).</li>
+  <li><strong>Signal Generation:</strong> Fast SMA crosses above Slow SMA -> BUY Signal. Fast SMA crosses below Slow SMA -> SELL Signal.</li>
+  <li><strong>Simulation Performance Report:</strong> Generates Net Return %, Maximum Drawdown %, Win Rate %, Total Trades Executed, and Sharpe Ratio stored in <code>BacktestHistoryModel.js</code>.</li>
+</ul>
+</div>
+
+<!-- Chapter: 14-admin-and-reliability.html -->
+<div class="chapter-wrapper"><h1 class="ch" id="ch14">Chapter 14 — Admin Operations, Concurrency & Reliability</h1>
+
+<h2>14.1 Role-Based Access Control (RBAC) & Admin Middleware</h2>
+<p>
+  Administrative capabilities are strictly guarded using role-based access control. The <code>UserModel</code> defines a <code>role</code> enum (<code>'trader' | 'admin'</code>). Sensitive endpoints, such as tournament creation, manual square-offs, and platform settings, are protected by <code>adminMiddleware.js</code>:
+</p>
+<pre>
+export const adminOnly = (req, res, next) => {
+  if (!req.user || req.user.role !== "admin") {
+    return res.status(403).json({
+      success: false,
+      message: "Forbidden: Administrative privileges required."
+    });
+  }
+  next();
+};
+</pre>
+<p>
+  The system includes administrative utility scripts (<code>backend/scripts/setAdminRole.js</code>) allowing system operators to safely grant administrative permissions by email address.
+</p>
+
+<h2>14.2 Tournament Administration Interface (TournamentAdmin.jsx)</h2>
+<p>
+  Administrators access a dedicated management portal (<code>/admin/tournaments</code>) providing:
+</p>
+<ul>
+  <li><strong>Tournament Creation Form:</strong> Configuring title, description, entry fee, initial virtual balance (e.g. ₹5,00,000), registration window, competition start date/time, and end date/time.</li>
+  <li><strong>Competition Lifecycle Controls:</strong> Ability to view enrolled participants, inspect aggregate virtual portfolios, and manually trigger emergency freezes or lifecycle status transitions.</li>
+  <li><strong>Audit Trails (<code>adminAudit.js</code>):</strong> Every administrative mutation logs the executing administrator's ID, action timestamp, IP address, and changed parameters for compliance and debugging.</li>
+</ul>
+
+<h2>14.3 Concurrency Control & Race Condition Mitigation</h2>
+<p>
+  High-frequency financial applications face severe concurrency vulnerabilities if state mutations are not carefully sequenced. Zerodha Clone implements multiple defense-in-depth mechanisms:
+</p>
+
+<h3>1. Anti-Double-Spend with Two-Phase Limit Order Locking</h3>
+<div class="note">
+  <strong>Vulnerability:</strong> If two TrueData market ticks arrive within 2 milliseconds of each other while an order is pending, two concurrent worker threads might both trigger execution for the same order, purchasing double the intended shares and causing balance corruption.
+</div>
+<p>
+  <strong>Mitigation:</strong> <code>checkPendingLimitOrders.js</code> uses an atomic atomic state transition from <code>'pending'</code> to <code>'processing'</code>:
+</p>
+<pre>
+const lockedOrder = await Order.findOneAndUpdate(
+  { _id: order._id, status: 'pending' },
+  { $set: { status: 'processing' } },
+  { new: true }
+);
+if (!lockedOrder) return; // Second thread skipped immediately!
+</pre>
+
+<h3>2. Exactly-Once Reservation Release Guard</h3>
+<p>
+  Every order includes a boolean flag: <code>reservationReleased: Boolean</code> (default: <code>false</code>). When cash or stock is returned or converted to used margin:
+</p>
+<pre>
+const order = await Order.findOneAndUpdate(
+  { _id: orderId, reservationReleased: false },
+  { $set: { reservationReleased: true, status: 'cancelled' } },
+  { session }
+);
+if (!order) throw new Error("Reservation already released or order settled.");
+</pre>
+<p>
+  This guarantees that user refunds can never be processed twice, even if multiple cancellation clicks occur in rapid succession.
+</p>
+
+<h3>3. Multi-Document ACID Transactions</h3>
+<p>
+  All operations updating both ledger balances and asset inventories run inside native MongoDB replica-set transactions. If an order insertion fails after balance debiting, the entire transaction rolls back cleanly, ensuring zero financial discrepancy.
+</p>
+
+<h2>14.4 Error Handling Architecture</h2>
+<ul>
+  <li><strong>Centralized Error Class (<code>AppError.js</code>):</strong> Differentiates operational errors (known client errors like invalid inputs or insufficient margin) from fatal programmer bugs.</li>
+  <li><strong>Fail-Fast DB Resilience:</strong> Mongoose is configured with <code>bufferCommands: false</code>. If the database connection drops, operations fail fast with meaningful error responses rather than hanging for 30-second timeouts.</li>
+  <li><strong>Graceful Degradation:</strong> If external APIs (Twilio SMS or TrueData feeds) encounter downtime, fallbacks allow core application navigation and mock testing to proceed without crashes.</li>
+</ul>
+
+<h2>14.5 Known Limitations & Future Architecture Roadmap</h2>
+<table>
+  <thead>
+    <tr><th>Current Limitation</th><th>Technical Cause</th><th>Recommended Production Solution</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Single-Instance Socket.IO</strong></td>
+      <td>Socket rooms are currently in-memory on the Node server.</td>
+      <td>Implement <code>@socket.io/redis-adapter</code> for horizontal cluster scaling.</td>
+    </tr>
+    <tr>
+      <td><strong>In-Memory Polling Worker</strong></td>
+      <td>Tournament and limit order checks run via <code>setInterval</code>.</td>
+      <td>Migrate to distributed message queues (BullMQ / Redis) for background jobs.</td>
+    </tr>
+    <tr>
+      <td><strong>Relational Ledger Querying</strong></td>
+      <td>Double-entry accounting relies on document array transactions.</td>
+      <td>Adopt PostgreSQL (AI Studio Cloud SQL) for strict transactional ledgering.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- Chapter: 15-interview-preparation.html -->
+<div class="chapter-wrapper"><h1 class="ch" id="ch15">Chapter 15 — Technical Interview Preparation Masterclass</h1>
+
+<p>
+  This chapter provides <strong>100 project-grounded interview questions with clear, comprehensive answers</strong>. Each question tests architectural judgment, deep implementation knowledge, concurrency reasoning, and systems design derived directly from this Zerodha Clone codebase.
+</p>
+
+<h2>Part I: Architecture & System Design (Questions 1–15)</h2>
+
+<div class="qa">
+  <div class="q">1. What is the high-level architecture of this Zerodha Clone project?</div>
+  <div class="a">It is a full-stack, event-driven trading platform consisting of a React 19 Single Page Application (SPA) frontend, an Express 5 (Node.js 22) REST API gateway, Socket.IO real-time event streaming, and a MongoDB persistence tier. It integrates with TrueData for live/historical NSE market feeds, Twilio Verify for mobile OTP, and Google Gemini for portfolio-aware financial AI.</div>
+</div>
+
+<div class="qa">
+  <div class="q">2. Why did you choose a Controller-Service-Repository pattern rather than writing queries directly inside controllers?</div>
+  <div class="a">Controllers should only handle HTTP transport concerns (parsing status codes, reading cookies, returning JSON). Placing business rules (such as limit order execution, balance calculations, and multi-document transactions) in dedicated services enables unit testing, code reuse across HTTP routes and background workers, and prevents tight coupling to the web framework.</div>
+</div>
+
+<div class="qa">
+  <div class="q">3. How does the application handle both live and development/offline environments?</div>
+  <div class="a">It uses a defensive fallback architecture: if MongoDB, TrueData, or Twilio are unconfigured or temporarily offline, the server boots in resilient mode with mock baseline prices, default ledger balances, and local OTP codes (123456), ensuring zero crashes during local inspection or testing.</div>
+</div>
+
+<div class="qa">
+  <div class="q">4. How do you prevent Cross-Origin Resource Sharing (CORS) issues in production?</div>
+  <div class="a">The Express backend mounts Vite middlewares in development and serves pre-built static client files in production on the exact same port (3000). Because both the API and client share the same domain and port origin, cross-origin security blocks are eliminated entirely.</div>
+</div>
+
+<div class="qa">
+  <div class="q">5. Why is a monolithic wallet balance inadequate for a trading application?</div>
+  <div class="a">A single balance cannot represent capital locked in pending limit orders or funds tied up in active equity cost bases. We implement a three-tier model: availableBalance (liquid free cash), usedBalance (deployed in active holdings), and reservedBalance (locked for pending limit orders).</div>
+</div>
+
+<div class="qa">
+  <div class="q">6. How does the system handle real-time market data distribution?</div>
+  <div class="a">TrueData pushes touchline ticks over WebSockets into the backend. The backend updates an in-memory price map, evaluates limit order trigger conditions, and dispatches real-time events over Socket.IO to connected browser clients.</div>
+</div>
+
+<div class="qa">
+  <div class="q">7. How are user notifications routed to specific individuals without broadcasting to everyone?</div>
+  <div class="a">When a client connects to Socket.IO, it emits `join-user-room` with its authenticated user ID. The server places that socket connection into room `user:{userId}`. Notifications are emitted strictly via `io.to('user:' + userId).emit('new-notification', data)`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">8. How do you isolate tournament paper trading from real paper-trading portfolios?</div>
+  <div class="a">Tournament records are maintained in completely separate collections (`TournamentParticipationModel` and `TournamentOrderModel`). A user's main `Funds` balance is never affected by tournament entry positions or losses.</div>
+</div>
+
+<div class="qa">
+  <div class="q">9. What happens if the backend server crashes while a limit order is executing?</div>
+  <div class="a">Because all order mutations and balance debit/credits run inside atomic MongoDB sessions (`session.startTransaction()`), an unexpected server crash automatically triggers transaction rollback by MongoDB, leaving no orphan balances.</div>
+</div>
+
+<div class="qa">
+  <div class="q">10. How would you scale the Socket.IO tier across multiple server instances?</div>
+  <div class="a">By introducing the `@socket.io/redis-adapter`. This connects multiple Node.js instances to a shared Redis Pub/Sub backplane so that room broadcasts emitted from Server A reach sockets connected to Server B.</div>
+</div>
+
+<div class="qa">
+  <div class="q">11. Why is HTTP polling avoided for order status updates?</div>
+  <div class="a">Polling introduces severe server load, redundant database queries, and latency. Socket.IO event push guarantees instant, sub-50ms UI updates upon order fill with minimal network overhead.</div>
+</div>
+
+<div class="qa">
+  <div class="q">12. How does the system enforce separation between CNC delivery and MIS intraday products?</div>
+  <div class="a">CNC requires 100% upfront cash, prohibits short-selling, and saves directly into `holdings`. MIS allows leverage, supports short-selling, and records into `positions` with automated square-off requirements.</div>
+</div>
+
+<div class="qa">
+  <div class="q">13. What is the role of `server.js` versus `backend/index.js`?</div>
+  <div class="a">`backend/index.js` encapsulates the Express route configurations, database initialization, and socket setup. `server.js` serves as the root application entry point that mounts frontend Vite middlewares alongside the backend.</div>
+</div>
+
+<div class="qa">
+  <div class="q">14. What design considerations were made for mobile and responsive layouts?</div>
+  <div class="a">The dashboard features a collapsible sidebar that transitions to an icon dock below 991px, grid layouts that reflow from 4 cards to 1 card on mobile, and responsive touchline action buttons.</div>
+</div>
+
+<div class="qa">
+  <div class="q">15. How are database migrations and initial seed data handled?</div>
+  <div class="a">`backend/data/init.js` and `backend/data/data.js` contain programmatic seed utilities for holdings, positions, funds, and orders, enabling instantaneous environment hydration.</div>
+</div>
+
+<h2>Part II: React & Frontend Architecture (Questions 16–30)</h2>
+
+<div class="qa">
+  <div class="q">16. Why was React 19 selected for the frontend?</div>
+  <div class="a">React 19 offers improved asynchronous state handling, enhanced batching, improved hydration performance, and seamless compatibility with modern Vite compilation pipelines.</div>
+</div>
+
+<div class="qa">
+  <div class="q">17. Explain how `AppContext.jsx` acts as the single source of truth.</div>
+  <div class="a">It consolidates user data, holdings, open positions, ledger balances, market prices, and notifications into a single React context provider, exposing state and updater functions to all child components without prop drilling.</div>
+</div>
+
+<div class="qa">
+  <div class="q">18. What are `orderVersion`, `holdingVersion`, and `fundVersion` state counters in AppContext?</div>
+  <div class="a">They are reactive dependency counters. When an order completes or funds are added, incrementing `orderVersion` triggers `useEffect` hooks across disparate components (Orders page, Holdings page, Header balance badge) to re-fetch fresh state in parallel.</div>
+</div>
+
+<div class="qa">
+  <div class="q">19. How does `ProtectedRoute.jsx` enforce client-side navigation security?</div>
+  <div class="a">It queries `GET /api/auth/me` with `{ withCredentials: true }` upon mounting. If the session is invalid, it redirects the browser to `/login`. If authenticated, it renders `children` (the dashboard layout).</div>
+</div>
+
+<div class="qa">
+  <div class="q">20. How does `TradePopup.jsx` compute dynamic margin requirements?</div>
+  <div class="a">It binds a listener to quantity and price inputs: `Required Margin = Quantity * (OrderType === 'MARKET' ? LTP : LimitPrice)`. It compares this against `availableBalance` in real time, disabling the submit button if funds are insufficient.</div>
+</div>
+
+<div class="qa">
+  <div class="q">21. How is dark mode implemented across the frontend?</div>
+  <div class="a">The user's theme selection is stored in `localStorage` and applied to the root `&lt;html&gt;` tag as `data-theme="dark"`. CSS custom variables defined in `App.css` automatically adapt card backgrounds, borders, and text colors.</div>
+</div>
+
+<div class="qa">
+  <div class="q">22. How are charts rendered in the portfolio analytics dashboard?</div>
+  <div class="a">Using Recharts components (`ResponsiveContainer`, `PieChart`, `AreaChart`, `BarChart`) bound to computed asset allocation and P&L timeline arrays.</div>
+</div>
+
+<div class="qa">
+  <div class="q">23. How does the frontend prevent UI lag when receiving high-frequency price updates?</div>
+  <div class="a">Market tick updates modify state inside a keyed object/Map (`marketPrices[symbol]`), ensuring React only re-renders components specifically subscribing to the changed symbol rather than the entire page.</div>
+</div>
+
+<div class="qa">
+  <div class="q">24. What is the purpose of `FundToast` and `OrderToast`?</div>
+  <div class="a">They provide non-blocking floating status feedback confirming order placement, limit order triggers, and wallet balance updates without obscuring user interactions.</div>
+</div>
+
+<div class="qa">
+  <div class="q">25. How does `MarketWatchlist.jsx` support multi-watchlist switching?</div>
+  <div class="a">It renders numeric tab pills (1 to 7). Clicking a pill sets `activeWatchlistId`, which filters displayed stocks and queries the backend for custom symbol orderings.</div>
+</div>
+
+<div class="qa">
+  <div class="q">26. How are modals managed across the dashboard?</div>
+  <div class="a">Modal open/close states (TradePopup, StockChartPopup, PriceAlertModal, StockDetailsPopup) are managed in AppContext, allowing any button across watchlists or positions to launch a modal.</div>
+</div>
+
+<div class="qa">
+  <div class="q">27. How does the client handle network disconnection with Socket.IO?</div>
+  <div class="a">Socket.IO Client is initialized with `reconnection: true`, exponential backoff (`reconnectionDelay: 1000`, `reconnectionDelayMax: 5000`), and automatically re-joins user rooms upon reconnecting.</div>
+</div>
+
+<div class="qa">
+  <div class="q">28. Why use `axios` over native `fetch` in this project?</div>
+  <div class="a">Axios provides automated JSON body serialization/parsing, unified interceptors for credentials, and consistent error response normalization via `error.response.data`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">29. How does `AIAssistant.jsx` stream and format generative responses?</div>
+  <div class="a">It uses `react-markdown` to parse Gemini's markdown output, rendering syntax-highlighted code blocks, financial bullet points, and clean typography.</div>
+</div>
+
+<div class="qa">
+  <div class="q">30. What strategy is used to prevent memory leaks in React `useEffect` hooks?</div>
+  <div class="a">All timers (such as OTP countdown clocks) and Socket.IO event listeners return explicit cleanup functions (e.g. `socket.off('new-notification')` and `clearInterval(timer)`).</div>
+</div>
+
+<h2>Part III: Node.js, Express & Middleware (Questions 31–45)</h2>
+
+<div class="qa">
+  <div class="q">31. What are the key architectural improvements in Express 5 used in this backend?</div>
+  <div class="a">Express 5 natively handles rejected promises and asynchronous errors in route handlers without requiring manual `try/catch` and `next(err)` boilerplates, simplifying async controller code.</div>
+</div>
+
+<div class="qa">
+  <div class="q">32. How does `isLoggedInMiddleware.js` extract and authenticate the user?</div>
+  <div class="a">It extracts `req.cookies.token`, verifies the signature using `jwt.verify(token, JWT_SECRET)`, queries `User.findById(decoded.userId)`, confirms `tokenVersion` matches, and attaches `req.user`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">33. Why is Joi used for payload validation instead of manual if-else statements?</div>
+  <div class="a">Joi provides declarative, schema-based validation (`orderValidationSchema.js` and `userValidationSchema.js`), validating types, minimums, maximums, and allowed string enums before controllers execute.</div>
+</div>
+
+<div class="qa">
+  <div class="q">34. How does `adminMiddleware.js` protect administrative routes?</div>
+  <div class="a">It executes immediately following `isLoggedIn` and asserts `req.user.role === 'admin'`. If false, it terminates the request with HTTP 403 Forbidden.</div>
+</div>
+
+<div class="qa">
+  <div class="q">35. What is the role of `cookie-parser` in this architecture?</div>
+  <div class="a">It parses the HTTP `Cookie` header string into a structured JavaScript object on `req.cookies`, allowing clean retrieval of the signed authentication cookie.</div>
+</div>
+
+<div class="qa">
+  <div class="q">36. How does the server handle uncaught exceptions and database disconnects?</div>
+  <div class="a">The global error middleware inspects `err.name === 'MongooseError'`. It logs the incident and returns a graceful 503 or empty array fallback rather than crashing the process.</div>
+</div>
+
+<div class="qa">
+  <div class="q">37. How does the Node process schedule background tournament synchronization?</div>
+  <div class="a">In `backend/index.js`, an interval worker runs every 30 seconds (`setInterval(syncActiveTournamentsLifecycle, 30000)`), executing automated tournament state transitions.</div>
+</div>
+
+<div class="qa">
+  <div class="q">38. Explain how Client IDs are generated in `generateClientId.js`.</div>
+  <div class="a">It generates a 2-character prefix ('ZR') followed by 4 random alphanumeric characters, checking the database in a loop to ensure uniqueness before assigning it to a new trader.</div>
+</div>
+
+<div class="qa">
+  <div class="q">39. Why are passwords excluded from default User queries?</div>
+  <div class="a">The `password` schema definition specifies `select: false`. This prevents hashed passwords from leaking in API responses or user profile queries unless explicitly requested via `.select('+password')`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">40. How is CORS configured to allow cookies across origins in local testing?</div>
+  <div class="a">`cors({ origin: true, credentials: true })` reflects the request origin and sets `Access-Control-Allow-Credentials: true`, permitting browser cookie transmissions.</div>
+</div>
+
+<div class="qa">
+  <div class="q">41. What is the difference between `process.exitCode = 1` and `process.exit(1)`?</div>
+  <div class="a">Setting `process.exitCode = 1` allows the Node.js event loop to complete pending I/O operations and close active database sessions gracefully before exiting, avoiding abrupt socket terminations.</div>
+</div>
+
+<div class="qa">
+  <div class="q">42. How does the backend prevent brute-force OTP attempts?</div>
+  <div class="a">`OtpChallengeModel` enforces a limit of 3 challenge requests per 5-minute window per phone number, returning HTTP 429 Rate Limit Exceeded if violated.</div>
+</div>
+
+<div class="qa">
+  <div class="q">43. What is the function of `adminAudit.js`?</div>
+  <div class="a">It records administrative mutations (such as tournament status modifications) to a persistent audit log, logging admin ID, timestamp, IP, and payload for compliance.</div>
+</div>
+
+<div class="qa">
+  <div class="q">44. How does the application leverage ES Modules (`import/export`) natively?</div>
+  <div class="a">By setting `"type": "module"` in `package.json`, allowing modern Node.js top-level await and clean ES6 module imports without Babel transpilation.</div>
+</div>
+
+<div class="qa">
+  <div class="q">45. How does the server handle graceful shutdown?</div>
+  <div class="a">By listening to `SIGTERM` and `SIGINT`, stopping new HTTP requests, finishing in-flight transactions, closing database connections, and exiting cleanly.</div>
+</div>
+
+<h2>Part IV: MongoDB, Mongoose & Transactions (Questions 46–60)</h2>
+
+<div class="qa">
+  <div class="q">46. Why is MongoDB suitable for this trading application?</div>
+  <div class="a">Its dynamic document model easily represents complex financial objects (such as orders with execution histories and tournament portfolios with nested holdings) while supporting native multi-document ACID transactions.</div>
+</div>
+
+<div class="qa">
+  <div class="q">47. How are multi-document transactions initiated in Mongoose?</div>
+  <div class="a">Via `const session = await mongoose.startSession(); session.startTransaction();`. All queries pass `{ session }`, and operations commit via `await session.commitTransaction()`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">48. Why is `bufferCommands: false` configured on Mongoose?</div>
+  <div class="a">By default, Mongoose buffers queries indefinitely if the database disconnects. Setting `bufferCommands: false` causes operations to fail fast immediately, allowing fallback code to respond promptly.</div>
+</div>
+
+<div class="qa">
+  <div class="q">49. What indexes are placed on the `Orders` collection?</div>
+  <div class="a">Indexes on `userId`, `symbol`, and a compound index on `{ symbol: 1, status: 1 }` to enable fast background matching of pending limit orders on live price ticks.</div>
+</div>
+
+<div class="qa">
+  <div class="q">50. How does the `Holdings` model handle partial sell operations?</div>
+  <div class="a">It executes `$inc: { quantity: -sellQty }`. If `quantity` drops to 0, the holding document is removed via `Holding.deleteOne({ _id })`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">51. What is the significance of `.lean()` in Mongoose queries?</div>
+  <div class="a">It instructs Mongoose to return plain, lightweight JavaScript objects rather than heavy Mongoose Document instances with change tracking, reducing memory consumption by up to 70%.</div>
+</div>
+
+<div class="qa">
+  <div class="q">52. How does `UserModel` guarantee uniqueness on mobile and email?</div>
+  <div class="a">By declaring `unique: true` on both fields, backed by MongoDB unique B-tree indexes that prevent concurrent duplicate registrations.</div>
+</div>
+
+<div class="qa">
+  <div class="q">53. How is the double-entry accounting ledger maintained in `FundTransactionModel`?</div>
+  <div class="a">Every balance change (deposit, withdrawal, order fulfillment) writes an immutable transaction document recording `userId`, `amount`, `type`, `status`, and `createdAt`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">54. What prevents `availableBalance` from going below zero in concurrent requests?</div>
+  <div class="a">Atomic query filters: `Funds.findOneAndUpdate({ userId, availableBalance: { $gte: tradeAmount } }, { $inc: { availableBalance: -tradeAmount } })`. If funds are insufficient, no document matches.</div>
+</div>
+
+<div class="qa">
+  <div class="q">55. What is the purpose of `PortfolioSnapshotModel.js`?</div>
+  <div class="a">It stores end-of-day portfolio valuation snapshots (invested, current, cash, total equity) for generating historical performance curves and drawdown charts in the analytics dashboard.</div>
+</div>
+
+<div class="qa">
+  <div class="q">56. How does the `ChatModel` structure message history?</div>
+  <div class="a">It stores messages as an embedded subdocument array `[{ role: 'user' | 'assistant', content: String, timestamp: Date }]` indexed by `userId` and `chatId`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">57. Explain the schema design of `WatchlistListModel`.</div>
+  <div class="a">Each document represents a named watchlist containing `userId`, `name`, `isDefault: Boolean`, and an array of symbol subdocuments `[{ symbol: String, companyName: String }]`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">58. How does `OtpChallengeModel` auto-expire stale challenges?</div>
+  <div class="a">By utilizing a MongoDB TTL (Time-To-Live) index on `expiresAt` that automatically purges expired challenge documents from the database.</div>
+</div>
+
+<div class="qa">
+  <div class="q">59. What happens if a MongoDB transaction fails halfway through?</div>
+  <div class="a">The catch block invokes `await session.abortTransaction()`, rolling back all staged writes and restoring the database to its pre-transaction state.</div>
+</div>
+
+<div class="qa">
+  <div class="q">60. How are relations modeled between Users, Funds, Holdings, and Orders?</div>
+  <div class="a">Via referenced ObjectId linking (`userId`). Funds has a 1-to-1 relationship with User, while Orders, Holdings, and Positions have 1-to-Many relationships with User.</div>
+</div>
+
+<h2>Part V: Trading Mechanics, Order Execution & Math (Questions 61–75)</h2>
+
+<div class="qa">
+  <div class="q">61. What is the difference between a Market Order and a Limit Order?</div>
+  <div class="a">A Market Order executes immediately at the current market LTP. A Limit Order executes only when market price reaches or improves upon a specified limit trigger price.</div>
+</div>
+
+<div class="qa">
+  <div class="q">62. Walk through the cash reservation lifecycle of a Limit Buy order.</div>
+  <div class="a">1) Placement: `availableBalance -= qty * limitPrice`, `reservedBalance += qty * limitPrice`. 2) Trigger: Executed at LTP. `reservedBalance -= reservedAmount`, `usedBalance += qty * LTP`. 3) Savings Refund: Leftover `(limitPrice - LTP) * qty` returns to `availableBalance`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">63. How is stock reserved on a Limit Sell order?</div>
+  <div class="a">The shares are transferred from unencumbered `quantity` to `reservedQuantity` inside `Holding`. This prevents the trader from selling those same shares in a separate market order while the limit order is active.</div>
+</div>
+
+<div class="qa">
+  <div class="q">64. What is the mathematical formula for Volume-Weighted Average Purchase Price?</div>
+  <div class="a">`((Existing_Qty * Existing_Avg_Price) + (New_Qty * New_Price)) / (Existing_Qty + New_Qty)`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">65. If a user owns 20 shares of Reliance at ₹2,400 and buys 10 more at ₹2,700, what is the new average price?</div>
+  <div class="a">Total Invested = (20 * 2400) + (10 * 2700) = 48,000 + 27,000 = ₹75,000. Total Shares = 30. New Average Price = 75,000 / 30 = ₹2,500 per share.</div>
+</div>
+
+<div class="qa">
+  <div class="q">66. How does the system prevent double execution of a limit order when multiple ticks arrive?</div>
+  <div class="a">Using two-phase atomic locking: the background worker queries for `status: 'pending'` and immediately transitions it to `'processing'`. A concurrent tick finding no order with status `'pending'` simply skips execution.</div>
+</div>
+
+<div class="qa">
+  <div class="q">67. What is `reservationReleased` and why is it essential?</div>
+  <div class="a">It is a boolean latch on the Order model. It ensures that unlocking reserved cash or shares occurs strictly once, preventing double refunds on duplicate cancellation clicks.</div>
+</div>
+
+<div class="qa">
+  <div class="q">68. How is Day P&L calculated for an individual stock?</div>
+  <div class="a">`Day P&L = Quantity * (Current Market Price - Previous Day Close Price)`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">69. How is Total Unrealized P&L calculated for a holding?</div>
+  <div class="a">`Total P&L = Quantity * (Current Market Price - Average Purchase Price)`. Percentage return is `(Total P&L / (Quantity * Average Purchase Price)) * 100`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">70. What happens when a user cancels a pending Limit Buy order?</div>
+  <div class="a">`cancelLimitOrderService.js` confirms status is `pending`, marks `reservationReleased: true`, decrements `reservedBalance` by `reservedAmount`, and increments `availableBalance` by `reservedAmount`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">71. Can a user withdraw funds that are currently in `reservedBalance`?</div>
+  <div class="a">No. The withdrawal endpoint strictly checks `withdrawalAmount &lt;= availableBalance`. Reserved funds are legally encumbered by pending market commitments.</div>
+</div>
+
+<div class="qa">
+  <div class="q">72. How is intraday leverage modeled for MIS orders?</div>
+  <div class="a">For MIS trades, required margin is computed as `(qty * price) / leverageFactor` (e.g. 5x leverage requires only 20% upfront cash), allowing intraday day-trading simulation.</div>
+</div>
+
+<div class="qa">
+  <div class="q">73. What is short selling in MIS and how does the engine handle it?</div>
+  <div class="a">A trader sells shares they do not own, creating a Position with `type: 'sell'`. They profit if price drops and must buy back (square-off) the shares before market close.</div>
+</div>
+
+<div class="qa">
+  <div class="q">74. How does the engine handle orders placed when market prices fluctuate wildly (slippage)?</div>
+  <div class="a">Market orders execute at the latest cached LTP. In a live production exchange, orders would route to an exchange matching engine with price tolerance bands.</div>
+</div>
+
+<div class="qa">
+  <div class="q">75. What validation rules are applied to order placement payloads?</div>
+  <div class="a">`orderValidation.js` enforces: `symbol` must be valid string, `qty` must be positive integer >= 1, `price` must be positive number >= 0.05, `mode` must be 'BUY' or 'SELL', `orderType` must be 'MARKET' or 'LIMIT'.</div>
+</div>
+
+<h2>Part VI: Authentication, Tokens & Security (Questions 76–85)</h2>
+
+<div class="qa">
+  <div class="q">76. Why store JWTs in HTTP-only cookies instead of `localStorage`?</div>
+  <div class="a">`localStorage` is accessible to any JavaScript running on the page, making it vulnerable to token theft via Cross-Site Scripting (XSS). HTTP-only cookies cannot be read by JavaScript.</div>
+</div>
+
+<div class="qa">
+  <div class="q">77. How does the `sameSite: 'lax'` attribute protect against CSRF attacks?</div>
+  <div class="a">It prevents the browser from sending authentication cookies on cross-site subrequests (such as malicious third-party POST forms or embedded images), mitigating Cross-Site Request Forgery.</div>
+</div>
+
+<div class="qa">
+  <div class="q">78. How does `tokenVersion` enable logging out all devices?</div>
+  <div class="a">When the user selects "Logout All Sessions", the server increments `user.tokenVersion` in MongoDB. Existing tokens on other devices carry the old version number and fail validation on their next request.</div>
+</div>
+
+<div class="qa">
+  <div class="q">79. Why is `bcryptjs` used with a work factor of 10?</div>
+  <div class="a">Bcrypt is a slow hashing algorithm designed to resist brute-force hardware attacks. Work factor 10 requires ~100ms per hash, striking an optimal balance between security and server throughput.</div>
+</div>
+
+<div class="qa">
+  <div class="q">80. Explain the role of the `verificationToken` in mobile registration.</div>
+  <div class="a">It is a short-lived signed JWT issued upon successful SMS OTP verification. Including it in the final registration payload proves cryptographically that the mobile number was verified before creating the user account.</div>
+</div>
+
+<div class="qa">
+  <div class="q">81. How does the application prevent account enumeration during login?</div>
+  <div class="a">When OTP dispatch or password verification fails, the API returns a generic error message ("Invalid mobile number or credentials") rather than disclosing whether the account exists.</div>
+</div>
+
+<div class="qa">
+  <div class="q">82. What claims are encoded in the primary authentication JWT?</div>
+  <div class="a">`{ userId: user._id, role: user.role, tokenVersion: user.tokenVersion }` signed with `JWT_SECRET` and a 24-hour expiration (`expiresIn: '1d'`).</div>
+</div>
+
+<div class="qa">
+  <div class="q">83. How are sensitive configuration secrets protected in source control?</div>
+  <div class="a">All secrets (`JWT_SECRET`, `MONGO_URI`, `GEMINI_API_KEY`, `TWILIO_AUTH_TOKEN`) are loaded from `.env` via `dotenv` and explicitly excluded from git tracking via `.gitignore`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">84. How does the system guard against NoSQL injection attacks?</div>
+  <div class="a">Mongoose schema type casting and Joi input validation ensure query parameters match expected primitive types, preventing attackers from injecting operator objects (e.g. `{"$gt": ""}`).</div>
+</div>
+
+<div class="qa">
+  <div class="q">85. What is the role of `passport.js` in this architecture?</div>
+  <div class="a">It encapsulates the Passport Local Strategy for email/password authentication, verifying user credentials and serializing user identity.</div>
+</div>
+
+<h2>Part VII: AI Assistant & External Integrations (Questions 86–95)</h2>
+
+<div class="qa">
+  <div class="q">86. Which Google GenAI SDK is utilized in this project?</div>
+  <div class="a">The modern `@google/genai` TypeScript/JavaScript SDK, instantiating `new GoogleGenAI({ apiKey })` and targeting the `gemini-2.5-flash` model.</div>
+</div>
+
+<div class="qa">
+  <div class="q">87. How is real-time portfolio context provided to the Gemini model?</div>
+  <div class="a">Before calling the AI model, `aiController.js` queries user holdings, active positions, recent orders, and balances in parallel, formatting them into an informative system prompt string.</div>
+</div>
+
+<div class="qa">
+  <div class="q">88. What guardrails prevent the AI assistant from executing unauthorized trades?</div>
+  <div class="a">System instructions explicitly command the model: "Never execute, place, modify, or cancel a trading order." The AI assistant backend does not have access to order mutation function bindings.</div>
+</div>
+
+<div class="qa">
+  <div class="q">89. How are AI conversations persisted in MongoDB?</div>
+  <div class="a">Each conversation is stored in `ChatModel.js` with an array of user and assistant messages, enabling users to switch between conversation threads or review past financial analyses.</div>
+</div>
+
+<div class="qa">
+  <div class="q">90. How does the AI service handle missing API keys or external service limits?</div>
+  <div class="a">It catches API errors gracefully in `aiService.js`, returning informative financial guidance on technical indicators rather than throwing unhandled 500 exceptions to the UI.</div>
+</div>
+
+<div class="qa">
+  <div class="q">91. How does the TrueData historical service optimize token usage?</div>
+  <div class="a">It requests an OAuth token from TrueData Auth REST API and caches it in memory with an expiration timestamp (`historicalTokenExpiresAt`), reusing it across subsequent historical candle queries.</div>
+</div>
+
+<div class="qa">
+  <div class="q">92. What ranges are supported for historical stock charts?</div>
+  <div class="a">`1M` (1 month, intraday 15-min candles), `1Y` (1 year daily candles), `5Y` (5 year weekly candles), and `MAX`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">93. How are Indian stock symbols normalized across TrueData and user inputs?</div>
+  <div class="a">`normalizeSymbol` trims whitespace, converts to uppercase, and strips `NSE:` or `BSE:` prefixes, guaranteeing consistent cache keys and query matching.</div>
+</div>
+
+<div class="qa">
+  <div class="q">94. How does the tournament engine rank competitors?</div>
+  <div class="a">By Return on Investment: `ROI = ((Current Portfolio Value - Initial Balance) / Initial Balance) * 100`. Traders are sorted descending by ROI.</div>
+</div>
+
+<div class="qa">
+  <div class="q">95. How does the SMA Crossover backtesting strategy generate signals?</div>
+  <div class="a">It calculates a Fast SMA (9-period) and Slow SMA (21-period) on historical closing prices. A crossover of Fast above Slow generates a BUY; Fast below Slow generates a SELL.</div>
+</div>
+
+<h2>Part VIII: Production Readiness & Debugging (Questions 96–100)</h2>
+
+<div class="qa">
+  <div class="q">96. How do you debug an issue where a limit order failed to execute?</div>
+  <div class="a">1) Verify order status in MongoDB (`pending` vs `processing`). 2) Inspect TrueData price cache for the symbol's LTP. 3) Check if LTP crossed the limit price. 4) Review logs in `checkPendingLimitOrders.js` for lock acquisition or session rollback errors.</div>
+</div>
+
+<div class="qa">
+  <div class="q">97. How would you diagnose an unexpected balance discrepancy?</div>
+  <div class="a">Audit the `FundTransactionModel` collection for the user. Sum all deposits minus withdrawals and compare against `availableBalance + usedBalance + reservedBalance`.</div>
+</div>
+
+<div class="qa">
+  <div class="q">98. How do you prevent memory leaks in Node.js when processing real-time WebSocket ticks?</div>
+  <div class="a">By storing ticks in a fixed-size `Map` keyed by symbol (updating in-place) rather than appending to an unbounded array, keeping memory usage constant regardless of market tick volume.</div>
+</div>
+
+<div class="qa">
+  <div class="q">99. How is the application built and bundled for production deployment?</div>
+  <div class="a">`npm run build` runs `vite build`, bundling React components into optimized, minified CSS and JavaScript chunks inside `dist/`. The Node server serves these static assets directly.</div>
+</div>
+
+<div class="qa">
+  <div class="q">100. If an interviewer asks: 'What is the proudest engineering accomplishment in this project?', how would you answer?</div>
+  <div class="a">'Designing and implementing the institutional three-tier balance ledger and two-phase limit order reservation engine. Solving real-world concurrency issues—such as preventing double-spending on simultaneous market ticks, executing atomic refunds on limit fills, and isolating tournament capital—demonstrated deep full-stack systems engineering beyond standard CRUD applications.'</div>
+</div>
+</div>
+
+<!-- Chapter: 16-exercises-glossary-summary.html -->
+<div class="chapter-wrapper"><h1 class="ch" id="ch16">Chapter 16 — Practical Exercises, Glossary & Revision Cheat Sheet</h1>
+
+<h2>16.1 Hands-On Coding Exercises</h2>
+<p>
+  These exercises reinforce your understanding of core financial engineering and full-stack patterns implemented in this codebase:
+</p>
+
+<h3>Exercise 1: Implement a Stop-Loss Market (SL-M) Order Type</h3>
+<p>
+  <strong>Goal:</strong> Add support for Stop-Loss Market (SL-M) orders that remain pending until a trigger price is hit, at which point they execute immediately as market orders.
+</p>
+<ul>
+  <li><strong>Hint:</strong> Add <code>'SL-M'</code> to <code>orderType</code> enum in <code>OrdersModel.js</code> and add a <code>triggerPrice</code> field.</li>
+  <li><strong>Hint:</strong> In <code>createOrderServices.js</code>, reserve funds or shares based on trigger price. In <code>checkPendingLimitOrders.js</code>, evaluate: For Buy SL-M, trigger when <code>LTP &gt;= triggerPrice</code>; For Sell SL-M, trigger when <code>LTP &lt;= triggerPrice</code>.</li>
+  <li><strong>Learning Outcome:</strong> Master conditional order triggers and multi-state order lifecycles.</li>
+</ul>
+
+<h3>Exercise 2: Implement Real-Time Margin Call Notification</h3>
+<p>
+  <strong>Goal:</strong> If a user's total unrealized intraday loss in MIS positions exceeds 80% of their available margin, dispatch an urgent high-priority notification via Socket.IO.
+</p>
+<ul>
+  <li><strong>Hint:</strong> Create a helper in <code>riskService.js</code> that sums <code>(CurrentPrice - AvgPrice) * Qty</code> across open positions whenever TrueData ticks arrive.</li>
+  <li><strong>Hint:</strong> If <code>unrealizedLoss &gt; 0.8 * availableBalance</code>, emit <code>margin-warning</code> over Socket.IO to room <code>user:{userId}</code>.</li>
+  <li><strong>Learning Outcome:</strong> Understand risk management thresholds and proactive event-driven alerts.</li>
+</ul>
+
+<h3>Exercise 3: Add Trailing Stop Loss to Strategy Backtesting</h3>
+<p>
+  <strong>Goal:</strong> Enhance <code>backtestEngine.js</code> to support dynamic trailing stop-loss percentages (e.g. 2% below highest peak price achieved since position entry).
+</p>
+<ul>
+  <li><strong>Hint:</strong> Maintain a <code>highestHigh</code> variable updated on each candle while in an active position. Calculate <code>stopPrice = highestHigh * (1 - trailPercent)</code>. Exit if candle low crosses below <code>stopPrice</code>.</li>
+  <li><strong>Learning Outcome:</strong> Experience dynamic risk-reward modeling in quantitative trading simulations.</li>
+</ul>
+
+<h2>16.2 Comprehensive Financial & Tech Glossary</h2>
+<table>
+  <thead>
+    <tr><th>Term</th><th>Definition & Project Context</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>CNC (Cash 'N Carry)</strong></td>
+      <td>Equity delivery product type where shares are purchased with 100% upfront capital and held indefinitely in the user's holdings portfolio.</td>
+    </tr>
+    <tr>
+      <td><strong>MIS (Margin Intraday Square-off)</strong></td>
+      <td>Intraday leveraged trading product where positions must be closed before market session close. Supported in the <code>positions</code> collection.</td>
+    </tr>
+    <tr>
+      <td><strong>LTP (Last Traded Price)</strong></td>
+      <td>The latest price at which a stock transaction occurred on the exchange. Broadcast by TrueData WebSocket ticks.</td>
+    </tr>
+    <tr>
+      <td><strong>Limit Order</strong></td>
+      <td>An order to buy or sell a stock at a specified price or better. Requires capital or stock reservation in the ledger while pending.</td>
+    </tr>
+    <tr>
+      <td><strong>Touchline Tick</strong></td>
+      <td>Live top-of-book market feed data containing symbol, LTP, volume, open, high, low, and previous close.</td>
+    </tr>
+    <tr>
+      <td><strong>VWAP / Average Price</strong></td>
+      <td>Volume-Weighted Average Price formula used to compute cost basis across multiple purchases of the same stock.</td>
+    </tr>
+    <tr>
+      <td><strong>Three-Tier Ledger</strong></td>
+      <td>The financial model separating liquid capital (<code>availableBalance</code>), deployed capital (<code>usedBalance</code>), and locked commitments (<code>reservedBalance</code>).</td>
+    </tr>
+    <tr>
+      <td><strong>Token Versioning</strong></td>
+      <td>A database-backed session invalidation pattern enabling immediate revocation of all active JWTs when logging out of other devices.</td>
+    </tr>
+    <tr>
+      <td><strong>Socket.IO Room</strong></td>
+      <td>An isolated channel for targeted message broadcasts (e.g. <code>user:{userId}</code> for personal notifications and <code>tournament:{id}</code> for leaderboards).</td>
+    </tr>
+    <tr>
+      <td><strong>Context Injection</strong></td>
+      <td>The technique of querying a user's holdings, positions, and orders on-the-fly and injecting them into the Gemini AI system prompt for personalized responses.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>16.3 Quick Revision Cheat Sheet</h2>
+<pre>
+┌───────────────────────────────┬────────────────────────────────────────────────────────┐
+│ Area                          │ Quick Summary & Key Files                              │
+├───────────────────────────────┼────────────────────────────────────────────────────────┤
+│ Architecture                  │ React 19 + Express 5 + MongoDB + Socket.IO on port 3000│
+│ Authentication                │ Mobile OTP (Twilio/Mock) -> JWT in HTTP-Only Cookie    │
+│ Order Flow                    │ UI -> orderController -> createOrderServices -> Mongo  │
+│ Limit Orders                  │ Lock cash/shares -> Live tick match -> Settle + Refund │
+│ Ledger Math                   │ Available + Used + Reserved = Total Account Capital    │
+│ Holdings vs Positions         │ CNC Delivery = Holdings, MIS Intraday = Positions      │
+│ Real-Time Ticks               │ TrueData WS -> in-memory Map -> limit triggers + Sockets│
+│ AI Assistant                  │ Parallel DB Context -> Gemini 2.5 Flash -> ChatModel   │
+│ Tournaments                   │ Independent Virtual Portfolio -> Live ROI Leaderboard  │
+│ Security                      │ Joi validation, bcrypt (salt 10), tokenVersion logout │
+└───────────────────────────────┴────────────────────────────────────────────────────────┘
+</pre>
+
+<h2>16.4 Final End-to-End Feature Summary</h2>
+<p>
+  Zerodha Clone represents a fully cohesive, full-stack trading application engineering effort. By faithfully modeling real-world order execution conditions, multi-tier balances, background tick evaluation, isolated tournament competitions, and contextual financial AI intelligence, the platform bridges the gap between basic web tutorials and real institutional-grade fintech software.
+</p>
+</div>
+
+</body>
+</html>
