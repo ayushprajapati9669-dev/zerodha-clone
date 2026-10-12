@@ -1,0 +1,32 @@
+flowchart TD
+  UI["TradePopup.jsx<br/>optional POST /api/risk/check-order"]
+  POST["POST /api/orders<br/>isLoggedIn + Joi"]
+  TX["runTransaction mongoose session"]
+  RISK["evaluateOrderRiskService<br/>strict: throw AppError 400"]
+  MKT{"orderType?"}
+
+  MB["Market BUY<br/>TrueData LTP<br/>debit availableBalance<br/>credit usedBalance<br/>createOrUpdate Holding/Position"]
+  MS["Market SELL<br/>qty - reservedQuantity<br/>reducePortfolioQuantity<br/>credit availableBalance"]
+  LB["Limit BUY<br/>debit available<br/>credit reservedBalance<br/>status pending"]
+  LS["Limit SELL<br/>reservedQuantity += qty<br/>status pending"]
+  DOC["Order.create<br/>Market completed reservationReleased true<br/>Limit pending reservationReleased false"]
+  SOCK["emitNewNotification after commit"]
+
+  TICK["TrueData processStockTick"]
+  CHK["checkPendingLimitOrders"]
+  CLAIM["findOneAndUpdate pending to processing"]
+  COND{"price vs limit?"}
+  EXE["executeLimitOrder transaction<br/>release reservation<br/>update portfolio"]
+  BACK["reset processing to pending"]
+  CXL["POST /cancel-limit<br/>only status pending"]
+
+  UI --> POST --> TX --> RISK --> MKT
+  MKT -->|Market buy| MB --> DOC
+  MKT -->|Market sell| MS --> DOC
+  MKT -->|Limit buy| LB --> DOC
+  MKT -->|Limit sell| LS --> DOC
+  DOC --> SOCK
+  TICK --> CHK --> CLAIM --> COND
+  COND -->|not met| BACK
+  COND -->|met| EXE
+  CXL -->|race vs processing| CLAIM

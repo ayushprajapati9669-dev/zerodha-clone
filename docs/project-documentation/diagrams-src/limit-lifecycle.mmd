@@ -1,0 +1,31 @@
+sequenceDiagram
+  participant UI as TradePopup
+  participant API as createOrder
+  participant DB as Mongo transaction
+  participant TD as TrueData tick
+  participant EX as executeLimitOrder
+  participant CX as cancelLimitOrder
+
+  UI->>API: POST Limit BUY qty * limitPrice
+  API->>DB: availableBalance -= amount
+  API->>DB: reservedBalance += amount
+  API->>DB: Order pending reservedAmount reservationReleased=false
+  Note over TD,EX: Live tick
+  TD->>EX: findOneAndUpdate pending to processing
+  alt LTP not at limit
+    EX->>DB: status back to pending
+  else LTP <= limit for buy
+    EX->>DB: reservedBalance -= reservedAmount
+    EX->>DB: usedBalance += tradeAmount at LTP
+    EX->>DB: leftover to availableBalance
+    EX->>DB: Holding/Position update
+    EX->>DB: status completed reservationReleased=true
+  end
+  Note over CX: User cancel only if still pending
+  UI->>CX: POST /api/orders/cancel-limit
+  alt still pending
+    CX->>DB: return reserved cash or reservedQuantity
+    CX->>DB: cancelled reservationReleased=true
+  else processing or completed
+    CX-->>UI: Order is not a pending limit order
+  end

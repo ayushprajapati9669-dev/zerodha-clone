@@ -1,0 +1,40 @@
+sequenceDiagram
+  actor User
+  participant FE as frontend 5173
+  participant API as Express /api/auth
+  participant OTP as otpService + Twilio Verify
+  participant DB as MongoDB
+  participant DA as dashboard 5174
+
+  Note over User,DA: Signup path SignUp.jsx
+  User->>FE: 10-digit mobile
+  FE->>API: POST /otp/send purpose=signup
+  API->>DB: rate limit 3 challenges / 5 min
+  API->>OTP: createChallenge sendSmsOtp
+  OTP-->>User: SMS OTP Twilio Verify
+  User->>FE: OTP
+  FE->>API: POST /register/verify-mobile
+  API->>OTP: verifyChallenge
+  API-->>FE: verificationToken JWT 15m
+  User->>FE: name email password
+  FE->>API: POST /register Joi + verificationToken
+  API->>DB: bcrypt password generateClientId Fund 0
+  API-->>FE: Set-Cookie token httpOnly 1d
+  FE->>DA: redirect localhost:5174/dashboard
+
+  Note over User,DA: OTP login Login.jsx
+  User->>FE: mobile
+  FE->>API: POST /otp/send purpose=login
+  API->>DB: user must exist generic error if not
+  FE->>API: POST /login/otp
+  API-->>FE: cookie sameSite lax
+  FE->>DA: redirect dashboard
+
+  Note over DA,API: Session restore
+  DA->>API: GET /me cookie
+  API->>API: isLoggedIn jwt.verify + tokenVersion
+  alt valid
+    API-->>DA: user name email mobile clientId status role
+  else missing/invalid/stale version
+    DA->>FE: window.location 5173/login
+  end

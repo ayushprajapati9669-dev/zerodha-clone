@@ -1,0 +1,23 @@
+flowchart TD
+  ADM["Admin POST /api/tournaments/admin/create<br/>adminOnly"]
+  LIST["User GET /api/tournaments"]
+  JOIN["POST /:id/join<br/>inviteCode if isPrivate<br/>unique tournamentId+userId"]
+  PART["TournamentParticipation<br/>availableCash = initialBalance<br/>virtualHoldings empty"]
+  LIFE["syncActiveTournamentsLifecycle 30s<br/>upcoming to active to completed"]
+  TRADE["POST /:id/trades<br/>orderLock 5s<br/>isolated cash/holdings"]
+  PEND["PENDING Limit<br/>reservedCash or reservedQuantity"]
+  TICK["checkPendingTournamentLimitOrders"]
+  LB["recalculateTournamentLeaderboard<br/>emit tournament-leaderboard-update"]
+  LEAVE["DELETE /:id/leave<br/>upcoming only"]
+  END["finalizeTournamentCompletion<br/>cancel PENDING<br/>closedSnapshot once<br/>finalRank"]
+  HIST["GET /my-history reads closedSnapshot"]
+
+  ADM --> LIST --> JOIN --> PART
+  PART --> TRADE
+  TRADE --> PEND
+  TRADE --> LB
+  LIFE -->|start| TRADE
+  TICK --> PEND
+  TICK --> LB
+  LEAVE --> PART
+  LIFE -->|endDate| END --> HIST

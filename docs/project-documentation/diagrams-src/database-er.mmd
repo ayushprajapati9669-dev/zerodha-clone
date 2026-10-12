@@ -1,0 +1,56 @@
+flowchart TB
+  U["User\nemail/mobile/clientId unique\npassword hashed select:false\nrole user|admin tokenVersion status"]
+
+  subgraph trading [Main paper-trading account]
+    F["Fund\navailable / used / reserved"]
+    FT["FundTransaction\nadd | withdraw"]
+    O["Order\nMarket|Limit CNC|MIS\npending|processing|completed|cancelled\nreservedAmount reservationReleased"]
+    H["Holding CNC\nqty reservedQuantity avg/current"]
+    P["Position MIS\nqty reservedQuantity type buy|sell"]
+  end
+
+  subgraph extras [User-owned tools]
+    WL["WatchlistList named lists"]
+    WLEG["Watchlist legacy single"]
+    PA["PriceAlert above|below"]
+    N["Notification"]
+    NP["NotificationPreference"]
+    C["Chat AI messages"]
+    PS["PortfolioSnapshot daily unique"]
+    RS["RiskSettings unique"]
+    RA["RiskAlert"]
+    J["Journal optional orderId"]
+    B["BacktestHistory"]
+    OTP["OtpChallenge by mobile\nno User ref"]
+  end
+
+  subgraph tour [Isolated tournament book]
+    T["Tournament"]
+    TP["TournamentParticipation\nvirtualHoldings reservedCash\norderLock closedSnapshot"]
+    TO["TournamentOrder\nPENDING|EXECUTED|CANCELLED|REJECTED"]
+  end
+
+  U --> F
+  U --> FT
+  U --> O
+  U --> H
+  U --> P
+  U --> WL
+  U --> WLEG
+  U --> PA
+  U --> N
+  U --> NP
+  U --> C
+  U --> PS
+  U --> RS
+  U --> RA
+  U --> J
+  U --> B
+  U -.-> OTP
+  U --> T
+  U --> TP
+  U --> TO
+  T --> TP
+  T --> TO
+  TP --> TO
+  O -.-> J

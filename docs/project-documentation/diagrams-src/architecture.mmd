@@ -1,0 +1,28 @@
+flowchart LR
+  subgraph clients [Browser clients]
+    FE["frontend/\nReact + Vite\nport 5173"]
+    DA["dashboard/\nReact + Vite\nport 5174"]
+  end
+
+  subgraph backend [backend/ Express 5]
+    API["index.js HTTP\nPORT or 3000"]
+    MW["isLoggedIn / adminOnly\nJoi validators"]
+    SVC["controllers + services"]
+    IO["Socket.IO\nuser and tournament rooms"]
+  end
+
+  DB[(MongoDB\nMONGO_URI)]
+  TD["TrueData WS + history"]
+  TW["Twilio Verify"]
+  GM["Gemini AI"]
+
+  FE -->|"cookie JWT CORS"| API
+  DA -->|"cookie JWT CORS"| API
+  DA -->|"socket.io-client"| IO
+  API --> MW --> SVC
+  API --- IO
+  SVC --> DB
+  SVC --> TD
+  SVC --> TW
+  SVC --> GM
+  IO -->|"new-notification\nleaderboard-update"| DA

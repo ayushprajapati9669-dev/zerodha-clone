@@ -1,0 +1,13 @@
+flowchart LR
+  A["Browser Axios<br/>withCredentials true"] --> B["CORS localhost 5173/5174"]
+  B --> C["cookie-parser token"]
+  C --> D{"Route middleware"}
+  D -->|public market| E["controller"]
+  D -->|isLoggedIn| F["jwt.verify JWT_SECRET<br/>User.findById tokenVersion"]
+  F -->|fail| G["401"]
+  F -->|ok req.user| H{"adminOnly?"}
+  H -->|role not admin| I["403"]
+  H -->|pass| E
+  E --> J["service + Mongoose"]
+  J --> K["JSON response"]
+  J --> L["Socket emit after commit"]

@@ -1,0 +1,21 @@
+{
+  "name": "project-documentation",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "scripts": {
+    "diagrams": "node scripts/render-diagrams.mjs",
+    "pdf": "node scripts/build-pdf.mjs",
+    "build": "node scripts/render-diagrams.mjs && node scripts/build-pdf.mjs"
+  },
+  "dependencies": {
+    "puppeteer": "^25.13.0"
+  }
+}

@@ -1,0 +1,23 @@
+sequenceDiagram
+  participant DA as dashboard AppContext
+  participant SO as socket.io-client :3000
+  participant IO as backend index.js Server
+  participant NS as notificationSocket.js
+  participant TS as tournamentService
+
+  DA->>SO: connect after currentUser
+  DA->>IO: emit join-user-room userId
+  Note over IO: No JWT check on join
+  IO->>IO: socket.join user:userId
+  DA->>IO: emit join-tournament-room tournamentId
+  IO->>IO: socket.join tournament:id
+
+  NS->>IO: io.to user:id emit new-notification
+  IO->>DA: new-notification
+  NS->>DA: notification:updated deleted read-all
+
+  TS->>IO: io.to tournament:id emit tournament-leaderboard-update
+  IO->>DA: PaperTrading live ranks
+
+  Note over DA: Quotes are NOT socket events
+  DA->>DA: GET /api/market/prices every 5s

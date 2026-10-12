@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  body { margin: 0; background: #fff; font-family: Segoe UI, Arial, sans-serif; }
+  .wrap { padding: 24px 32px 40px; page-break-after: always; }
+  h2 { color: #0b2545; font-size: 18px; margin: 0 0 16px; }
+  .diagram { background: #f7fafc; border: 1px solid #d9e2ec; border-radius: 8px; padding: 20px; display: inline-block; min-width: 1100px; }
+</style>
+</head>
+<body>
+<section class="wrap"><h2>Overall system architecture</h2><div class="diagram" id="architecture">flowchart LR
+  subgraph clients [Browser clients]
+    FE["frontend/\nReact + Vite\nport 5173"]
+    DA["dashboard/\nReact + Vite\nport 5174"]
+  end
+
+  subgraph backend [backend/ Express 5]
+    API["index.js HTTP\nPORT or 3000"]
+    MW["isLoggedIn / adminOnly\nJoi validators"]
+    SVC["controllers + services"]
+    IO["Socket.IO\nuser and tournament rooms"]
+  end
+
+  DB[(MongoDB\nMONGO_URI)]
+  TD["TrueData WS + history"]
+  TW["Twilio Verify"]
+  GM["Gemini AI"]
+
+  FE -->|"cookie JWT CORS"| API
+  DA -->|"cookie JWT CORS"| API
+  DA -->|"socket.io-client"| IO
+  API --> MW --> SVC
+  API --- IO
+  SVC --> DB
+  SVC --> TD
+  SVC --> TW
+  SVC --> GM
+  IO -->|"new-notification\nleaderboard-update"| DA
+</div></section>
+<section class="wrap"><h2>Database relationships (confirmed refs)</h2><div class="diagram" id="er">flowchart TB
+  U["User\nemail/mobile/clientId unique\npassword hashed select:false\nrole user|admin tokenVersion status"]
+
+  subgraph trading [Main paper-trading account]
+    F["Fund\navailable / used / reserved"]
+    FT["FundTransaction\nadd | withdraw"]
+    O["Order\nMarket|Limit CNC|MIS\npending|processing|completed|cancelled\nreservedAmount reservationReleased"]
+    H["Holding CNC\nqty reservedQuantity avg/current"]
+    P["Position MIS\nqty reservedQuantity type buy|sell"]
+  end
+
+  subgraph extras [User-owned tools]
+    WL["WatchlistList named lists"]
+    WLEG["Watchlist legacy single"]
+    PA["PriceAlert above|below"]
+    N["Notification"]
+    NP["NotificationPreference"]
+    C["Chat AI messages"]
+    PS["PortfolioSnapshot daily unique"]
+    RS["RiskSettings unique"]
+    RA["RiskAlert"]
+    J["Journal optional orderId"]
+    B["BacktestHistory"]
+    OTP["OtpChallenge by mobile\nno User ref"]
+  end
+
+  subgraph tour [Isolated tournament book]
+    T["Tournament"]
+    TP["TournamentParticipation\nvirtualHoldings reservedCash\norderLock closedSnapshot"]
+    TO["TournamentOrder\nPENDING|EXECUTED|CANCELLED|REJECTED"]
+  end
+
+  U --> F
+  U --> FT
+  U --> O
+  U --> H
+  U --> P
+  U --> WL
+  U --> WLEG
+  U --> PA
+  U --> N
+  U --> NP
+  U --> C
+  U --> PS
+  U --> RS
+  U --> RA
+  U --> J
+  U --> B
+  U -.-> OTP
+  U --> T
+  U --> TP
+  U --> TO
+  T --> TP
+  T --> TO
+  TP --> TO
+  O -.-> J
+</div></section>
+<section class="wrap"><h2>Signup and login sequence</h2><div class="diagram" id="auth">sequenceDiagram
+  actor User
+  participant FE as frontend 5173
+  participant API as Express /api/auth
+  participant OTP as otpService + Twilio Verify
+  participant DB as MongoDB
+  participant DA as dashboard 5174
+
+  Note over User,DA: Signup path SignUp.jsx
+  User->>FE: 10-digit mobile
+  FE->>API: POST /otp/send purpose=signup
+  API->>DB: rate limit 3 challenges / 5 min
+  API->>OTP: createChallenge sendSmsOtp
+  OTP-->>User: SMS OTP Twilio Verify
+  User->>FE: OTP
+  FE->>API: POST /register/verify-mobile
+  API->>OTP: verifyChallenge
+  API-->>FE: verificationToken JWT 15m
+  User->>FE: name email password
+  FE->>API: POST /register Joi + verificationToken
+  API->>DB: bcrypt password generateClientId Fund 0
+  API-->>FE: Set-Cookie token httpOnly 1d
+  FE->>DA: redirect localhost:5174/dashboard
+
+  Note over User,DA: OTP login Login.jsx
+  User->>FE: mobile
+  FE->>API: POST /otp/send purpose=login
+  API->>DB: user must exist generic error if not
+  FE->>API: POST /login/otp
+  API-->>FE: cookie sameSite lax
+  FE->>DA: redirect dashboard
+
+  Note over DA,API: Session restore
+  DA->>API: GET /me cookie
+  API->>API: isLoggedIn jwt.verify + tokenVersion
+  alt valid
+    API-->>DA: user name email mobile clientId status role
+  else missing/invalid/stale version
+    DA->>FE: window.location 5173/login
+  end
+</div></section>
+<section class="wrap"><h2>Order execution overview</h2><div class="diagram" id="order">flowchart TD
+  UI["TradePopup.jsx&lt;br/>optional POST /api/risk/check-order"]
+  POST["POST /api/orders&lt;br/>isLoggedIn + Joi"]
+  TX["runTransaction mongoose session"]
+  RISK["evaluateOrderRiskService&lt;br/>strict: throw AppError 400"]
+  MKT{"orderType?"}
+
+  MB["Market BUY&lt;br/>TrueData LTP&lt;br/>debit availableBalance&lt;br/>credit usedBalance&lt;br/>createOrUpdate Holding/Position"]
+  MS["Market SELL&lt;br/>qty - reservedQuantity&lt;br/>reducePortfolioQuantity&lt;br/>credit availableBalance"]
+  LB["Limit BUY&lt;br/>debit available&lt;br/>credit reservedBalance&lt;br/>status pending"]
+  LS["Limit SELL&lt;br/>reservedQuantity += qty&lt;br/>status pending"]
+  DOC["Order.create&lt;br/>Market completed reservationReleased true&lt;br/>Limit pending reservationReleased false"]
+  SOCK["emitNewNotification after commit"]
+
+  TICK["TrueData processStockTick"]
+  CHK["checkPendingLimitOrders"]
+  CLAIM["findOneAndUpdate pending to processing"]
+  COND{"price vs limit?"}
+  EXE["executeLimitOrder transaction&lt;br/>release reservation&lt;br/>update portfolio"]
+  BACK["reset processing to pending"]
+  CXL["POST /cancel-limit&lt;br/>only status pending"]
+
+  UI --> POST --> TX --> RISK --> MKT
+  MKT -->|Market buy| MB --> DOC
+  MKT -->|Market sell| MS --> DOC
+  MKT -->|Limit buy| LB --> DOC
+  MKT -->|Limit sell| LS --> DOC
+  DOC --> SOCK
+  TICK --> CHK --> CLAIM --> COND
+  COND -->|not met| BACK
+  COND -->|met| EXE
+  CXL -->|race vs processing| CLAIM
+</div></section>
+<section class="wrap"><h2>Limit order reservation lifecycle</h2><div class="diagram" id="limit">sequenceDiagram
+  participant UI as TradePopup
+  participant API as createOrder
+  participant DB as Mongo transaction
+  participant TD as TrueData tick
+  participant EX as executeLimitOrder
+  participant CX as cancelLimitOrder
+
+  UI->>API: POST Limit BUY qty * limitPrice
+  API->>DB: availableBalance -= amount
+  API->>DB: reservedBalance += amount
+  API->>DB: Order pending reservedAmount reservationReleased=false
+  Note over TD,EX: Live tick
+  TD->>EX: findOneAndUpdate pending to processing
+  alt LTP not at limit
+    EX->>DB: status back to pending
+  else LTP &lt;= limit for buy
+    EX->>DB: reservedBalance -= reservedAmount
+    EX->>DB: usedBalance += tradeAmount at LTP
+    EX->>DB: leftover to availableBalance
+    EX->>DB: Holding/Position update
+    EX->>DB: status completed reservationReleased=true
+  end
+  Note over CX: User cancel only if still pending
+  UI->>CX: POST /api/orders/cancel-limit
+  alt still pending
+    CX->>DB: return reserved cash or reservedQuantity
+    CX->>DB: cancelled reservationReleased=true
+  else processing or completed
+    CX-->>UI: Order is not a pending limit order
+  end
+</div></section>
+<section class="wrap"><h2>Tournament join-to-close lifecycle</h2><div class="diagram" id="tournament">flowchart TD
+  ADM["Admin POST /api/tournaments/admin/create&lt;br/>adminOnly"]
+  LIST["User GET /api/tournaments"]
+  JOIN["POST /:id/join&lt;br/>inviteCode if isPrivate&lt;br/>unique tournamentId+userId"]
+  PART["TournamentParticipation&lt;br/>availableCash = initialBalance&lt;br/>virtualHoldings empty"]
+  LIFE["syncActiveTournamentsLifecycle 30s&lt;br/>upcoming to active to completed"]
+  TRADE["POST /:id/trades&lt;br/>orderLock 5s&lt;br/>isolated cash/holdings"]
+  PEND["PENDING Limit&lt;br/>reservedCash or reservedQuantity"]
+  TICK["checkPendingTournamentLimitOrders"]
+  LB["recalculateTournamentLeaderboard&lt;br/>emit tournament-leaderboard-update"]
+  LEAVE["DELETE /:id/leave&lt;br/>upcoming only"]
+  END["finalizeTournamentCompletion&lt;br/>cancel PENDING&lt;br/>closedSnapshot once&lt;br/>finalRank"]
+  HIST["GET /my-history reads closedSnapshot"]
+
+  ADM --> LIST --> JOIN --> PART
+  PART --> TRADE
+  TRADE --> PEND
+  TRADE --> LB
+  LIFE -->|start| TRADE
+  TICK --> PEND
+  TICK --> LB
+  LEAVE --> PART
+  LIFE -->|endDate| END --> HIST
+</div></section>
+<section class="wrap"><h2>Socket.IO notification and leaderboard flow</h2><div class="diagram" id="socket">sequenceDiagram
+  participant DA as dashboard AppContext
+  participant SO as socket.io-client :3000
+  participant IO as backend index.js Server
+  participant NS as notificationSocket.js
+  participant TS as tournamentService
+
+  DA->>SO: connect after currentUser
+  DA->>IO: emit join-user-room userId
+  Note over IO: No JWT check on join
+  IO->>IO: socket.join user:userId
+  DA->>IO: emit join-tournament-room tournamentId
+  IO->>IO: socket.join tournament:id
+
+  NS->>IO: io.to user:id emit new-notification
+  IO->>DA: new-notification
+  NS->>DA: notification:updated deleted read-all
+
+  TS->>IO: io.to tournament:id emit tournament-leaderboard-update
+  IO->>DA: PaperTrading live ranks
+
+  Note over DA: Quotes are NOT socket events
+  DA->>DA: GET /api/market/prices every 5s
+</div></section>
+<section class="wrap"><h2>High-level HTTP request lifecycle</h2><div class="diagram" id="request">flowchart LR
+  A["Browser Axios&lt;br/>withCredentials true"] --> B["CORS localhost 5173/5174"]
+  B --> C["cookie-parser token"]
+  C --> D{"Route middleware"}
+  D -->|public market| E["controller"]
+  D -->|isLoggedIn| F["jwt.verify JWT_SECRET&lt;br/>User.findById tokenVersion"]
+  F -->|fail| G["401"]
+  F -->|ok req.user| H{"adminOnly?"}
+  H -->|role not admin| I["403"]
+  H -->|pass| E
+  E --> J["service + Mongoose"]
+  J --> K["JSON response"]
+  J --> L["Socket emit after commit"]
+</div></section>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: "base",
+    themeVariables: {
+      primaryColor: "#dbeafe",
+      primaryTextColor: "#0b2545",
+      primaryBorderColor: "#1d4ed8",
+      lineColor: "#334155",
+      secondaryColor: "#e2e8f0",
+      tertiaryColor: "#fff7ed",
+      fontFamily: "Segoe UI, Arial, sans-serif",
+      fontSize: "15px",
+    },
+    flowchart: { curve: "basis", htmlLabels: true, padding: 16, nodeSpacing: 40, rankSpacing: 50 },
+    sequence: { actorMargin: 40, messageMargin: 36, boxMargin: 8 },
+    er: { fontSize: 13 },
+  });
+  const nodes = [...document.querySelectorAll(".diagram")];
+  for (const node of nodes) {
+    const def = node.textContent;
+    node.removeAttribute("data-processed");
+    const { svg } = await mermaid.render("m-" + node.id, def);
+    node.innerHTML = svg;
+  }
+  window.__diagramsReady = true;
+</script>
+</body>
+</html>
